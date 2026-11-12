@@ -34,3 +34,20 @@ export const knownHosts = sqliteTable(
   },
   (t) => [uniqueIndex('known_hosts_server_idx').on(t.serverId)],
 );
+
+/** One row per Command Runner run. Params are already redacted; never store secrets or terminal input. */
+export const history = sqliteTable('history', {
+  id: text('id').primaryKey(),
+  serverId: text('server_id')
+    .notNull()
+    .references(() => servers.id, { onDelete: 'cascade' }),
+  actionId: text('action_id').notNull(),
+  title: text('title').notNull(),
+  params: text('params', { mode: 'json' }).$type<unknown>(),
+  commands: text('commands', { mode: 'json' }).$type<string[]>().notNull(),
+  risk: text('risk', { enum: ['safe', 'caution', 'danger'] }).notNull(),
+  exitCode: integer('exit_code'),
+  startedAt: integer('started_at').notNull(),
+  finishedAt: integer('finished_at'),
+  outputTail: text('output_tail').notNull().default(''),
+});

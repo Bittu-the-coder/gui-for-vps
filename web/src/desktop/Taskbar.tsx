@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { appById } from '../apps/registry';
+import { useLearn } from '../stores/learnStore';
 import { useServers } from '../stores/serverStore';
 import { openApp } from './openApp';
 import { ServerSwitcher } from './ServerSwitcher';
@@ -9,6 +10,7 @@ import { useDesktop } from './windowStore';
 export function Taskbar() {
   const { windows, focusedId, focus, minimize, theme, toggleTheme } = useDesktop();
   const lock = useServers((s) => s.lock);
+  const { open: learnOpen, toggle: toggleLearn } = useLearn();
   const [menu, setMenu] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
@@ -51,6 +53,15 @@ export function Taskbar() {
         })}
       </div>
 
+      <button
+        aria-label="Toggle Learn Mode"
+        aria-pressed={learnOpen}
+        title="Learn Mode: see the commands behind every action"
+        className={`${btn} ${learnOpen ? 'bg-sky-500/30' : ''}`}
+        onClick={toggleLearn}
+      >
+        🎓 Learn
+      </button>
       <button
         aria-label="Lock vault"
         title="Lock (disconnects all servers)"

@@ -3,12 +3,14 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { servers } from '../db/schema.js';
-import { execOnce } from '../ssh/exec.js';
 import { parseBody } from './util.js';
 
 const TrustBody = z.object({ fingerprint: z.string().min(1), replace: z.boolean().optional() });
 
-export function connectionRoutes(app: FastifyInstance, { db, vault, pool }: AppContext): void {
+export function connectionRoutes(
+  app: FastifyInstance,
+  { db, vault, pool, runner }: AppContext,
+): void {
   // Connecting needs decrypted credentials, so the vault must be unlocked.
   // (/api/servers/* is already guarded in serverRoutes; this covers /api/connections.)
   app.addHook('preHandler', async (req, reply) => {
@@ -47,10 +49,11 @@ export function connectionRoutes(app: FastifyInstance, { db, vault, pool }: AppC
     if (!exists(req.params.id)) return reply.code(404).send({ error: 'not_found' });
     const outcome = await pool.connect(req.params.id);
     if (outcome.status !== 'connected') return outcome;
-    const client = pool.getClient(req.params.id);
-    if (!client) return { status: 'error', message: 'connection dropped' };
-    const { stdout, code } = await execOnce(client, 'echo ok');
-    return stdout.trim() === 'ok' && code === 0
+    // "Test connection" is just the connection.test action, run through the Command Runner.
+    const r = runner.start(req.params.id, 'connection.test', {}, { record: false });
+    if (!r.ok) return { status: 'error', message: 'connection dropped' };
+    await r.run.done;
+    return r.run.exitCode === 0 && r.run.outputTail.trim() === 'ok'
       ? { status: 'connected' }
       : { status: 'error', message: 'unexpected test output' };
   });

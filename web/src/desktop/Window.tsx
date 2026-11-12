@@ -16,7 +16,7 @@ export function Window({ win }: { win: WindowState }) {
   // Maximized = a CSS-level override. The stored x/y/w/h stay untouched,
   // so restoring is trivial and react-rnd's drag is just disabled.
   const rect = win.maximized
-    ? { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight - TASKBAR_H }
+    ? { x: 0, y: 0, width: '100%', height: `calc(100% - ${TASKBAR_H}px)` }
     : { x: win.x, y: win.y, width: win.w, height: win.h };
 
   // A window tied to a server gets that server's colour as its border, so you can always

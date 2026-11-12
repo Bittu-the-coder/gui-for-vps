@@ -5,6 +5,7 @@ import '@xterm/xterm/css/xterm.css';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { api } from '../../lib/api';
+import { registerTerminal, terminalReady, type TerminalHandle } from './terminalBus';
 
 type Phase =
   | { kind: 'connecting' }
@@ -18,7 +19,17 @@ interface DangerPrompt {
 }
 
 /** One xterm.js terminal wired to one SSH shell over a WebSocket. */
-export function TerminalView({ serverId, active }: { serverId: string; active: boolean }) {
+export function TerminalView({
+  serverId,
+  windowId,
+  active,
+}: {
+  serverId: string;
+  windowId: string;
+  active: boolean;
+}) {
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const host = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -43,6 +54,18 @@ export function TerminalView({ serverId, active }: { serverId: string; active: b
     term.loadAddon(fit);
     term.open(el);
     termRef.current = term;
+    // Lets "Try it yourself" put text into this terminal (see terminalBus).
+    const handle: TerminalHandle = {
+      serverId,
+      windowId,
+      live: false,
+      isActive: () => activeRef.current,
+      paste: (text) => {
+        term.paste(text);
+        term.focus();
+      },
+    };
+    const unregister = registerTerminal(handle);
     const doFit = () => {
       // A hidden tab (display:none) has no size: fitting would collapse the terminal.
       if (el.clientWidth > 0 && el.clientHeight > 0) {
@@ -77,18 +100,22 @@ export function TerminalView({ serverId, active }: { serverId: string; active: b
       const m = msg.data;
       if (m.type === 'ready') {
         setPhase({ kind: 'live' });
-        if (active) term.focus();
+        handle.live = true;
+        terminalReady(handle);
+        if (activeRef.current) term.focus();
       } else if (m.type === 'exit') setPhase({ kind: 'ended', code: m.code });
       else if (m.type === 'error') setPhase({ kind: 'error', code: m.code, message: m.message });
       else if (m.type === 'danger') setDanger({ command: m.command, matches: m.matches });
     };
     // If the socket drops without a clear message (server restarted, network), say so.
-    ws.onclose = () =>
+    ws.onclose = () => {
+      handle.live = false;
       setPhase((p) =>
         p.kind === 'connecting' || p.kind === 'live'
           ? { kind: 'error', code: 'socket', message: 'The connection to GFV was lost.' }
           : p,
       );
+    };
 
     term.onData((d) => send(enc.encode(d)));
     term.onBinary((d) => send(Uint8Array.from(d, (c) => c.charCodeAt(0))));
@@ -109,6 +136,7 @@ export function TerminalView({ serverId, active }: { serverId: string; active: b
     ro.observe(el);
 
     return () => {
+      unregister();
       ro.disconnect();
       ws.onclose = null;
       ws.close();

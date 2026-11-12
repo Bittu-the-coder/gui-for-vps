@@ -78,7 +78,7 @@ export function TerminalApp({ windowId }: { windowId: string }) {
       <div className="min-h-0 flex-1">
         {tabs.map((t) => (
           <div key={t.id} className={t.id === activeId ? 'h-full' : 'hidden'}>
-            <TerminalView serverId={serverId} active={t.id === activeId} />
+            <TerminalView serverId={serverId} windowId={windowId} active={t.id === activeId} />
           </div>
         ))}
       </div>

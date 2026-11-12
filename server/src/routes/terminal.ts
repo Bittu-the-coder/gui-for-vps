@@ -17,7 +17,7 @@ const LOW_WATER = 1 << 18;
 
 /**
  * Interactive terminal: one WebSocket <-> one SSH shell channel (PTY) on the pooled connection.
- * This is the one place besides "Test connection" that runs commands outside the Command
+ * This is the one place that runs commands outside the Command
  * Runner, as CLAUDE.md allows for the raw PTY. Its input is still checked by the danger
  * detector. NEVER log terminal input or output: it can contain passwords.
  */

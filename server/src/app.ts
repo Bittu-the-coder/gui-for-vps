@@ -4,6 +4,7 @@ import type { Health } from '@gfv/shared';
 import { registerAuth } from './auth.js';
 import type { AppContext } from './context.js';
 import { connectionRoutes } from './routes/connections.js';
+import { runRoutes } from './routes/runs.js';
 import { serverRoutes } from './routes/servers.js';
 import { terminalRoutes } from './routes/terminal.js';
 import { vaultRoutes } from './routes/vault.js';
@@ -41,6 +42,7 @@ export async function buildApp(token: string, ctx: AppContext) {
   connectionRoutes(app, ctx);
   wsRoutes(app, ctx);
   terminalRoutes(app, ctx);
+  runRoutes(app, ctx);
 
   return app;
 }

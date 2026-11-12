@@ -1,5 +1,10 @@
 import {
   ConnectResultSchema,
+  HistoryResponseSchema,
+  PreviewSchema,
+  RunStartedSchema,
+  type ActionInfo,
+  type HistoryResponse,
   ConnStatusSchema,
   ServerSchema,
   VaultStatusSchema,
@@ -8,6 +13,8 @@ import {
   type VaultStatus,
 } from '@gfv/shared';
 import { z } from 'zod';
+
+export type RunPreview = z.infer<typeof PreviewSchema>;
 
 export class ApiError extends Error {
   constructor(
@@ -69,4 +76,15 @@ export const api = {
   disconnect: async (id: string) => void (await request('POST', `/api/servers/${id}/disconnect`)),
   trustHostKey: async (id: string, fingerprint: string, replace = false) =>
     void (await request('POST', `/api/servers/${id}/trust-host-key`, { fingerprint, replace })),
+
+  actions: async (): Promise<ActionInfo[]> =>
+    (await request('GET', '/api/actions')) as ActionInfo[],
+  previewRun: async (serverId: string, actionId: string, params: unknown): Promise<RunPreview> =>
+    PreviewSchema.parse(await request('POST', '/api/runs/preview', { serverId, actionId, params })),
+  startRun: async (serverId: string, actionId: string, params: unknown, confirmed: boolean) =>
+    RunStartedSchema.parse(
+      await request('POST', '/api/runs', { serverId, actionId, params, confirmed }),
+    ).runId,
+  history: async (): Promise<HistoryResponse> =>
+    HistoryResponseSchema.parse(await request('GET', '/api/history')),
 };

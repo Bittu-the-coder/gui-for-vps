@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import { ServersApp } from './servers/ServersApp';
 import { TerminalApp } from './terminal/TerminalApp';
-import { ClockApp, HelloApp, NotesApp } from './dummy';
+import { ActionsApp } from './actions/ActionsApp';
 
 export interface AppDef {
   id: string;
@@ -33,15 +33,12 @@ export const APPS: AppDef[] = [
     defaultSize: { w: 760, h: 460 },
     serverBound: true,
   },
-  { id: 'notes', title: 'Notes', icon: '📝', component: NotesApp, defaultSize: { w: 420, h: 320 } },
-  { id: 'clock', title: 'Clock', icon: '🕒', component: ClockApp, defaultSize: { w: 280, h: 160 } },
-  // Dummy app that is server-bound, to demo the window <-> server tie until real apps arrive.
   {
-    id: 'hello',
-    title: 'Hello',
-    icon: '👋',
-    component: HelloApp,
-    defaultSize: { w: 340, h: 200 },
+    id: 'actions',
+    title: 'Actions',
+    icon: '⚡',
+    component: ActionsApp,
+    defaultSize: { w: 560, h: 480 },
     serverBound: true,
   },
 ];
