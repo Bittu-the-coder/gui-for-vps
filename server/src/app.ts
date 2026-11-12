@@ -2,13 +2,30 @@ import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import type { Health } from '@gfv/shared';
 import { registerAuth } from './auth.js';
+import type { AppContext } from './context.js';
+import { connectionRoutes } from './routes/connections.js';
+import { serverRoutes } from './routes/servers.js';
+import { vaultRoutes } from './routes/vault.js';
+import { wsRoutes } from './routes/ws.js';
 
-export async function buildApp(token: string) {
+export async function buildApp(token: string, ctx: AppContext) {
   const app = Fastify({
     logger: {
       level: process.env.VITEST ? 'silent' : 'info',
       redact: ['req.headers.cookie', 'req.headers["x-gfv-token"]'],
     },
+  });
+  // Action endpoints (connect, disconnect, lock...) take no body; clients often still send
+  // `content-type: application/json`. Treat an empty body as "no body" instead of a 400.
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    if (body === '') return done(null, undefined);
+    try {
+      done(null, JSON.parse(body as string));
+    } catch {
+      const err = new Error('invalid JSON') as Error & { statusCode: number };
+      err.statusCode = 400;
+      done(err, undefined);
+    }
   });
   await app.register(websocket);
   registerAuth(app, token);
@@ -18,6 +35,10 @@ export async function buildApp(token: string) {
     name: 'gfv',
     version: '0.0.0',
   }));
+  vaultRoutes(app, ctx);
+  serverRoutes(app, ctx);
+  connectionRoutes(app, ctx);
+  wsRoutes(app, ctx);
 
   return app;
 }

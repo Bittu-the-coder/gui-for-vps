@@ -1,21 +1,27 @@
-import { useEffect, useState } from 'react';
-import { HealthSchema } from '@gfv/shared';
+import { useEffect } from 'react';
+import { UnlockScreen } from './components/UnlockScreen';
+import { Desktop } from './desktop/Desktop';
+import { useDesktop } from './desktop/windowStore';
+import { useServers } from './stores/serverStore';
 
 export function App() {
-  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
+  const theme = useDesktop((s) => s.theme);
+  const { vault, refreshVault } = useServers();
+
+  // Tailwind's `dark:` variant keys off this class on <html>. Lives here (not in Desktop)
+  // so the unlock screen is themed too.
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
   useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json())
-      .then((d) => setStatus(HealthSchema.safeParse(d).success ? 'ok' : 'error'))
-      .catch(() => setStatus('error'));
-  }, []);
+    void refreshVault().catch(() => {});
+  }, [refreshVault]);
 
-  return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 grid place-items-center">
-      <p className="text-sm">
-        GFV · API: {status === 'ok' ? '✅ OK' : status === 'loading' ? '…' : '❌ unreachable'}
-      </p>
-    </main>
-  );
+  if (!vault)
+    return (
+      <main className="grid h-screen place-items-center text-sm text-slate-500">Loading…</main>
+    );
+  if (!vault.unlocked) return <UnlockScreen initialized={vault.initialized} />;
+  return <Desktop />;
 }

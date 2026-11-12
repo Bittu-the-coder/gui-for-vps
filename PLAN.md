@@ -24,7 +24,7 @@ GFV gives you a desktop in the browser, similar to Puter, but it is connected to
 | Layer      | Choice                                                                         | Why                                                               |
 | ---------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
 | Language   | **TypeScript** everywhere                                                      | Matches MERN/PERN skills                                          |
-| Monorepo   | npm workspaces (or pnpm)                                                       | `server/`, `web/`, and `shared/` in one repo                      |
+| Monorepo   | pnpm workspaces                                                       | `server/`, `web/`, and `shared/` in one repo                      |
 | Backend    | **Node 22 + Fastify** + `@fastify/websocket`                                   | Fast, typed, good WebSocket support                               |
 | SSH / SFTP | **`ssh2`**                                                                     | The standard Node SSH library. Provides exec, PTY shell, and SFTP |
 | Database   | **SQLite** via `better-sqlite3` + **Drizzle ORM**                              | No install needed for local mode, and can move to Postgres later  |
@@ -158,7 +158,7 @@ Each item is a Command Runner action with an explanation, so the user sees exact
 ```
 gfv/
 ├─ PLAN.md
-├─ package.json              # npm workspaces
+├─ package.json              # pnpm workspaces
 ├─ shared/                   # types, zod schemas, action catalog, danger patterns
 │  └─ src/{actions/,danger.ts,types.ts}
 ├─ server/
@@ -184,7 +184,7 @@ gfv/
 
 | #   | Milestone                                                                                  | Done when                                                                   | Est.     |
 | --- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- | -------- |
-| M0  | Repo setup: workspaces, TS, lint, Vite, Fastify, test `sshd` container                     | `npm run dev` shows a blank page and the API health check passes            | 1–2 days |
+| M0  | Repo setup: workspaces, TS, lint, Vite, Fastify, test `sshd` container                     | `pnpm dev` shows a blank page and the API health check passes            | 1–2 days |
 | M1  | **Desktop shell**: windows, taskbar, start menu, window store                              | You can open, drag, resize, and close dummy apps                            | 3–4 days |
 | M2  | **Server Manager** + encryption + SSH pool + host-key check                                | You can add the test container and see "connected"                          | 3–4 days |
 | M3  | **Terminal** app (PTY over WebSocket)                                                      | Running `htop` works inside the browser                                     | 2–3 days |

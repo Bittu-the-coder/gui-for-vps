@@ -4,8 +4,8 @@ import { randomBytes } from 'node:crypto';
 
 const env = { ...process.env, GFV_TOKEN: randomBytes(32).toString('hex') };
 const procs = [
-  spawn('npm', ['run', 'dev', '-w', 'server'], { stdio: 'inherit', env }),
-  spawn('npm', ['run', 'dev', '-w', 'web'], { stdio: 'inherit', env }),
+  spawn('pnpm', ['--filter', '@gfv/server', 'dev'], { stdio: 'inherit', env }),
+  spawn('pnpm', ['--filter', '@gfv/web', 'dev'], { stdio: 'inherit', env }),
 ];
 const stop = () => procs.forEach((p) => p.kill());
 process.on('SIGINT', stop);

@@ -7,7 +7,14 @@ A browser-based desktop (Puter-style) for managing real VPS servers over SSH. It
 ## Status
 
 - **M0 (repo setup) is done.** Workspaces, strict TS, ESLint/Prettier, Vitest, Fastify `/api/health` with token auth, Vite + React + Tailwind page, and two Ubuntu 24.04 test VPSes.
-- **Next step: M1 (Desktop shell).** See PLAN.md §6. Work milestone by milestone, in order.
+- **M1 (Desktop shell) is done.** Zustand window store (`web/src/desktop/windowStore.ts`), app registry (`web/src/apps/registry.tsx`, add real apps there), react-rnd windows, taskbar, start menu, right-click menu, light/dark theme, layout persisted to localStorage. No shadcn/ui yet (add in M2).
+- **M2 (Server Manager) is done.**
+  - Crypto: `server/src/crypto/vault.ts` (scrypt + AES-256-GCM, canary check). The unlocked key lives only in server memory, so a browser reload does NOT lock; a server restart or the 🔒 button does.
+  - DB: `server/src/db/` (better-sqlite3 + Drizzle, migrations in `server/drizzle/`, data in `~/.gfv`, override with `GFV_HOME`).
+  - SSH: `server/src/ssh/` (pool with reconnect, TOFU host keys: unknown/changed keys abort the handshake and need an explicit trust call; a changed key also needs `replace: true`). `/api/ws` pushes connection statuses (Origin-checked).
+  - Web: unlock screen, Servers app (`web/src/apps/servers/`), taskbar server switcher, windows tied to a server (coloured border + badge via `serverBound` in the app registry). shadcn-style components in `web/src/components/ui/` (hand-written: button, input, label, dialog).
+  - `execOnce` (`server/src/ssh/exec.ts`) is the only ad-hoc SSH exec, used for "Test connection" until the Command Runner exists in M4.
+- **Next step: M3 (Terminal: PTY over WebSocket).** See PLAN.md §6. Work milestone by milestone, in order.
 - Update this Status section when a milestone is finished.
 
 ## About the user
@@ -23,7 +30,7 @@ A browser-based desktop (Puter-style) for managing real VPS servers over SSH. It
 - **Browser app, local mode first.** Node server binds to `127.0.0.1`, and `npx gfv` opens the browser. Hosted mode (deploying GFV on a VPS) is **v2**.
 - **No Puter fork** (AGPL, jQuery, cloud-storage backend). Build our own shell with `react-rnd`, using daedalOS only as a design reference.
 - **No Rust/GPUI.** A Tauri wrapper may come in v2.
-- Stack: npm workspaces (`shared/`, `server/`, `web/`), Node 22 + Fastify + `@fastify/websocket`, `ssh2`, SQLite (`better-sqlite3` + Drizzle), Zod, React 19 + Vite, Zustand, Tailwind + shadcn/ui, xterm.js, Monaco, uPlot. Tests use Vitest + Playwright, with Docker `sshd` containers as test VPSes.
+- Stack: pnpm workspaces (`shared/`, `server/`, `web/`), Node 22 + Fastify + `@fastify/websocket`, `ssh2`, SQLite (`better-sqlite3` + Drizzle), Zod, React 19 + Vite, Zustand, Tailwind + shadcn/ui, xterm.js, Monaco, uPlot. Tests use Vitest + Playwright, with Docker `sshd` containers as test VPSes.
 - Target Ubuntu/Debian servers first.
 - The name "GFV" is a working name and may change before release.
 
@@ -51,8 +58,8 @@ Learn Mode (show the explanation and commands), Safety Net (risk confirmation an
 
 ## Useful commands
 
-- `npm run dev`: start server (`127.0.0.1:4310`) + web (`localhost:5173`) with a shared random token (`scripts/dev.mjs`)
-- `npm test`: unit tests (Vitest)
-- `npm run typecheck` / `npm run lint` / `npm run format`
-- `npm run e2e`: Playwright against the Docker test servers (no specs yet)
+- `pnpm dev`: start server (`127.0.0.1:4310`) + web (`localhost:5173`) with a shared random token (`scripts/dev.mjs`)
+- `pnpm test`: unit tests (Vitest)
+- `pnpm typecheck` / `pnpm lint` / `pnpm format`
+- `pnpm e2e`: Playwright against the Docker test servers (no specs yet)
 - `docker compose -f e2e/docker-compose.yml up -d`: start test VPSes `vps-a` (port 2201) and `vps-b` (port 2202), user `gfv`, key `e2e/keys/id_test` (gitignored; create with `ssh-keygen -t ed25519 -N "" -f e2e/keys/id_test`)

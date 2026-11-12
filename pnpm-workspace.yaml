@@ -1,0 +1,11 @@
+packages:
+  - shared
+  - server
+  - web
+allowBuilds:
+  better-sqlite3: true
+  cpu-features: true
+  esbuild: true
+  ssh2: true
+minimumReleaseAgeExclude:
+  - prettier@3.10.1

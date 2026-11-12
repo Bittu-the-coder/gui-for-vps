@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { buildApp } from './app.js';
+import { testCtx } from './testUtil.js';
 
 describe('health + auth', () => {
   it('rejects requests without a token', async () => {
-    const app = await buildApp('secret');
+    const app = await buildApp('secret', testCtx());
     const res = await app.inject({ method: 'GET', url: '/api/health' });
     expect(res.statusCode).toBe(401);
   });
   it('rejects a wrong token', async () => {
-    const app = await buildApp('secret');
+    const app = await buildApp('secret', testCtx());
     const res = await app.inject({
       method: 'GET',
       url: '/api/health',
@@ -17,7 +18,7 @@ describe('health + auth', () => {
     expect(res.statusCode).toBe(401);
   });
   it('accepts the right token', async () => {
-    const app = await buildApp('secret');
+    const app = await buildApp('secret', testCtx());
     const res = await app.inject({
       method: 'GET',
       url: '/api/health',
