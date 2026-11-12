@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { ServersApp } from './servers/ServersApp';
 import { TerminalApp } from './terminal/TerminalApp';
+import { DevHubApp } from './devhub/DevHubApp';
 import { DockerApp } from './docker/DockerApp';
 import { MonitorApp } from './monitor/MonitorApp';
 import { ServicesApp } from './services/ServicesApp';
@@ -46,6 +47,14 @@ export const APPS: AppDef[] = [
     icon: '📁',
     component: FilesApp,
     defaultSize: { w: 760, h: 500 },
+    serverBound: true,
+  },
+  {
+    id: 'devhub',
+    title: 'Dev Hub',
+    icon: '🧰',
+    component: DevHubApp,
+    defaultSize: { w: 720, h: 560 },
     serverBound: true,
   },
   {

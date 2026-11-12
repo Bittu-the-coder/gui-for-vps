@@ -48,6 +48,11 @@ export interface ActionDef<S extends z.ZodTypeAny = z.ZodTypeAny> {
   quiet?: boolean;
   /** Risk that depends on the params (e.g. killing sshd). Can only raise the declared risk. */
   dynamicRisk?(params: z.infer<S>): { risk: Risk; reason: string } | undefined;
+  /**
+   * Takes minutes (package installs). Runs in a PTY so Cancel (Ctrl-C) stops the whole process
+   * group, gets a 30-minute timeout, and the run dialog offers Hide and Cancel.
+   */
+  longRunning?: boolean;
   /** Driven by a real app's UI (e.g. the File Manager): hidden from the temporary Actions app. */
   internal?: boolean;
   /** Simple inputs for the temporary Actions app. */

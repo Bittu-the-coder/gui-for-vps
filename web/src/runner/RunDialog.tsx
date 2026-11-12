@@ -15,14 +15,27 @@ import {
 import { api, ApiError, type RunPreview } from '../lib/api';
 import { useLearn } from '../stores/learnStore';
 import { useServers } from '../stores/serverStore';
-import { useRunDialog, type RunRequest } from './runStore';
+import {
+  trackRun,
+  untrackRun,
+  useRunDialog,
+  watchRun,
+  type ActiveRun,
+  type RunRequest,
+} from './runStore';
 
 type Phase =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
   | { kind: 'preview'; preview: RunPreview }
   | { kind: 'running'; preview: RunPreview }
-  | { kind: 'finished'; preview: RunPreview; exitCode: number | null; error?: string };
+  | {
+      kind: 'finished';
+      preview: RunPreview;
+      exitCode: number | null;
+      error?: string;
+      cancelled?: 'user' | 'timeout';
+    };
 
 interface Block {
   command: string;
@@ -52,20 +65,39 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
   const [understood, setUnderstood] = useState(false);
   const [blocks, setBlocks] = useState<Block[]>([]);
+  const [elapsed, setElapsed] = useState(0);
+  const [cancelling, setCancelling] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  // The run this dialog is showing, if it has not finished: when the dialog goes away (Hide, Esc),
+  // the run keeps going on the server and a quiet watcher takes over.
+  const activeRef = useRef<ActiveRun | null>(null);
   const outRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
     api
       .previewRun(request.serverId, request.actionId, request.params)
-      .then((preview) => !cancelled && setPhase({ kind: 'preview', preview }))
+      .then((preview) => {
+        if (cancelled) return;
+        if (request.resumeRunId) {
+          const started = useRunDialog.getState().active[`${request.serverId}:${request.actionId}`];
+          attach(request.resumeRunId, preview, started?.startedAt);
+        } else setPhase({ kind: 'preview', preview });
+      })
       .catch((e) => !cancelled && setPhase({ kind: 'error', message: describe(e) }));
     return () => {
       cancelled = true;
       wsRef.current?.close();
+      if (activeRef.current) watchRun(activeRef.current);
     };
   }, [request]);
+
+  useEffect(() => {
+    if (phase.kind !== 'running') return;
+    const base = activeRef.current?.startedAt ?? Date.now();
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - base) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [phase.kind]);
 
   useEffect(() => {
     outRef.current?.scrollTo({ top: outRef.current.scrollHeight });
@@ -83,13 +115,65 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
         ];
       });
     else if (m.type === 'done') {
-      setPhase({ kind: 'finished', preview, exitCode: m.exitCode });
+      settle();
+      setPhase({ kind: 'finished', preview, exitCode: m.exitCode, cancelled: m.cancelled });
       request.onDone?.(m.exitCode);
       void refreshLearn();
     } else if (m.type === 'error') {
+      settle();
       setPhase({ kind: 'finished', preview, exitCode: null, error: m.message });
       request.onDone?.(null);
       void refreshLearn();
+    }
+  };
+
+  /** The run ended: nothing left to watch in the background. */
+  const settle = () => {
+    activeRef.current = null;
+    untrackRun(request.serverId, request.actionId);
+  };
+
+  /** Connect to a run's output stream (the server replays what was already printed). */
+  const attach = (runId: string, preview: RunPreview, startedAt = Date.now()) => {
+    const active: ActiveRun = {
+      runId,
+      serverId: request.serverId,
+      actionId: request.actionId,
+      startedAt,
+      onDone: request.onDone,
+    };
+    activeRef.current = active;
+    trackRun(active);
+    setPhase({ kind: 'running', preview });
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${proto}//${location.host}/api/runs/${runId}/stream`);
+    wsRef.current = ws;
+    let finished = false;
+    ws.onmessage = (e) => {
+      const msg = RunMsgSchema.safeParse(JSON.parse(String(e.data)));
+      if (!msg.success) return;
+      if (msg.data.type === 'done' || msg.data.type === 'error') finished = true;
+      apply(msg.data, preview);
+    };
+    ws.onclose = () => {
+      if (!finished && wsRef.current === ws && activeRef.current)
+        setPhase({
+          kind: 'finished',
+          preview,
+          exitCode: null,
+          error: 'Lost the connection to GFV.',
+        });
+    };
+  };
+
+  const cancel = async () => {
+    const id = activeRef.current?.runId;
+    if (!id) return;
+    setCancelling(true);
+    try {
+      await api.cancelRun(id);
+    } catch {
+      /* it may just have finished */
     }
   };
 
@@ -103,25 +187,7 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
         request.params,
         preview.risk !== 'safe',
       );
-      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${proto}//${location.host}/api/runs/${runId}/stream`);
-      wsRef.current = ws;
-      let finished = false;
-      ws.onmessage = (e) => {
-        const msg = RunMsgSchema.safeParse(JSON.parse(String(e.data)));
-        if (!msg.success) return;
-        if (msg.data.type === 'done' || msg.data.type === 'error') finished = true;
-        apply(msg.data, preview);
-      };
-      ws.onclose = () => {
-        if (!finished)
-          setPhase({
-            kind: 'finished',
-            preview,
-            exitCode: null,
-            error: 'Lost the connection to GFV.',
-          });
-      };
+      attach(runId, preview);
     } catch (e) {
       setPhase({ kind: 'error', message: describe(e) });
     }
@@ -227,7 +293,21 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
         </div>
       )}
 
-      {phase.kind === 'running' && <p className="text-sm text-muted-foreground">Running…</p>}
+      {phase.kind === 'running' && (
+        <div className="text-sm text-muted-foreground">
+          <p>
+            {cancelling ? 'Stopping…' : 'Running…'} {Math.floor(elapsed / 60)}:
+            {String(elapsed % 60).padStart(2, '0')}
+          </p>
+          {phase.preview.longRunning && (
+            <p className="mt-1 text-xs">
+              You can hide this window: it keeps running. Cancelling in the middle of an install can
+              leave the package system locked; if the next install complains about dpkg, run{' '}
+              <code>sudo dpkg --configure -a</code>.
+            </p>
+          )}
+        </div>
+      )}
       {phase.kind === 'finished' && (
         <p
           role="status"
@@ -235,9 +315,13 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
         >
           {phase.error
             ? phase.error
-            : phase.exitCode === 0
-              ? '✓ Finished successfully (exit code 0)'
-              : `✗ Failed (exit code ${phase.exitCode}). Later commands were skipped.`}
+            : phase.cancelled === 'timeout'
+              ? '■ Stopped: it ran for more than 30 minutes.'
+              : phase.cancelled === 'user'
+                ? '■ Cancelled.'
+                : phase.exitCode === 0
+                  ? '✓ Finished successfully (exit code 0)'
+                  : `✗ Failed (exit code ${phase.exitCode}). Later commands were skipped.`}
         </p>
       )}
 
@@ -253,6 +337,15 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
               onClick={() => void run(phase.preview)}
             >
               {phase.preview.risk === 'safe' ? 'Run' : 'Run anyway'}
+            </Button>
+          </>
+        ) : phase.kind === 'running' && phase.preview.longRunning ? (
+          <>
+            <Button variant="secondary" onClick={onClose}>
+              Hide
+            </Button>
+            <Button variant="destructive" disabled={cancelling} onClick={() => void cancel()}>
+              {cancelling ? 'Stopping…' : 'Cancel'}
             </Button>
           </>
         ) : (

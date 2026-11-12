@@ -24,6 +24,7 @@ export const PreviewSchema = z.object({
   commands: z.array(z.string()),
   risk: RiskSchema,
   reasons: z.array(z.string()),
+  longRunning: z.boolean(),
   matches: z.array(
     z.object({
       id: z.string(),
@@ -54,6 +55,8 @@ export const RunMsgSchema = z.discriminatedUnion('type', [
     type: z.literal('done'),
     exitCode: z.number().nullable(),
     failedStep: z.number().int().optional(),
+    /** Stopped by the user (Cancel) or by the timeout. */
+    cancelled: z.enum(['user', 'timeout']).optional(),
   }),
   z.object({ type: z.literal('error'), message: z.string() }),
 ]);

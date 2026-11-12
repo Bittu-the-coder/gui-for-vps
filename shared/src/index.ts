@@ -12,3 +12,5 @@ export * from './metrics/lists.js';
 export * from './actions/monitor.js';
 export * from './actions/services.js';
 export * from './actions/docker.js';
+export * from './devhub/tools.js';
+export * from './devhub/detect.js';

@@ -14,12 +14,21 @@ export class Run {
   private subs = new Set<(m: RunMsg) => void>();
   private tail = '';
   finished = false;
+  /** Aborted by cancel(): the running step sends Ctrl-C and the loop stops. */
+  readonly abort = new AbortController();
+  cancelReason?: 'user' | 'timeout';
   exitCode: number | null = null;
   readonly done: Promise<void>;
   private resolveDone!: () => void;
 
   constructor(readonly id: string) {
     this.done = new Promise((r) => (this.resolveDone = r));
+  }
+
+  cancel(reason: 'user' | 'timeout'): void {
+    if (this.abort.signal.aborted) return;
+    this.cancelReason = reason;
+    this.abort.abort();
   }
 
   get outputTail(): string {

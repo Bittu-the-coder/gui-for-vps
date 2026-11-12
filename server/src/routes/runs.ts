@@ -85,6 +85,11 @@ export function runRoutes(
     return reply.code(status).send(r);
   });
 
+  /** Stop a running install/command. 200 if it was running, 404 if unknown or already finished. */
+  app.post<{ Params: { id: string } }>('/api/runs/:id/cancel', async (req, reply) =>
+    runner.cancel(req.params.id) ? { ok: true } : reply.code(404).send({ error: 'not_running' }),
+  );
+
   /** Replays everything so far, then streams live, then closes. */
   app.get<{ Params: { id: string } }>(
     '/api/runs/:id/stream',

@@ -18,6 +18,9 @@ broken.service         disabled enabled
 getty@.service         enabled enabled
 OUT
     ;;
+  is-active)
+    case "$2" in postgresql*) echo inactive; exit 3 ;; *) echo active ;; esac
+    ;;
   start|stop|restart|enable|disable)
     echo "shim: systemctl $1 $2 (ok)"
     ;;

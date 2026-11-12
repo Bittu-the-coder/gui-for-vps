@@ -140,4 +140,6 @@ export const api = {
     QueryResultSchema.parse(
       await request('POST', '/api/runs/query', { serverId, actionId, params }),
     ),
+
+  cancelRun: async (runId: string) => void (await request('POST', `/api/runs/${runId}/cancel`)),
 };

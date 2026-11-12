@@ -7,6 +7,7 @@ import {
   type ParamField,
   type Risk,
 } from './define.js';
+import { devhubActions } from './devhub.js';
 import { dockerActions } from './docker.js';
 import { monitorActions } from './monitor.js';
 import { serviceActions } from './services.js';
@@ -27,6 +28,7 @@ export const ACTIONS: ActionDef[] = [
   ...monitorActions,
   ...serviceActions,
   ...dockerActions,
+  ...devhubActions,
 ];
 
 export const actionById = (id: string): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
@@ -60,6 +62,8 @@ export interface Preview {
   /** Why it is risky: the action's own reason plus anything the detector found. */
   reasons: string[];
   matches: DangerMatch[];
+  /** Minutes-long run: the dialog offers Hide and Cancel. */
+  longRunning: boolean;
 }
 
 export type PreviewResult =
@@ -117,6 +121,7 @@ export function previewAction(
       risk,
       reasons,
       matches: unique,
+      longRunning: !!action.longRunning,
     },
   };
 }

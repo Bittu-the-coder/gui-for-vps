@@ -39,6 +39,7 @@ describe('M6 actions', () => {
   it('quiet actions are safe, internal, and have a default log length', () => {
     const quiet = ACTIONS.filter((a) => a.quiet);
     expect(quiet.map((a) => a.id).sort()).toEqual([
+      'devhub.detect',
       'docker.images',
       'docker.list',
       'docker.logs',
