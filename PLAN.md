@@ -87,7 +87,7 @@ How a run works:
 5. The commands run over SSH, and output streams live to the UI.
 6. The result is saved to `history`. If it succeeded and is recordable, it is also added to the current **recording**.
 
-Raw terminal commands are also checked by the **danger-pattern detector**, which warns but does not block.
+Raw terminal commands are also checked by the **danger-pattern detector**. In the terminal the server holds the Enter key on a dangerous line until the user clicks **Run anyway** (or **Cancel**), so it is a confirmation, never a hard block. Checking is paused inside full-screen programs (vim, htop) and is best effort: Tab completion and shell history can bypass it. It is a safety net for accidents, not a security boundary.
 
 ---
 
@@ -117,8 +117,7 @@ Raw terminal commands are also checked by the **danger-pattern detector**, which
 | **File Manager**          | Browse, upload (drag from your PC), download, new file/folder, rename, delete, chmod, hidden files toggle, path bar, and "open in Editor"            |
 | **Editor**                | Monaco with syntax highlighting, save over SFTP (snapshot first if it's a system config), and an unsaved-changes guard                               |
 | **System Monitor**        | Live CPU, RAM, disk, network, uptime, and OS info parsed from `/proc` and `df`. Process list with sort, search, and kill (with a Safety Net confirm) |
-| **Services**              | `systemctl` list, start/stop/restart/enable, and live logs (`journalctl -f`)                                                                         |
-| **Docker** (if installed) | List containers and images, start/stop/remove, and logs                                                                                              |
+| **Services**              | `systemctl` list, start/stop/restart/enable, and live logs (`journalctl - **Docker** (if installed) | List containers and images, start/stop/remove, and logs                                                                                              |
 
 ### 4.4 Dev Hub (one-click installs)
 
@@ -196,8 +195,7 @@ gfv/
 | M9  | Polish: onboarding tour, themes, error states, `npx gfv` packaging, README, and a demo GIF | A new user can go from install to their first server in under 3 minutes     | 4–5 days |
 
 **Total: about 6–8 weeks part-time.** Each milestone is a usable step, so we commit and demo after every one.
-
----
+--
 
 ## 7. Security (even in local mode)
 

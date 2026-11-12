@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import { ServersApp } from './servers/ServersApp';
+import { TerminalApp } from './terminal/TerminalApp';
 import { ClockApp, HelloApp, NotesApp } from './dummy';
 
 export interface AppDef {
@@ -23,6 +24,14 @@ export const APPS: AppDef[] = [
     component: ServersApp,
     defaultSize: { w: 600, h: 440 },
     singleton: true,
+  },
+  {
+    id: 'terminal',
+    title: 'Terminal',
+    icon: '⌨️',
+    component: TerminalApp,
+    defaultSize: { w: 760, h: 460 },
+    serverBound: true,
   },
   { id: 'notes', title: 'Notes', icon: '📝', component: NotesApp, defaultSize: { w: 420, h: 320 } },
   { id: 'clock', title: 'Clock', icon: '🕒', component: ClockApp, defaultSize: { w: 280, h: 160 } },

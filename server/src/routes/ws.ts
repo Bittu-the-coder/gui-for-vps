@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../context.js';
+import { originAllowed } from './origin.js';
 
 /**
  * Live push channel. The session token is already enforced by the global onRequest hook
@@ -9,9 +10,7 @@ import type { AppContext } from '../context.js';
  */
 export function wsRoutes(app: FastifyInstance, { pool, allowedOrigins }: AppContext): void {
   app.get('/api/ws', { websocket: true }, (socket, req) => {
-    const origin = req.headers.origin;
-    // Non-browser clients send no Origin; the token still protects them.
-    if (origin !== undefined && !allowedOrigins.includes(origin)) {
+    if (!originAllowed(req.headers.origin, allowedOrigins)) {
       socket.close(1008, 'origin not allowed');
       return;
     }

@@ -14,7 +14,13 @@ A browser-based desktop (Puter-style) for managing real VPS servers over SSH. It
   - SSH: `server/src/ssh/` (pool with reconnect, TOFU host keys: unknown/changed keys abort the handshake and need an explicit trust call; a changed key also needs `replace: true`). `/api/ws` pushes connection statuses (Origin-checked).
   - Web: unlock screen, Servers app (`web/src/apps/servers/`), taskbar server switcher, windows tied to a server (coloured border + badge via `serverBound` in the app registry). shadcn-style components in `web/src/components/ui/` (hand-written: button, input, label, dialog).
   - `execOnce` (`server/src/ssh/exec.ts`) is the only ad-hoc SSH exec, used for "Test connection" until the Command Runner exists in M4.
-- **Next step: M3 (Terminal: PTY over WebSocket).** See PLAN.md §6. Work milestone by milestone, in order.
+- **M3 (Terminal) is done.**
+  - Protocol (`shared/src/terminal.ts`): one WebSocket per tab at `/api/terminal/:serverId?cols=&rows=`. BINARY frames = raw terminal bytes, TEXT frames = JSON control messages (resize, danger_decision / ready, exit, error, danger). Each tab is its own SSH shell channel on the pooled connection.
+  - Server: `server/src/routes/terminal.ts`. Attaches the socket listeners immediately and queues input until the shell is ready (otherwise early keystrokes are lost). Backpressure pauses the SSH stream when the browser lags. Never log terminal input or output.
+  - Safety Net: `shared/src/danger.ts` (`detectDanger`, reused by the Command Runner in M4). `server/src/terminal/lineTracker.ts` rebuilds the typed line from keystrokes and holds Enter on a dangerous one until "Run anyway"/"Cancel"; `altScreen.ts` pauses checks inside vim/htop. Best effort only (Tab completion/history can bypass it).
+  - Web: `web/src/apps/terminal/` (xterm.js + fit addon, tabs stay mounted while hidden, danger bar, "Session ended" / "Reconnect" overlay, Ctrl+Shift+C copies). Reloading the browser ends the shells (no session reattach in v1).
+  - Not done yet: a `terminalBus` so Learn Mode can type a command into a terminal without running it (add it in M4 when "Try it yourself" needs it).
+- **Next step: M4 (Command Runner + Learn panel + danger detector wiring + history).** See PLAN.md §6. Work milestone by milestone, in order.
 - Update this Status section when a milestone is finished.
 
 ## About the user
@@ -39,7 +45,7 @@ A browser-based desktop (Puter-style) for managing real VPS servers over SSH. It
 **Every GUI action that changes or queries a server must go through the Command Runner** (`server/src/services/runner`), using an `Action` defined in `shared/src/actions/`. Each Action has:
 `id, title, explain, commands(params), risk ("safe"|"caution"|"danger"), riskReason?, snapshotPaths?, recordable`.
 
-Learn Mode (show the explanation and commands), Safety Net (risk confirmation and snapshots), history, and Recipes all depend on this. Do not run ad-hoc SSH commands from routes. Add an Action instead. The only exception is the raw interactive Terminal (PTY), and its input is still checked by the danger-pattern detector (warn, don't block).
+Learn Mode (show the explanation and commands), Safety Net (risk confirmation and snapshots), history, and Recipes all depend on this. Do not run ad-hoc SSH commands from routes. Add an Action instead. The only exception is the raw interactive Terminal (PTY), and its input is still checked by the danger-pattern detector (it holds Enter until the user confirms, but never hard-blocks).
 
 ## Security rules (apply even in local mode)
 
