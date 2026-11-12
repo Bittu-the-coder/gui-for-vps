@@ -1,0 +1,11 @@
+# Two throwaway Ubuntu 24.04 servers (user "gfv", key auth, passwordless sudo).
+# First time:  ssh-keygen -t ed25519 -N "" -f e2e/keys/id_test
+services:
+  vps-a:
+    build: { context: ., dockerfile: Dockerfile }
+    container_name: gfv-vps-a
+    ports: ['127.0.0.1:2201:22']
+  vps-b:
+    build: { context: ., dockerfile: Dockerfile }
+    container_name: gfv-vps-b
+    ports: ['127.0.0.1:2202:22']
