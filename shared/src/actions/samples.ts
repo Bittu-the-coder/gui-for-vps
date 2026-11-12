@@ -12,6 +12,7 @@ export const connectionTest = defineAction({
   commands: () => ['echo ok'],
   risk: 'safe',
   recordable: false,
+  internal: true,
 });
 
 export const systemUptime = defineAction({

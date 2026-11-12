@@ -1,12 +1,12 @@
 import { Rnd } from 'react-rnd';
 import { appById } from '../apps/registry';
 import { useServers } from '../stores/serverStore';
-import { useDesktop, type WindowState } from './windowStore';
+import { tryClose, useDesktop, type WindowState } from './windowStore';
 
 const TASKBAR_H = 44;
 
 export function Window({ win }: { win: WindowState }) {
-  const { focus, close, minimize, toggleMaximize, move, resize, focusedId } = useDesktop();
+  const { focus, minimize, toggleMaximize, move, resize, focusedId } = useDesktop();
   const server = useServers((s) => s.servers.find((x) => x.id === win.serverId));
   const app = appById(win.appId);
   if (!app) return null;
@@ -82,7 +82,7 @@ export function Window({ win }: { win: WindowState }) {
             <button
               aria-label="Close"
               className="px-2 hover:bg-red-500 hover:text-white"
-              onClick={() => close(win.id)}
+              onClick={() => tryClose(win.id)}
             >
               ✕
             </button>

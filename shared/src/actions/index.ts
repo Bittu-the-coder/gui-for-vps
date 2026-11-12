@@ -1,12 +1,21 @@
 import type { z } from 'zod';
 import { detectDanger, type DangerMatch } from '../danger.js';
 import { defineAction, type ActionDef, type ParamField, type Risk } from './define.js';
+import { chmodPath, makeDir, renamePath } from './files.js';
 import { clearAptCache, connectionTest, deletePath, systemUptime } from './samples.js';
 
 export { defineAction };
 export type { ActionDef, ParamField, Risk };
 
-export const ACTIONS: ActionDef[] = [connectionTest, systemUptime, clearAptCache, deletePath];
+export const ACTIONS: ActionDef[] = [
+  connectionTest,
+  systemUptime,
+  clearAptCache,
+  deletePath,
+  makeDir,
+  renamePath,
+  chmodPath,
+];
 
 export const actionById = (id: string): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
 
@@ -21,7 +30,7 @@ export interface ActionInfo {
 }
 
 export const listActions = (): ActionInfo[] =>
-  ACTIONS.filter((a) => a.id !== 'connection.test').map((a) => ({
+  ACTIONS.filter((a) => !a.internal).map((a) => ({
     id: a.id,
     title: a.title,
     explain: a.explain,

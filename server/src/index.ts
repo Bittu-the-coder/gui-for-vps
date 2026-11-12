@@ -3,6 +3,7 @@ import { createToken } from './auth.js';
 import { Vault } from './crypto/vault.js';
 import { openDb } from './db/index.js';
 import { dbVaultStore } from './db/vaultStore.js';
+import { SftpService } from './services/sftp/sftp.js';
 import { Runner } from './services/runner/runner.js';
 import { dbHostKeyStore } from './ssh/hostKeys.js';
 import { SshPool } from './ssh/pool.js';
@@ -24,6 +25,7 @@ const app = await buildApp(createToken(), {
   vault,
   pool,
   runner: new Runner(db, pool),
+  sftp: new SftpService(pool, db),
   allowedOrigins,
 });
 await app.listen({ host: HOST, port: PORT });

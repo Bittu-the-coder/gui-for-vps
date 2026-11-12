@@ -51,3 +51,17 @@ export const history = sqliteTable('history', {
   finishedAt: integer('finished_at'),
   outputTail: text('output_tail').notNull().default(''),
 });
+
+/** A copy of a config file taken on the SERVER before GFV overwrote it (restore UI comes in M8). */
+export const snapshots = sqliteTable('snapshots', {
+  id: text('id').primaryKey(),
+  serverId: text('server_id')
+    .notNull()
+    .references(() => servers.id, { onDelete: 'cascade' }),
+  /** The file that was about to be changed. */
+  path: text('path').notNull(),
+  /** Where the copy lives on the server. */
+  remotePath: text('remote_path').notNull(),
+  sizeBytes: integer('size_bytes').notNull(),
+  createdAt: integer('created_at').notNull(),
+});

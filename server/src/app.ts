@@ -4,6 +4,7 @@ import type { Health } from '@gfv/shared';
 import { registerAuth } from './auth.js';
 import type { AppContext } from './context.js';
 import { connectionRoutes } from './routes/connections.js';
+import { fileRoutes } from './routes/files.js';
 import { runRoutes } from './routes/runs.js';
 import { serverRoutes } from './routes/servers.js';
 import { terminalRoutes } from './routes/terminal.js';
@@ -29,6 +30,10 @@ export async function buildApp(token: string, ctx: AppContext) {
       done(err, undefined);
     }
   });
+  // File uploads and editor saves arrive as a raw byte stream (no body buffering, no multipart dependency).
+  app.addContentTypeParser('application/octet-stream', (_req, payload, done) =>
+    done(null, payload),
+  );
   await app.register(websocket);
   registerAuth(app, token);
 
@@ -43,6 +48,7 @@ export async function buildApp(token: string, ctx: AppContext) {
   wsRoutes(app, ctx);
   terminalRoutes(app, ctx);
   runRoutes(app, ctx);
+  fileRoutes(app, ctx);
 
   return app;
 }

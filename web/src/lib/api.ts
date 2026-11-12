@@ -1,5 +1,11 @@
 import {
   ConnectResultSchema,
+  ListResponseSchema,
+  ReadResponseSchema,
+  WriteResponseSchema,
+  type ListResponse,
+  type ReadResponse,
+  type WriteResponse,
   HistoryResponseSchema,
   PreviewSchema,
   RunStartedSchema,
@@ -34,6 +40,19 @@ export class ApiError extends Error {
       return b.issues.map((i) => `${i.path.join('.') || 'value'}: ${i.message}`).join('\n');
     return b?.error ?? `request failed (${this.status})`;
   }
+}
+
+/** Raw-bytes request (editor save, upload). Same error handling as `request`. */
+async function sendBytes(path: string, body: BodyInit): Promise<unknown> {
+  const res = await fetch(path, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/octet-stream' },
+    body,
+    credentials: 'same-origin',
+  });
+  const data: unknown = await res.json().catch(() => undefined);
+  if (!res.ok) throw new ApiError(res.status, data);
+  return data;
 }
 
 async function request(method: string, path: string, body?: unknown): Promise<unknown> {
@@ -87,4 +106,26 @@ export const api = {
     ).runId,
   history: async (): Promise<HistoryResponse> =>
     HistoryResponseSchema.parse(await request('GET', '/api/history')),
+
+  fsList: async (serverId: string, path: string): Promise<ListResponse> =>
+    ListResponseSchema.parse(
+      await request('GET', `/api/servers/${serverId}/fs/list?path=${encodeURIComponent(path)}`),
+    ),
+  fsRead: async (serverId: string, path: string): Promise<ReadResponse> =>
+    ReadResponseSchema.parse(
+      await request('GET', `/api/servers/${serverId}/fs/read?path=${encodeURIComponent(path)}`),
+    ),
+  fsSave: async (serverId: string, path: string, text: string): Promise<WriteResponse> =>
+    WriteResponseSchema.parse(
+      await sendBytes(`/api/servers/${serverId}/fs/file?path=${encodeURIComponent(path)}`, text),
+    ),
+  fsUpload: async (serverId: string, path: string, file: File): Promise<WriteResponse> =>
+    WriteResponseSchema.parse(
+      await sendBytes(
+        `/api/servers/${serverId}/fs/file?path=${encodeURIComponent(path)}&create=1`,
+        file,
+      ),
+    ),
+  fsDownloadUrl: (serverId: string, path: string) =>
+    `/api/servers/${serverId}/fs/download?path=${encodeURIComponent(path)}`,
 };

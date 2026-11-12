@@ -35,6 +35,8 @@ export interface ActionDef<S extends z.ZodTypeAny = z.ZodTypeAny> {
   recordable: boolean;
   /** Param names that hold secrets: redacted from history. */
   secretParams?: string[];
+  /** Driven by a real app's UI (e.g. the File Manager): hidden from the temporary Actions app. */
+  internal?: boolean;
   /** Simple inputs for the temporary Actions app. */
   fields?: ParamField[];
 }

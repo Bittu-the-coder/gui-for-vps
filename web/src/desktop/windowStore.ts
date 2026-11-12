@@ -15,6 +15,8 @@ export const WindowStateSchema = z.object({
   maximized: z.boolean(),
   /** Which server this window is tied to. Unused until M2. */
   serverId: z.string().optional(),
+  /** What the window was opened with (the Editor's file path). */
+  arg: z.string().optional(),
 });
 export type WindowState = z.infer<typeof WindowStateSchema>;
 
@@ -33,6 +35,8 @@ export interface OpenOptions {
   h: number;
   /** Server this window is tied to (shown as a coloured border + badge). */
   serverId?: string;
+  /** App-specific argument, e.g. the file path for the Editor. */
+  arg?: string;
 }
 
 interface DesktopState {
@@ -42,6 +46,7 @@ interface DesktopState {
   theme: 'light' | 'dark';
   open: (opts: OpenOptions) => string;
   close: (id: string) => void;
+  setTitle: (id: string, title: string) => void;
   focus: (id: string) => void;
   minimize: (id: string) => void;
   toggleMaximize: (id: string) => void;
@@ -68,11 +73,26 @@ function loadInitial(): Pick<DesktopState, 'windows' | 'nextZ' | 'theme'> {
   return { windows, nextZ: parsed.data.nextZ, theme: parsed.data.theme };
 }
 
+/** An app with unsaved work registers a guard; closing its window then asks first. */
+const closeGuards = new Map<string, () => boolean>();
+export function registerCloseGuard(windowId: string, isDirty: () => boolean): () => void {
+  closeGuards.set(windowId, isDirty);
+  return () => {
+    closeGuards.delete(windowId);
+  };
+}
+
+/** What the window's ✕ button calls: asks before discarding unsaved changes. */
+export function tryClose(windowId: string): void {
+  if (closeGuards.get(windowId)?.() && !window.confirm('Discard your unsaved changes?')) return;
+  useDesktop.getState().close(windowId);
+}
+
 export const useDesktop = create<DesktopState>((set, get) => ({
   ...loadInitial(),
   focusedId: null,
 
-  open: ({ appId, title, w, h, serverId }) => {
+  open: ({ appId, title, w, h, serverId, arg }) => {
     const { nextZ, windows } = get();
     const id = `win-${Date.now().toString(36)}-${idCounter++}`;
     // Cascade new windows so they don't stack exactly on top of each other.
@@ -89,6 +109,7 @@ export const useDesktop = create<DesktopState>((set, get) => ({
       minimized: false,
       maximized: false,
       ...(serverId ? { serverId } : {}),
+      ...(arg ? { arg } : {}),
     };
     set({ windows: { ...windows, [id]: win }, nextZ: nextZ + 1, focusedId: id });
     return id;
@@ -99,6 +120,12 @@ export const useDesktop = create<DesktopState>((set, get) => ({
     void _removed;
     restoreRects.delete(id);
     set({ windows: rest, focusedId: topVisibleId(rest) });
+  },
+
+  setTitle: (id, title) => {
+    const win = get().windows[id];
+    if (!win || win.title === title) return;
+    set({ windows: { ...get().windows, [id]: { ...win, title } } });
   },
 
   focus: (id) => {

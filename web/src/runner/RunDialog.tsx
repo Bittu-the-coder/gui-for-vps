@@ -35,7 +35,13 @@ export function RunDialogHost() {
   const close = useRunDialog((s) => s.close);
   return (
     <Dialog open={!!request} onOpenChange={(o) => !o && close()}>
-      {request && <RunDialogBody key={JSON.stringify(request)} request={request} onClose={close} />}
+      {request && (
+        <RunDialogBody
+          key={JSON.stringify([request.serverId, request.actionId, request.params])}
+          request={request}
+          onClose={close}
+        />
+      )}
     </Dialog>
   );
 }
@@ -78,9 +84,11 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
       });
     else if (m.type === 'done') {
       setPhase({ kind: 'finished', preview, exitCode: m.exitCode });
+      request.onDone?.(m.exitCode);
       void refreshLearn();
     } else if (m.type === 'error') {
       setPhase({ kind: 'finished', preview, exitCode: null, error: m.message });
+      request.onDone?.(null);
       void refreshLearn();
     }
   };

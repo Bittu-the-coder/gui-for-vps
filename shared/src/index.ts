@@ -6,3 +6,4 @@ export * from './shell.js';
 export * from './learn.js';
 export * from './runner.js';
 export * from './actions/index.js';
+export * from './files.js';

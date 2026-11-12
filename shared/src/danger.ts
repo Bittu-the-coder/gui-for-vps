@@ -75,6 +75,9 @@ const READONLY_CMDS = new Set([
 ]);
 const CRITICAL_CONFIG = /(^|\/)(sshd_config(\.d\/.*)?|sudoers(\.d\/.*)?|fstab)$/;
 
+/** Is this a file whose breakage can lock you out or stop the server booting? (sshd_config, sudoers, fstab) */
+export const isCriticalConfigPath = (path: string): boolean => CRITICAL_CONFIG.test(path);
+
 const base = (t: string) => t.split('/').pop() ?? t;
 const normPath = (t: string) => (/^\/+$/.test(t) ? '/' : t.replace(/\/+$/, ''));
 

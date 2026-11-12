@@ -1,0 +1,375 @@
+import type { FileEntry } from '@gfv/shared';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PromptDialog, type PromptSpec } from '../../components/PromptDialog';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { useDesktop } from '../../desktop/windowStore';
+import { api, ApiError } from '../../lib/api';
+import { cn } from '../../lib/utils';
+import { requestRun } from '../../runner/runStore';
+import { openEditor } from '../editor/openEditor';
+import { formatSize, joinPath, nameError, parentPath } from './paths';
+
+type SortKey = 'name' | 'size' | 'mtime';
+
+const ICON = { dir: '📁', file: '📄', symlink: '🔗', other: '▫️' } as const;
+
+function describe(e: unknown): string {
+  if (e instanceof ApiError) {
+    const code = (e.body as { error?: string })?.error;
+    if (code === 'not_connected')
+      return 'This server is not connected. Connect it in the Servers app.';
+    if (code === 'permission_denied') return 'Permission denied: your SSH user cannot access this.';
+    if (code === 'not_found') return 'Not found.';
+    if (code === 'exists') return 'A file with that name already exists.';
+    if (code === 'too_large') return 'Too large (the limit is 100 MB).';
+    return e.detail;
+  }
+  return 'Could not reach the GFV server.';
+}
+
+export function FilesApp({ windowId }: { windowId: string }) {
+  const serverId = useDesktop((s) => s.windows[windowId]?.serverId);
+  const [path, setPath] = useState('~');
+  const [pathInput, setPathInput] = useState('');
+  const [entries, setEntries] = useState<FileEntry[]>([]);
+  const [home, setHome] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'name', dir: 1 });
+  const [prompt, setPrompt] = useState<PromptSpec | null>(null);
+  const [note, setNote] = useState('');
+  const [dragging, setDragging] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const loadSeq = useRef(0);
+
+  const load = useCallback(
+    async (target: string) => {
+      if (!serverId) return;
+      const seq = ++loadSeq.current;
+      setLoading(true);
+      setError('');
+      try {
+        const r = await api.fsList(serverId, target);
+        if (seq !== loadSeq.current) return; // a newer navigation won
+        setEntries(r.entries);
+        setHome(r.home);
+        setPath(r.path);
+        setPathInput(r.path);
+        setSelected(null);
+      } catch (e) {
+        if (seq === loadSeq.current) setError(describe(e));
+      } finally {
+        if (seq === loadSeq.current) setLoading(false);
+      }
+    },
+    [serverId],
+  );
+
+  useEffect(() => {
+    void load('~');
+  }, [load]);
+
+  const visible = useMemo(() => {
+    const list = entries.filter((e) => showHidden || !e.name.startsWith('.'));
+    const isDir = (e: FileEntry) => e.type === 'dir' || e.targetIsDir;
+    return list.sort((a, b) => {
+      if (!!isDir(a) !== !!isDir(b)) return isDir(a) ? -1 : 1; // folders first
+      const v = sort.key === 'name' ? a.name.localeCompare(b.name) : a[sort.key] - b[sort.key];
+      return v * sort.dir;
+    });
+  }, [entries, showHidden, sort]);
+
+  if (!serverId) {
+    return (
+      <div className="grid h-full place-items-center p-4 text-center text-sm text-muted-foreground">
+        Pick a server in the taskbar, then open a new Files window.
+      </div>
+    );
+  }
+
+  const sel = entries.find((e) => e.path === selected);
+  const refresh = () => void load(path);
+  const afterRun = () => void load(path);
+
+  const open = (e: FileEntry) => {
+    if (e.type === 'dir' || e.targetIsDir) void load(e.path);
+    else if (e.type === 'file' || e.type === 'symlink') openEditor(serverId, e.path);
+  };
+
+  const askName = (spec: Omit<PromptSpec, 'validate' | 'label'> & { label?: string }) =>
+    setPrompt({ label: 'Name', validate: nameError, ...spec });
+
+  const newFolder = () =>
+    askName({
+      title: 'New folder',
+      submitLabel: 'Create',
+      onSubmit: (name) =>
+        requestRun({
+          serverId,
+          actionId: 'files.mkdir',
+          params: { path: joinPath(path, name) },
+          onDone: afterRun,
+        }),
+    });
+
+  const rename = (e: FileEntry) =>
+    askName({
+      title: `Rename ${e.name}`,
+      label: 'New name',
+      initial: e.name,
+      submitLabel: 'Rename',
+      onSubmit: (name) =>
+        requestRun({
+          serverId,
+          actionId: 'files.rename',
+          params: { from: e.path, to: joinPath(path, name) },
+          onDone: afterRun,
+        }),
+    });
+
+  const chmod = (e: FileEntry) =>
+    setPrompt({
+      title: `Permissions for ${e.name}`,
+      description: 'Three digits: owner, group, everyone else. 4 = read, 2 = write, 1 = run.',
+      label: 'Mode',
+      initial: e.mode,
+      submitLabel: 'Review…',
+      checkbox: e.type === 'dir' ? 'Apply to everything inside too' : undefined,
+      validate: (v) => (/^[0-7]{3,4}$/.test(v) ? null : 'Use 3 or 4 digits from 0 to 7, like 644.'),
+      onSubmit: (mode, recursive) =>
+        requestRun({
+          serverId,
+          actionId: 'files.chmod',
+          params: { path: e.path, mode, recursive },
+          onDone: afterRun,
+        }),
+    });
+
+  const remove = (e: FileEntry) =>
+    requestRun({
+      serverId,
+      actionId: 'files.delete-path',
+      params: { path: e.path },
+      onDone: afterRun,
+    });
+
+  const upload = async (files: File[]) => {
+    const names = new Set(entries.map((e) => e.name));
+    const problems: string[] = [];
+    let done = 0;
+    for (const f of files) {
+      setNote(`Uploading ${f.name} (${done + 1}/${files.length})…`);
+      if (names.has(f.name)) {
+        problems.push(`${f.name}: already exists here, rename or delete it first`);
+        continue;
+      }
+      try {
+        await api.fsUpload(serverId, joinPath(path, f.name), f);
+        done++;
+      } catch (e) {
+        problems.push(`${f.name}: ${describe(e)}`);
+      }
+    }
+    setNote(
+      [done ? `Uploaded ${done} file${done === 1 ? '' : 's'}.` : '', ...problems]
+        .filter(Boolean)
+        .join(' '),
+    );
+    refresh();
+  };
+
+  const sortBy = (key: SortKey) =>
+    setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
+  const arrow = (key: SortKey) => (sort.key === key ? (sort.dir === 1 ? ' ▲' : ' ▼') : '');
+  const tb = 'h-7 px-2 text-xs';
+
+  return (
+    <div
+      className={cn('relative flex h-full flex-col text-sm', dragging && 'bg-sky-500/10')}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+          e.preventDefault();
+          setDragging(true);
+        }
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget === e.target) setDragging(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        void upload([...e.dataTransfer.files].filter((f) => f.size > 0 || f.type !== ''));
+      }}
+    >
+      <div className="flex shrink-0 items-center gap-1 border-b border-border p-1.5">
+        <Button
+          variant="ghost"
+          className={tb}
+          aria-label="Up"
+          onClick={() => void load(parentPath(path))}
+        >
+          ↑
+        </Button>
+        <Button
+          variant="ghost"
+          className={tb}
+          aria-label="Home"
+          onClick={() => void load(home || '~')}
+        >
+          🏠
+        </Button>
+        <Button variant="ghost" className={tb} aria-label="Refresh" onClick={refresh}>
+          ⟳
+        </Button>
+        <form
+          className="min-w-0 flex-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void load(pathInput.trim() || '/');
+          }}
+        >
+          <Input
+            aria-label="Path"
+            className="h-7 text-xs"
+            value={pathInput}
+            onChange={(e) => setPathInput(e.target.value)}
+          />
+        </form>
+      </div>
+
+      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-border p-1.5">
+        <Button variant="outline" className={tb} onClick={newFolder}>
+          New folder
+        </Button>
+        <Button variant="outline" className={tb} onClick={() => fileInput.current?.click()}>
+          Upload
+        </Button>
+        <input
+          ref={fileInput}
+          type="file"
+          multiple
+          hidden
+          data-testid="upload-input"
+          onChange={(e) => {
+            void upload([...(e.target.files ?? [])]);
+            e.target.value = '';
+          }}
+        />
+        <span className="mx-1 h-4 w-px bg-border" />
+        <Button variant="outline" className={tb} disabled={!sel} onClick={() => sel && rename(sel)}>
+          Rename
+        </Button>
+        <Button variant="outline" className={tb} disabled={!sel} onClick={() => sel && chmod(sel)}>
+          Permissions
+        </Button>
+        <Button
+          variant="outline"
+          className={tb}
+          disabled={!sel || sel.type === 'dir'}
+          onClick={() => {
+            if (!sel) return;
+            const a = document.createElement('a');
+            a.href = api.fsDownloadUrl(serverId, sel.path);
+            a.download = sel.name;
+            a.click();
+          }}
+        >
+          Download
+        </Button>
+        <Button
+          variant="destructive"
+          className={tb}
+          disabled={!sel}
+          onClick={() => sel && remove(sel)}
+        >
+          Delete
+        </Button>
+        <label className="ml-auto flex items-center gap-1 text-xs">
+          <input
+            type="checkbox"
+            checked={showHidden}
+            onChange={(e) => setShowHidden(e.target.checked)}
+          />
+          Hidden files
+        </label>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto">
+        {error ? (
+          <div className="grid h-full place-items-center p-4 text-center">
+            <div className="flex flex-col items-center gap-2">
+              <p role="alert" className="text-red-600 dark:text-red-400">
+                {error}
+              </p>
+              <Button size="sm" onClick={refresh}>
+                Try again
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <table className="w-full table-fixed text-xs">
+            <thead className="sticky top-0 bg-muted text-left">
+              <tr>
+                <th className="cursor-pointer px-2 py-1" onClick={() => sortBy('name')}>
+                  Name{arrow('name')}
+                </th>
+                <th
+                  className="w-20 cursor-pointer px-2 py-1 text-right"
+                  onClick={() => sortBy('size')}
+                >
+                  Size{arrow('size')}
+                </th>
+                <th className="w-36 cursor-pointer px-2 py-1" onClick={() => sortBy('mtime')}>
+                  Modified{arrow('mtime')}
+                </th>
+                <th className="w-14 px-2 py-1">Mode</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((e) => (
+                <tr
+                  key={e.path}
+                  data-testid="file-row"
+                  className={cn(
+                    'cursor-default select-none hover:bg-accent',
+                    selected === e.path && 'bg-sky-500/25',
+                  )}
+                  onClick={() => setSelected(e.path)}
+                  onDoubleClick={() => open(e)}
+                >
+                  <td className="truncate px-2 py-1">
+                    {ICON[e.type]} {e.name}
+                  </td>
+                  <td className="px-2 py-1 text-right tabular-nums">
+                    {e.type === 'dir' ? '' : formatSize(e.size)}
+                  </td>
+                  <td className="px-2 py-1 tabular-nums">{new Date(e.mtime).toLocaleString()}</td>
+                  <td className="px-2 py-1 font-mono">{e.mode}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {!error && !loading && visible.length === 0 && (
+          <p className="p-4 text-center text-xs text-muted-foreground">
+            This folder is empty. Drag files here to upload them.
+          </p>
+        )}
+      </div>
+
+      <div className="shrink-0 border-t border-border px-2 py-1 text-xs text-muted-foreground">
+        {loading ? 'Loading…' : note || `${visible.length} items`}
+      </div>
+
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 grid place-items-center border-2 border-dashed border-sky-500 text-sm font-medium">
+          Drop to upload to {path}
+        </div>
+      )}
+      {prompt && <PromptDialog spec={prompt} onClose={() => setPrompt(null)} />}
+    </div>
+  );
+}

@@ -15,6 +15,13 @@
       "when": 1794497106942,
       "tag": "0001_motionless_sauron",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794498340202,
+      "tag": "0002_outstanding_smasher",
+      "breakpoints": true
     }
   ]
 }

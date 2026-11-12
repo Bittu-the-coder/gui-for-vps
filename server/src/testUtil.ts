@@ -2,6 +2,7 @@ import type { AppContext } from './context.js';
 import { Vault } from './crypto/vault.js';
 import { openDb } from './db/index.js';
 import { dbVaultStore } from './db/vaultStore.js';
+import { SftpService } from './services/sftp/sftp.js';
 import { Runner } from './services/runner/runner.js';
 import { dbHostKeyStore } from './ssh/hostKeys.js';
 import { SshPool } from './ssh/pool.js';
@@ -16,6 +17,7 @@ export function testCtx(): AppContext {
     vault,
     pool,
     runner: new Runner(db, pool),
+    sftp: new SftpService(pool, db),
     allowedOrigins: ['http://localhost:5173'],
   };
 }
