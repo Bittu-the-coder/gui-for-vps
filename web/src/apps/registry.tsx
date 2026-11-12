@@ -1,6 +1,9 @@
 import type { ComponentType } from 'react';
 import { ServersApp } from './servers/ServersApp';
 import { TerminalApp } from './terminal/TerminalApp';
+import { DockerApp } from './docker/DockerApp';
+import { MonitorApp } from './monitor/MonitorApp';
+import { ServicesApp } from './services/ServicesApp';
 import { EditorApp } from './editor/EditorApp';
 import { FilesApp } from './files/FilesApp';
 import { ActionsApp } from './actions/ActionsApp';
@@ -43,6 +46,30 @@ export const APPS: AppDef[] = [
     icon: '📁',
     component: FilesApp,
     defaultSize: { w: 760, h: 500 },
+    serverBound: true,
+  },
+  {
+    id: 'monitor',
+    title: 'Monitor',
+    icon: '📊',
+    component: MonitorApp,
+    defaultSize: { w: 820, h: 600 },
+    serverBound: true,
+  },
+  {
+    id: 'services',
+    title: 'Services',
+    icon: '⚙️',
+    component: ServicesApp,
+    defaultSize: { w: 760, h: 520 },
+    serverBound: true,
+  },
+  {
+    id: 'docker',
+    title: 'Docker',
+    icon: '🐳',
+    component: DockerApp,
+    defaultSize: { w: 760, h: 520 },
     serverBound: true,
   },
   {

@@ -7,3 +7,8 @@ export * from './learn.js';
 export * from './runner.js';
 export * from './actions/index.js';
 export * from './files.js';
+export * from './metrics/sample.js';
+export * from './metrics/lists.js';
+export * from './actions/monitor.js';
+export * from './actions/services.js';
+export * from './actions/docker.js';

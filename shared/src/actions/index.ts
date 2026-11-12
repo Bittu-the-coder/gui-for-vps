@@ -1,11 +1,20 @@
 import type { z } from 'zod';
 import { detectDanger, type DangerMatch } from '../danger.js';
-import { defineAction, type ActionDef, type ParamField, type Risk } from './define.js';
+import {
+  defineAction,
+  type ActionCtx,
+  type ActionDef,
+  type ParamField,
+  type Risk,
+} from './define.js';
+import { dockerActions } from './docker.js';
+import { monitorActions } from './monitor.js';
+import { serviceActions } from './services.js';
 import { chmodPath, makeDir, renamePath } from './files.js';
 import { clearAptCache, connectionTest, deletePath, systemUptime } from './samples.js';
 
 export { defineAction };
-export type { ActionDef, ParamField, Risk };
+export type { ActionCtx, ActionDef, ParamField, Risk };
 
 export const ACTIONS: ActionDef[] = [
   connectionTest,
@@ -15,6 +24,9 @@ export const ACTIONS: ActionDef[] = [
   makeDir,
   renamePath,
   chmodPath,
+  ...monitorActions,
+  ...serviceActions,
+  ...dockerActions,
 ];
 
 export const actionById = (id: string): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
@@ -62,7 +74,14 @@ export type PreviewResult =
 const RANK: Record<Risk, number> = { safe: 0, caution: 1, danger: 2 };
 
 /** Pure: validate params, build the commands, work out the final risk. Runs nothing. */
-export function previewAction(actionId: string, rawParams: unknown): PreviewResult {
+/** Used when we can't ask the server (preview before connecting) and in tests. */
+export const DEFAULT_CTX: ActionCtx = { sudo: 'sudo -n ' };
+
+export function previewAction(
+  actionId: string,
+  rawParams: unknown,
+  ctx: ActionCtx = DEFAULT_CTX,
+): PreviewResult {
   const action = actionById(actionId);
   if (!action) return { ok: false, error: 'unknown_action' };
   const parsed = (action.params as z.ZodTypeAny).safeParse(rawParams ?? {});
@@ -73,14 +92,17 @@ export function previewAction(actionId: string, rawParams: unknown): PreviewResu
       issues: parsed.error.issues.map((i) => ({ path: i.path, message: i.message })),
     };
   }
-  const commands = action.commands(parsed.data);
+  const commands = action.commands(parsed.data, ctx);
   // The detector may RAISE the declared risk, never lower it.
   const matches = commands.flatMap((c) => detectDanger(c));
   const seen = new Set<string>();
   const unique = matches.filter((m) => !seen.has(m.id) && seen.add(m.id));
   let risk: Risk = action.risk;
   for (const m of unique) if (RANK[m.level] > RANK[risk]) risk = m.level;
+  const dyn = action.dynamicRisk?.(parsed.data);
+  if (dyn && RANK[dyn.risk] > RANK[risk]) risk = dyn.risk;
   const reasons = [
+    ...(dyn ? [dyn.reason] : []),
     ...(action.riskReason && action.risk !== 'safe' ? [action.riskReason] : []),
     ...unique.map((m) => m.reason),
   ];

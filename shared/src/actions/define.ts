@@ -2,6 +2,12 @@ import type { z } from 'zod';
 
 export type Risk = 'safe' | 'caution' | 'danger';
 
+/** Facts about the target server that change how a command is written. */
+export interface ActionCtx {
+  /** "" when connected as root, "sudo -n " otherwise (-n: never hang on a password prompt). */
+  sudo: string;
+}
+
 /** A text field the (temporary) Actions app renders for a param. */
 export interface ParamField {
   name: string;
@@ -25,7 +31,7 @@ export interface ActionDef<S extends z.ZodTypeAny = z.ZodTypeAny> {
    * The real shell commands. Params MUST go through shellQuote(); never concatenate raw values.
    * (Method syntax on purpose: it lets ActionDef<specific> be stored as ActionDef<ZodTypeAny>.)
    */
-  commands(params: z.infer<S>): string[];
+  commands(params: z.infer<S>, ctx: ActionCtx): string[];
   /** Declared risk. The detector can raise it, never lower it. */
   risk: Risk;
   riskReason?: string;
@@ -35,6 +41,13 @@ export interface ActionDef<S extends z.ZodTypeAny = z.ZodTypeAny> {
   recordable: boolean;
   /** Param names that hold secrets: redacted from history. */
   secretParams?: string[];
+  /**
+   * Read-only polling query (metrics, lists, logs). Runs through POST /api/runs/query: no
+   * dialog, not saved to history. Must be `safe`.
+   */
+  quiet?: boolean;
+  /** Risk that depends on the params (e.g. killing sshd). Can only raise the declared risk. */
+  dynamicRisk?(params: z.infer<S>): { risk: Risk; reason: string } | undefined;
   /** Driven by a real app's UI (e.g. the File Manager): hidden from the temporary Actions app. */
   internal?: boolean;
   /** Simple inputs for the temporary Actions app. */
@@ -42,5 +55,6 @@ export interface ActionDef<S extends z.ZodTypeAny = z.ZodTypeAny> {
 }
 
 export function defineAction<S extends z.ZodTypeAny>(def: ActionDef<S>): ActionDef<S> {
+  if (def.quiet && def.risk !== 'safe') throw new Error(`${def.id}: quiet actions must be safe`);
   return def;
 }

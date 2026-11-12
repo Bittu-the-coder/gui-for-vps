@@ -38,16 +38,39 @@ export function runRoutes(
   app.post('/api/runs/preview', async (req, reply) => {
     const body = parseBody(PreviewBodySchema, req.body, reply);
     if (!body) return;
-    const r = runner.preview(body.actionId, body.params);
+    const r = await runner.preview(body.serverId, body.actionId, body.params);
     if (!r.ok) return reply.code(r.error === 'unknown_action' ? 404 : 400).send(r);
     return r.preview;
+  });
+
+  /**
+   * Quiet read-only query for polling views (monitor, services, docker). Only `quiet` actions.
+   * Always 200 with the exit code: the app decides what "docker not installed" means.
+   */
+  app.post('/api/runs/query', async (req, reply) => {
+    const body = parseBody(PreviewBodySchema, req.body, reply);
+    if (!body) return;
+    if (!serverExists(body.serverId)) return reply.code(404).send({ error: 'server_not_found' });
+    const r = await runner.query(body.serverId, body.actionId, body.params);
+    if (r.ok) return { exitCode: r.exitCode, stdout: r.stdout, stderr: r.stderr };
+    const status =
+      r.error === 'unknown_action'
+        ? 404
+        : r.error === 'invalid_params'
+          ? 400
+          : r.error === 'not_quiet'
+            ? 403
+            : r.error === 'timeout'
+              ? 504
+              : 409;
+    return reply.code(status).send(r);
   });
 
   app.post('/api/runs', async (req, reply) => {
     const body = parseBody(RunBodySchema, req.body, reply);
     if (!body) return;
     if (!serverExists(body.serverId)) return reply.code(404).send({ error: 'server_not_found' });
-    const r = runner.start(body.serverId, body.actionId, body.params, {
+    const r = await runner.start(body.serverId, body.actionId, body.params, {
       confirmed: body.confirmed,
     });
     if (r.ok) return { runId: r.run.id };

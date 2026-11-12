@@ -20,6 +20,12 @@ import {
 } from '@gfv/shared';
 import { z } from 'zod';
 
+const QueryResultSchema = z.object({
+  exitCode: z.number(),
+  stdout: z.string(),
+  stderr: z.string(),
+});
+export type QueryResult = z.infer<typeof QueryResultSchema>;
 export type RunPreview = z.infer<typeof PreviewSchema>;
 
 export class ApiError extends Error {
@@ -128,4 +134,10 @@ export const api = {
     ),
   fsDownloadUrl: (serverId: string, path: string) =>
     `/api/servers/${serverId}/fs/download?path=${encodeURIComponent(path)}`,
+
+  /** Quiet read-only query (monitor, services, docker). Exit code and output come back as data. */
+  query: async (serverId: string, actionId: string, params: unknown = {}): Promise<QueryResult> =>
+    QueryResultSchema.parse(
+      await request('POST', '/api/runs/query', { serverId, actionId, params }),
+    ),
 };

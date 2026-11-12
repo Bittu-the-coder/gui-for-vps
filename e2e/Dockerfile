@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssh-server 
 COPY keys/id_test.pub /tmp/id_test.pub
 RUN mkdir -p /home/gfv/.ssh && cp /tmp/id_test.pub /home/gfv/.ssh/authorized_keys \
     && chown -R gfv:gfv /home/gfv/.ssh && chmod 700 /home/gfv/.ssh && chmod 600 /home/gfv/.ssh/authorized_keys
+# No systemd or Docker daemon in these containers: shims print canned output for the M6 apps.
+COPY shims/ /usr/local/bin/
+RUN chmod +x /usr/local/bin/systemctl /usr/local/bin/journalctl /usr/local/bin/docker
 EXPOSE 22
 # Host keys are generated at container start, so every (re)created container has its own,
 # like a real VPS. Recreating a container is how we test the "host key changed" flow.

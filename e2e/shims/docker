@@ -1,0 +1,15 @@
+#!/bin/sh
+# Test shim: no Docker daemon in the test container. Canned output shaped like the real CLI.
+case "$1" in
+  ps)
+    echo '{"ID":"a1b2c3","Names":"web","Image":"nginx:1.27","State":"running","Status":"Up 2 hours","Ports":"0.0.0.0:8080->80/tcp"}'
+    echo '{"ID":"d4e5f6","Names":"db","Image":"postgres:16","State":"exited","Status":"Exited (0) 3 days ago","Ports":""}'
+    ;;
+  images)
+    echo '{"ID":"i1","Repository":"nginx","Tag":"1.27","Size":"192MB","CreatedSince":"2 weeks ago"}'
+    echo '{"ID":"i2","Repository":"postgres","Tag":"16","Size":"431MB","CreatedSince":"3 weeks ago"}'
+    ;;
+  logs) echo "shim: log line from container $4" ;;
+  start|stop|restart|rm|rmi) echo "$2" ;;
+  *) echo "shim: unsupported docker $*" >&2; exit 1 ;;
+esac

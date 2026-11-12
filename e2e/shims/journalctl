@@ -1,0 +1,5 @@
+#!/bin/sh
+# Test shim for journalctl -u <unit> -n <lines> --no-pager
+echo "-- Logs begin --"
+echo "Nov 12 10:00:00 host $2[1]: started"
+echo "Nov 12 10:00:05 host $2[1]: handled request"

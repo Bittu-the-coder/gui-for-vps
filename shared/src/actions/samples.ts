@@ -32,7 +32,7 @@ export const clearAptCache = defineAction({
   explain:
     'Deletes the .deb files apt downloaded earlier, which frees disk space. Installed programs are not touched; apt simply downloads again next time it needs a file.',
   params: z.object({}),
-  commands: () => ['sudo -n apt-get clean', 'df -h /'],
+  commands: (_p, ctx) => [`${ctx.sudo}apt-get clean`, 'df -h /'],
   risk: 'caution',
   riskReason: 'Runs with sudo (administrator rights) and deletes files under /var/cache/apt.',
   recordable: true,

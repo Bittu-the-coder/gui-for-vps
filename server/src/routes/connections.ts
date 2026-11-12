@@ -50,7 +50,7 @@ export function connectionRoutes(
     const outcome = await pool.connect(req.params.id);
     if (outcome.status !== 'connected') return outcome;
     // "Test connection" is just the connection.test action, run through the Command Runner.
-    const r = runner.start(req.params.id, 'connection.test', {}, { record: false });
+    const r = await runner.start(req.params.id, 'connection.test', {}, { record: false });
     if (!r.ok) return { status: 'error', message: 'connection dropped' };
     await r.run.done;
     return r.run.exitCode === 0 && r.run.outputTail.trim() === 'ok'
