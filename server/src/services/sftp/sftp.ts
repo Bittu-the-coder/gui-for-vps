@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import type { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { EDITOR_MAX_BYTES, type FileEntry, type FsErrorCode } from '@gfv/shared';
@@ -187,10 +188,9 @@ export class SftpService {
     if (existing?.type === 'dir') throw new SftpError('is_directory');
     if (existing && opts.createOnly) throw new SftpError('exists');
 
-    let snapshotted = false;
+    let backup: { id: string; remotePath: string } | undefined;
     if (existing && needsSnapshot(path, this.opts.snapshotPrefixes)) {
-      await this.snapshot(serverId, path, existing.size);
-      snapshotted = true;
+      backup = await this.snapshot(serverId, path, existing.size);
     }
 
     const s = await this.sftp(serverId);
@@ -209,12 +209,32 @@ export class SftpService {
         s.createWriteStream(path, { flags: opts.createOnly ? 'wx' : 'w' }),
       );
     } catch (e) {
+      // The save failed (e.g. permission denied), so the file is unchanged: drop the backup
+      // we just made instead of leaving a pointless entry in the timeline.
+      if (backup) await this.discardSnapshot(serverId, backup);
       throw wrap(e);
     }
-    return { size, snapshotted };
+    return { size, snapshotted: !!backup };
   }
 
-  private async snapshot(serverId: string, path: string, size: number): Promise<void> {
+  private async discardSnapshot(
+    serverId: string,
+    b: { id: string; remotePath: string },
+  ): Promise<void> {
+    this.db.delete(snapshots).where(eq(snapshots.id, b.id)).run();
+    try {
+      const s = await this.sftp(serverId);
+      await call<void>((cb) => s.unlink(b.remotePath, cb));
+    } catch {
+      /* best effort */
+    }
+  }
+
+  private async snapshot(
+    serverId: string,
+    path: string,
+    size: number,
+  ): Promise<{ id: string; remotePath: string }> {
     const s = await this.sftp(serverId);
     const gfvDir = `${await this.home(serverId)}/.gfv`;
     const dir = `${gfvDir}/snapshots`;
@@ -233,9 +253,11 @@ export class SftpService {
       // If we can't make the safety copy, we must not go on to overwrite the original.
       throw new SftpError('failed', `Could not save a snapshot first: ${wrap(e).message}`);
     }
+    const id = randomUUID();
     this.db
       .insert(snapshots)
-      .values({ id: randomUUID(), serverId, path, remotePath, sizeBytes: size, createdAt: when })
+      .values({ id, serverId, path, remotePath, sizeBytes: size, createdAt: when })
       .run();
+    return { id, remotePath };
   }
 }

@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import { detectDanger, type DangerMatch } from '../danger.js';
+import { snapshotCommands, snapshotFileName } from '../snapshots.js';
 import {
   defineAction,
   type ActionCtx,
@@ -11,7 +12,7 @@ import { devhubActions } from './devhub.js';
 import { dockerActions } from './docker.js';
 import { monitorActions } from './monitor.js';
 import { serviceActions } from './services.js';
-import { chmodPath, makeDir, renamePath } from './files.js';
+import { chmodPath, makeDir, renamePath, restoreSnapshot, writeRoot } from './files.js';
 import { clearAptCache, connectionTest, deletePath, systemUptime } from './samples.js';
 
 export { defineAction };
@@ -25,6 +26,8 @@ export const ACTIONS: ActionDef[] = [
   makeDir,
   renamePath,
   chmodPath,
+  writeRoot,
+  restoreSnapshot,
   ...monitorActions,
   ...serviceActions,
   ...dockerActions,
@@ -64,6 +67,8 @@ export interface Preview {
   matches: DangerMatch[];
   /** Minutes-long run: the dialog offers Hide and Cancel. */
   longRunning: boolean;
+  /** Files that get a backup first (their backup commands are already in `commands`). */
+  snapshots: { path: string; name: string }[];
 }
 
 export type PreviewResult =
@@ -96,7 +101,12 @@ export function previewAction(
       issues: parsed.error.issues.map((i) => ({ path: i.path, message: i.message })),
     };
   }
-  const commands = action.commands(parsed.data, ctx);
+  const snapPaths = action.snapshotPaths?.(parsed.data) ?? [];
+  const runId = ctx.runId ?? 'preview';
+  const commands = [
+    ...snapPaths.flatMap((p) => snapshotCommands(p, runId, ctx.sudo)),
+    ...action.commands(parsed.data, ctx),
+  ];
   // The detector may RAISE the declared risk, never lower it.
   const matches = commands.flatMap((c) => detectDanger(c));
   const seen = new Set<string>();
@@ -122,6 +132,7 @@ export function previewAction(
       reasons,
       matches: unique,
       longRunning: !!action.longRunning,
+      snapshots: snapPaths.map((path) => ({ path, name: snapshotFileName(runId, path) })),
     },
   };
 }

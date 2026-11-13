@@ -2,6 +2,7 @@ import type { AppContext } from './context.js';
 import { Vault } from './crypto/vault.js';
 import { openDb } from './db/index.js';
 import { dbVaultStore } from './db/vaultStore.js';
+import { RecipeService } from './services/recipes/recipes.js';
 import { SftpService } from './services/sftp/sftp.js';
 import { Runner } from './services/runner/runner.js';
 import { dbHostKeyStore } from './ssh/hostKeys.js';
@@ -12,12 +13,16 @@ export function testCtx(): AppContext {
   const db = openDb(':memory:');
   const vault = new Vault(dbVaultStore(db), { N: 2 ** 10, r: 8, p: 1 });
   const pool = new SshPool(db, vault, dbHostKeyStore(db));
+  const runner = new Runner(db, pool);
+  const recipes = new RecipeService(db);
+  runner.onSuccess(recipes.recordRun);
   return {
     db,
     vault,
     pool,
-    runner: new Runner(db, pool),
+    runner,
     sftp: new SftpService(pool, db),
+    recipes,
     allowedOrigins: ['http://localhost:5173'],
   };
 }

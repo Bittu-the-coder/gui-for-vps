@@ -127,6 +127,17 @@ describe.skipIf(!reachable)('files over SFTP (vps-a)', () => {
     expect(rows[0]!.remotePath).toMatch(/^\/home\/gfv\/\.gfv\/snapshots\//);
   });
 
+  it('a refused save (read-only file) leaves no stray backup behind', async () => {
+    const f = `${dir}/conf/readonly.conf`;
+    expect((await put(f, 'locked')).statusCode).toBe(200);
+    expect(await run('files.chmod', { path: f, mode: '444' })).toBe(0);
+    const before = ctx.db.select().from(snapshots).all().length;
+    const r = await put(f, 'changed');
+    expect(r.statusCode).toBe(403);
+    expect(ctx.db.select().from(snapshots).all()).toHaveLength(before);
+    expect((await call('GET', fs('read', f))).json()).toMatchObject({ content: 'locked' });
+  });
+
   it('maps errors: missing, directory, permission, bad path, wrong content type', async () => {
     expect((await call('GET', fs('read', `${dir}/nope`))).statusCode).toBe(404);
     expect((await call('GET', fs('read', dir))).statusCode).toBe(400);

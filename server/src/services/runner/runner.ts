@@ -7,12 +7,13 @@ import {
   previewAction,
   redactParams,
   redactSecrets,
+  SNAPSHOT_SAVED,
   type Preview,
   type RunMsg,
 } from '@gfv/shared';
 import type { Client } from 'ssh2';
 import type { Db } from '../../db/index.js';
-import { history } from '../../db/schema.js';
+import { history, snapshots } from '../../db/schema.js';
 import type { SshPool } from '../../ssh/pool.js';
 import { Run } from './run.js';
 
@@ -48,6 +49,11 @@ export type QueryResult =
  */
 export class Runner {
   private runs = new Map<string, Run>();
+  private successListeners: ((e: {
+    serverId: string;
+    actionId: string;
+    params: unknown;
+  }) => void)[] = [];
   // Per live connection (a reconnect is a new Client, so it is detected again).
   private ctxs = new WeakMap<Client, Promise<ActionCtx>>();
 
@@ -58,6 +64,42 @@ export class Runner {
 
   get(id: string): Run | undefined {
     return this.runs.get(id);
+  }
+
+  /** Called after every run that finished successfully and is not a silent one (Recipes listens here). */
+  onSuccess(fn: (e: { serverId: string; actionId: string; params: unknown }) => void): void {
+    this.successListeners.push(fn);
+  }
+
+  /** A backup step printed "Snapshot saved: NAME (N bytes)": remember it so the timeline can show it. */
+  private recordSnapshots(
+    text: string,
+    runId: string,
+    serverId: string,
+    preview: Preview,
+    ctx: ActionCtx,
+  ) {
+    for (const m of text.matchAll(new RegExp(SNAPSHOT_SAVED.source, 'gm'))) {
+      const snap = preview.snapshots.find((x) => x.name === m[1]);
+      if (!snap) continue;
+      try {
+        this.db
+          .insert(snapshots)
+          .values({
+            id: randomUUID(),
+            serverId,
+            path: snap.path,
+            remotePath: `${ctx.home ?? ''}/.gfv/snapshots/${snap.name}`,
+            sizeBytes: Number(m[2]),
+            createdAt: Date.now(),
+            source: preview.actionId,
+            runId,
+          })
+          .run();
+      } catch {
+        /* the server may have been deleted mid-run */
+      }
+    }
   }
 
   /** Stops a running run: Ctrl-C into its PTY, then a hard close if it ignores that. */
@@ -83,10 +125,14 @@ export class Runner {
   private async detectCtx(client: Client): Promise<ActionCtx> {
     try {
       let out = '';
-      await execStep(client, 'id -u', (m) => m.type === 'output' && (out += m.text), {
+      await execStep(client, 'id -u; echo "$HOME"', (m) => m.type === 'output' && (out += m.text), {
         timeoutMs: 5000,
       });
-      return { sudo: out.trim() === '0' ? '' : 'sudo -n ' };
+      const [uid, home] = out.trim().split('\n');
+      return {
+        sudo: uid?.trim() === '0' ? '' : 'sudo -n ',
+        ...(home?.trim() ? { home: home.trim() } : {}),
+      };
     } catch {
       return DEFAULT_CTX;
     }
@@ -139,7 +185,10 @@ export class Runner {
     params: unknown,
     opts: { confirmed?: boolean; record?: boolean } = {},
   ): Promise<StartResult> {
-    const p = previewAction(actionId, params, await this.ctxFor(serverId));
+    const runId = randomUUID();
+    const ctx = await this.ctxFor(serverId);
+    // The run id names the snapshot files, so the preview and the run agree on them.
+    const p = previewAction(actionId, params, { ...ctx, runId });
     if (!p.ok) return p;
     const { preview } = p;
     // The Safety Net lives HERE, not in the UI: a buggy or hostile client can't skip it.
@@ -149,11 +198,13 @@ export class Runner {
     const client = this.pool.getClient(serverId);
     if (!client) return { ok: false, error: 'not_connected' };
 
-    const run = new Run(randomUUID());
+    const run = new Run(runId);
     this.runs.set(run.id, run);
-    void this.execute(run, client, serverId, preview, p.params, opts.record ?? true).finally(() => {
-      setTimeout(() => this.runs.delete(run.id), KEEP_FINISHED_MS).unref();
-    });
+    void this.execute(run, client, serverId, preview, p.params, ctx, opts.record ?? true).finally(
+      () => {
+        setTimeout(() => this.runs.delete(run.id), KEEP_FINISHED_MS).unref();
+      },
+    );
     return { ok: true, run, preview };
   }
 
@@ -163,6 +214,7 @@ export class Runner {
     serverId: string,
     preview: Preview,
     params: unknown,
+    ctx: ActionCtx,
     record: boolean,
   ): Promise<void> {
     const startedAt = Date.now();
@@ -179,10 +231,17 @@ export class Runner {
     try {
       for (let i = 0; i < total; i++) {
         run.emit({ type: 'step', index: i, total, command: preview.commands[i]! });
-        const code = await execStep(client, preview.commands[i]!, (m) => run.emit(m), {
-          pty: !!action.longRunning,
-          abort: run.abort.signal,
-        });
+        let stepText = '';
+        const code = await execStep(
+          client,
+          preview.commands[i]!,
+          (m) => {
+            run.emit(m);
+            if (m.type === 'output' && preview.snapshots.length) stepText += m.text;
+          },
+          { pty: !!action.longRunning, abort: run.abort.signal },
+        );
+        this.recordSnapshots(stepText, run.id, serverId, preview, ctx);
         if (code !== 0) {
           exitCode = code;
           failedStep = i;
@@ -204,6 +263,10 @@ export class Runner {
       run.emit({ type: 'error', message });
     } finally {
       clearTimeout(timer);
+    }
+
+    if (exitCode === 0 && !run.cancelReason && record) {
+      for (const fn of this.successListeners) fn({ serverId, actionId: preview.actionId, params });
     }
 
     if (!record) return;

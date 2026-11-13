@@ -1,6 +1,8 @@
 import type { ComponentType } from 'react';
 import { ServersApp } from './servers/ServersApp';
 import { TerminalApp } from './terminal/TerminalApp';
+import { RecipesApp } from './recipes/RecipesApp';
+import { SnapshotsApp } from './snapshots/SnapshotsApp';
 import { DevHubApp } from './devhub/DevHubApp';
 import { DockerApp } from './docker/DockerApp';
 import { MonitorApp } from './monitor/MonitorApp';
@@ -80,6 +82,22 @@ export const APPS: AppDef[] = [
     component: DockerApp,
     defaultSize: { w: 760, h: 520 },
     serverBound: true,
+  },
+  {
+    id: 'snapshots',
+    title: 'Snapshots',
+    icon: '🕰️',
+    component: SnapshotsApp,
+    defaultSize: { w: 900, h: 560 },
+    serverBound: true,
+  },
+  {
+    id: 'recipes',
+    title: 'Recipes',
+    icon: '📜',
+    component: RecipesApp,
+    defaultSize: { w: 820, h: 540 },
+    singleton: true,
   },
   {
     id: 'editor',

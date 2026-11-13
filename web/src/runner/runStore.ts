@@ -1,6 +1,7 @@
 import { RunMsgSchema } from '@gfv/shared';
 import { create } from 'zustand';
 import { useLearn } from '../stores/learnStore';
+import { useRecording } from '../stores/recordingStore';
 
 export interface RunRequest {
   serverId: string;
@@ -65,6 +66,7 @@ export function watchRun(run: ActiveRun): void {
     untrackRun(run.serverId, run.actionId);
     run.onDone?.(exitCode);
     void useLearn.getState().refresh();
+    void useRecording.getState().refresh();
   };
   ws.onmessage = (e) => {
     try {

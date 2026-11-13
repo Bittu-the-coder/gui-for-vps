@@ -14,6 +14,7 @@ import {
 } from '../components/ui/dialog';
 import { api, ApiError, type RunPreview } from '../lib/api';
 import { useLearn } from '../stores/learnStore';
+import { useRecording } from '../stores/recordingStore';
 import { useServers } from '../stores/serverStore';
 import {
   trackRun,
@@ -119,11 +120,13 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
       setPhase({ kind: 'finished', preview, exitCode: m.exitCode, cancelled: m.cancelled });
       request.onDone?.(m.exitCode);
       void refreshLearn();
+      void useRecording.getState().refresh();
     } else if (m.type === 'error') {
       settle();
       setPhase({ kind: 'finished', preview, exitCode: null, error: m.message });
       request.onDone?.(null);
       void refreshLearn();
+      void useRecording.getState().refresh();
     }
   };
 

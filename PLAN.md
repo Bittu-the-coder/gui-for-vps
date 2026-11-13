@@ -141,7 +141,8 @@ Each item is a Command Runner action with an explanation, so the user sees exact
 - Danger-pattern detector for `rm -rf /`, `chmod 777`, `> /etc/...`, `ufw disable`, editing `sshd_config`, killing PID 1 or sshd, `dd`, `mkfs`, and similar
 - Confirmation dialog with the reason and a safer alternative where one exists
 - **Config snapshots**: before GFV edits a file under `/etc` (or another listed path), a copy goes to `~/.gfv/snapshots/` on the server, and the change is recorded in SQLite
-- **Snapshot timeline** app: see the changes to a file, diff them, and restore with one click
+- **Snapshot timeline** app: see the changes to a file, diff them, and restore with one click (a restore backs up the current file first, so it can be undone)
+- **Save with sudo** in the Editor for root-owned files: the backup and the `sudo cp` are ordinary Command Runner commands, shown in the preview
 
 ### 4.7 Recipes — basic (Idea A, part 1)
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SNAPSHOT_PATH } from '../snapshots.js';
 import { shellQuote } from '../shell.js';
 import { defineAction } from './define.js';
 
@@ -14,6 +15,50 @@ const absPath = z
   .max(4096)
   .regex(/^\//, 'must be an absolute path starting with /')
   .refine((p) => !p.includes('\0'), 'invalid path');
+
+export const writeRoot = defineAction({
+  id: 'files.write-root',
+  title: 'Save a file as administrator',
+  explain:
+    'Your text was uploaded to a temporary file. This copies it over the real file with sudo. Copying onto an existing file keeps its owner and permissions. The previous version is backed up first, and the temporary file is deleted afterwards.',
+  params: z.object({
+    path: absPath,
+    tmp: z.string().regex(/^\/tmp\/gfv-save-[A-Za-z0-9]{8,32}$/, 'not a GFV temporary file'),
+  }),
+  snapshotPaths: ({ path }) => [path],
+  commands: ({ path, tmp }, ctx) => [
+    `${ctx.sudo}cp -- ${shellQuote(tmp)} ${shellQuote(path)}`,
+    `rm -f -- ${shellQuote(tmp)}`,
+  ],
+  risk: 'caution',
+  riskReason:
+    'Overwrites a file with administrator rights. A mistake in a system file can break services or lock you out.',
+  recordable: false, // the new content is not part of a recipe
+  internal: true,
+});
+
+export const restoreSnapshot = defineAction({
+  id: 'files.restore-snapshot',
+  title: 'Restore an earlier version of a file',
+  explain:
+    'Copies a backup GFV made earlier (in ~/.gfv/snapshots) back over the file. The current version is backed up first, so you can undo this restore too.',
+  params: z.object({
+    path: absPath,
+    snapshot: z
+      .string()
+      .max(4096)
+      .regex(SNAPSHOT_PATH, 'must be one of GFV’s own snapshots')
+      .refine((p) => !p.includes('..'), 'invalid path'),
+  }),
+  snapshotPaths: ({ path }) => [path],
+  commands: ({ path, snapshot }, ctx) => [
+    `${ctx.sudo}cp -- ${shellQuote(snapshot)} ${shellQuote(path)}`,
+  ],
+  risk: 'caution',
+  riskReason: 'Replaces the current content of the file with an older version.',
+  recordable: false,
+  internal: true,
+});
 
 export const makeDir = defineAction({
   id: 'files.mkdir',
@@ -31,9 +76,13 @@ export const renamePath = defineAction({
   id: 'files.rename',
   title: 'Rename or move',
   explain:
-    'Renames a file or folder (or moves it to another folder). The -n flag means it will not overwrite something that already has the new name.',
+    'Renames a file or folder (or moves it to another folder). The -n flag means it will not overwrite something that already has the new name, and -T means the new name is always the exact final name (never "move into that folder").',
   params: z.object({ from: absPath, to: absPath }),
-  commands: ({ from, to }) => [`mv -n -- ${shellQuote(from)} ${shellQuote(to)}`],
+  commands: ({ from, to }) => [`mv -nT -- ${shellQuote(from)} ${shellQuote(to)}`],
+  // In a script that may run twice: skip when the source is already gone.
+  exportCommands: ({ from, to }) => [
+    `if [ -e ${shellQuote(from)} ] && [ ! -e ${shellQuote(to)} ]; then mv -nT -- ${shellQuote(from)} ${shellQuote(to)}; else echo ${shellQuote(`Skipped: ${from} is missing or ${to} already exists (already renamed?)`)}; fi`,
+  ],
   risk: 'safe',
   recordable: true,
   internal: true,

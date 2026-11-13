@@ -1,5 +1,11 @@
 import {
   ConnectResultSchema,
+  RecipeDetailSchema,
+  RecipeSchema,
+  RecordingStateSchema,
+  type RecipeDetail,
+  type Recipe,
+  type RecordingState,
   ListResponseSchema,
   ReadResponseSchema,
   WriteResponseSchema,
@@ -26,6 +32,17 @@ const QueryResultSchema = z.object({
   stderr: z.string(),
 });
 export type QueryResult = z.infer<typeof QueryResultSchema>;
+const SnapshotSchema = z.object({
+  id: z.string(),
+  serverId: z.string(),
+  path: z.string(),
+  remotePath: z.string(),
+  sizeBytes: z.number(),
+  createdAt: z.number(),
+  source: z.string().nullable(),
+  runId: z.string().nullable(),
+});
+export type SnapshotRow = z.infer<typeof SnapshotSchema>;
 export type RunPreview = z.infer<typeof PreviewSchema>;
 
 export class ApiError extends Error {
@@ -142,4 +159,29 @@ export const api = {
     ),
 
   cancelRun: async (runId: string) => void (await request('POST', `/api/runs/${runId}/cancel`)),
+
+  snapshots: async (serverId: string): Promise<SnapshotRow[]> =>
+    z.array(SnapshotSchema).parse(await request('GET', `/api/servers/${serverId}/snapshots`)),
+
+  recipes: async (): Promise<Recipe[]> =>
+    z.array(RecipeSchema).parse(await request('GET', '/api/recipes')),
+  recipe: async (id: string): Promise<RecipeDetail> =>
+    RecipeDetailSchema.parse(await request('GET', `/api/recipes/${id}`)),
+  renameRecipe: async (id: string, name: string) =>
+    void (await request('PATCH', `/api/recipes/${id}`, { name })),
+  deleteRecipe: async (id: string) => void (await request('DELETE', `/api/recipes/${id}`)),
+  reorderSteps: async (id: string, order: string[]) =>
+    void (await request('POST', `/api/recipes/${id}/steps/reorder`, { order })),
+  deleteStep: async (id: string, stepId: string) =>
+    void (await request('DELETE', `/api/recipes/${id}/steps/${stepId}`)),
+  exportRecipe: async (id: string): Promise<{ script: string; filename: string }> =>
+    z
+      .object({ script: z.string(), filename: z.string() })
+      .parse(await request('GET', `/api/recipes/${id}/export`)),
+  recording: async (): Promise<RecordingState> =>
+    RecordingStateSchema.parse(await request('GET', '/api/recording')),
+  startRecording: async (serverId: string) =>
+    void (await request('POST', '/api/recording/start', { serverId })),
+  stopRecording: async (): Promise<{ recipeId: string }> =>
+    z.object({ recipeId: z.string() }).parse(await request('POST', '/api/recording/stop')),
 };

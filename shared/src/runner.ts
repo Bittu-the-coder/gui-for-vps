@@ -25,6 +25,7 @@ export const PreviewSchema = z.object({
   risk: RiskSchema,
   reasons: z.array(z.string()),
   longRunning: z.boolean(),
+  snapshots: z.array(z.object({ path: z.string(), name: z.string() })),
   matches: z.array(
     z.object({
       id: z.string(),

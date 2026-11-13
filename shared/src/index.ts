@@ -14,3 +14,6 @@ export * from './actions/services.js';
 export * from './actions/docker.js';
 export * from './devhub/tools.js';
 export * from './devhub/detect.js';
+export * from './snapshots.js';
+export * from './recipes/recipes.js';
+export * from './recipes/export.js';

@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '../../components/ui/button';
 import { registerCloseGuard, useDesktop } from '../../desktop/windowStore';
 import { api, ApiError } from '../../lib/api';
+import { requestRun } from '../../runner/runStore';
 
 // Monaco is big: it only downloads when the first editor window opens.
 const MonacoEditor = lazy(() => import('./MonacoEditor'));
@@ -38,6 +39,8 @@ export function EditorApp({ windowId }: { windowId: string }) {
   const [saved, setSaved] = useState('');
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  // The normal save was refused (permission denied): offer to save with sudo instead.
+  const [sudoOffer, setSudoOffer] = useState(false);
   const latest = useRef({ value: '', saved: '' });
   latest.current = { value, saved };
   const dirty = value !== saved;
@@ -114,6 +117,7 @@ export function EditorApp({ windowId }: { windowId: string }) {
     }
     setSaving(true);
     setStatus(null);
+    setSudoOffer(false);
     try {
       const r = await api.fsSave(serverId, path, text);
       setSaved(text);
@@ -125,10 +129,51 @@ export function EditorApp({ windowId }: { windowId: string }) {
       });
     } catch (e) {
       setStatus({ kind: 'error', text: saveError(e) });
+      if (e instanceof ApiError && (e.body as { error?: string })?.error === 'permission_denied') {
+        setSudoOffer(true);
+      }
     } finally {
       setSaving(false);
     }
   }, [serverId, path]);
+
+  /**
+   * Upload the text to a temp file, then let the Command Runner copy it over the real file with
+   * sudo (backing the old version up first). You see the exact commands and confirm.
+   */
+  const saveWithSudo = async () => {
+    if (!serverId || !path) return;
+    const text = latest.current.value;
+    const tmp = `/tmp/gfv-save-${[...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('')}`;
+    try {
+      await api.fsUpload(serverId, tmp, new File([text], 'save'));
+    } catch {
+      setStatus({
+        kind: 'error',
+        text: 'Could not upload the text to a temporary file on the server.',
+      });
+      return;
+    }
+    requestRun({
+      serverId,
+      actionId: 'files.write-root',
+      params: { path, tmp },
+      onDone: (code) => {
+        if (code === 0) {
+          setSaved(text);
+          setSudoOffer(false);
+          setStatus({
+            kind: 'ok',
+            text: 'Saved with sudo. The previous version was backed up first.',
+          });
+        } else
+          setStatus({
+            kind: 'error',
+            text: 'Saving with sudo failed. Nothing was changed if the backup failed.',
+          });
+      },
+    });
+  };
 
   if (!serverId || !path) {
     return (
@@ -166,6 +211,11 @@ export function EditorApp({ windowId }: { windowId: string }) {
           >
             {status.text}
           </span>
+        )}
+        {sudoOffer && (
+          <Button size="sm" variant="outline" onClick={() => void saveWithSudo()}>
+            Save with sudo…
+          </Button>
         )}
         <Button size="sm" disabled={!dirty || saving} onClick={() => void save()}>
           {saving ? 'Saving…' : 'Save (Ctrl+S)'}

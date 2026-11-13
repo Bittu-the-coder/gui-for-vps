@@ -64,4 +64,40 @@ export const snapshots = sqliteTable('snapshots', {
   remotePath: text('remote_path').notNull(),
   sizeBytes: integer('size_bytes').notNull(),
   createdAt: integer('created_at').notNull(),
+  /** What made the backup: an action id, or null for the Editor's own SFTP save. */
+  source: text('source'),
+  runId: text('run_id'),
+});
+
+/** A recorded sequence of actions that can be exported as a bash script. */
+export const recipes = sqliteTable('recipes', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  /** The server the recording was made on. */
+  serverId: text('server_id').references(() => servers.id, { onDelete: 'set null' }),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+export const recipeSteps = sqliteTable('recipe_steps', {
+  id: text('id').primaryKey(),
+  recipeId: text('recipe_id')
+    .notNull()
+    .references(() => recipes.id, { onDelete: 'cascade' }),
+  position: integer('position').notNull(),
+  actionId: text('action_id').notNull(),
+  /** Validated params (recordable actions have no secret params). The script is regenerated from these. */
+  params: text('params', { mode: 'json' }).$type<unknown>(),
+  createdAt: integer('created_at').notNull(),
+});
+
+/** Single row (id = 1) while a recording is in progress. */
+export const recording = sqliteTable('recording', {
+  id: integer('id').primaryKey(),
+  recipeId: text('recipe_id')
+    .notNull()
+    .references(() => recipes.id, { onDelete: 'cascade' }),
+  serverId: text('server_id')
+    .notNull()
+    .references(() => servers.id, { onDelete: 'cascade' }),
 });

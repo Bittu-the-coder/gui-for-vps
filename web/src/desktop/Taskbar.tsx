@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { appById } from '../apps/registry';
 import { useLearn } from '../stores/learnStore';
+import { useRecording } from '../stores/recordingStore';
 import { useServers } from '../stores/serverStore';
 import { openApp } from './openApp';
 import { ServerSwitcher } from './ServerSwitcher';
@@ -11,8 +12,17 @@ export function Taskbar() {
   const { windows, focusedId, focus, minimize, theme, toggleTheme } = useDesktop();
   const lock = useServers((s) => s.lock);
   const { open: learnOpen, toggle: toggleLearn } = useLearn();
+  const {
+    active: recording,
+    refresh: refreshRecording,
+    start: startRec,
+    stop: stopRec,
+  } = useRecording();
+  const { activeId, servers } = useServers();
   const [menu, setMenu] = useState(false);
   const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => void refreshRecording(), [refreshRecording]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 15_000);
@@ -53,6 +63,30 @@ export function Taskbar() {
         })}
       </div>
 
+      {recording ? (
+        <button
+          aria-label="Stop recording"
+          title={`Recording "${recording.name}" on ${servers.find((x) => x.id === recording.serverId)?.name ?? 'a server'}`}
+          className={`${btn} flex items-center gap-1 bg-red-500/20 text-red-600 dark:text-red-300`}
+          onClick={() => {
+            void stopRec().then((id) => {
+              if (id) openApp(appById('recipes')!);
+            });
+          }}
+        >
+          <span className="animate-pulse">⏺</span> ■ Stop ({recording.stepCount})
+        </button>
+      ) : (
+        <button
+          aria-label="Start recording"
+          title="Record the actions you run so you can export them as a bash script"
+          disabled={!activeId}
+          className={`${btn} disabled:opacity-40`}
+          onClick={() => activeId && void startRec(activeId)}
+        >
+          ⏺ Record
+        </button>
+      )}
       <button
         aria-label="Toggle Learn Mode"
         aria-pressed={learnOpen}

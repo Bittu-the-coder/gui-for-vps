@@ -4,7 +4,7 @@ import { previewAction } from './index.js';
 describe('file actions', () => {
   it('quote every path', () => {
     const r = previewAction('files.rename', { from: '/a/my file', to: '/a/$(x)' });
-    expect(r.ok && r.preview.commands).toEqual([`mv -n -- '/a/my file' '/a/$(x)'`]);
+    expect(r.ok && r.preview.commands).toEqual([`mv -nT -- '/a/my file' '/a/$(x)'`]);
     const m = previewAction('files.mkdir', { path: '/tmp/a b' });
     expect(m.ok && m.preview.commands).toEqual([`mkdir -p -- '/tmp/a b'`]);
   });
