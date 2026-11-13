@@ -49,6 +49,7 @@ export type QueryResult =
  */
 export class Runner {
   private runs = new Map<string, Run>();
+  private snapshotListeners: ((e: { serverId: string; path: string }) => void)[] = [];
   private successListeners: ((e: {
     serverId: string;
     actionId: string;
@@ -64,6 +65,11 @@ export class Runner {
 
   get(id: string): Run | undefined {
     return this.runs.get(id);
+  }
+
+  /** Called after a backup was recorded (the SFTP service prunes old ones). */
+  onSnapshot(fn: (e: { serverId: string; path: string }) => void): void {
+    this.snapshotListeners.push(fn);
   }
 
   /** Called after every run that finished successfully and is not a silent one (Recipes listens here). */
@@ -96,6 +102,7 @@ export class Runner {
             runId,
           })
           .run();
+        for (const fn of this.snapshotListeners) fn({ serverId, path: snap.path });
       } catch {
         /* the server may have been deleted mid-run */
       }

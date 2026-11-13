@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { EDITOR_MAX_BYTES, type FileEntry, type FsErrorCode } from '@gfv/shared';
@@ -217,6 +217,27 @@ export class SftpService {
     return { size, snapshotted: !!backup };
   }
 
+  /** Keep only the newest `keep` backups of one file: older rows and their copies on the server are deleted. */
+  async prune(serverId: string, path: string, keep = 30): Promise<number> {
+    const rows = this.db
+      .select()
+      .from(snapshots)
+      .where(and(eq(snapshots.serverId, serverId), eq(snapshots.path, path)))
+      .orderBy(desc(snapshots.createdAt))
+      .all();
+    const old = rows.slice(keep);
+    for (const r of old) await this.discardSnapshot(serverId, r);
+    return old.length;
+  }
+
+  /** Delete one backup (the row and the copy on the server). False if it is not this server's. */
+  async deleteSnapshot(serverId: string, snapshotId: string): Promise<boolean> {
+    const row = this.db.select().from(snapshots).where(eq(snapshots.id, snapshotId)).get();
+    if (!row || row.serverId !== serverId) return false;
+    await this.discardSnapshot(serverId, row);
+    return true;
+  }
+
   private async discardSnapshot(
     serverId: string,
     b: { id: string; remotePath: string },
@@ -258,6 +279,7 @@ export class SftpService {
       .insert(snapshots)
       .values({ id, serverId, path, remotePath, sizeBytes: size, createdAt: when })
       .run();
+    await this.prune(serverId, path).catch(() => {});
     return { id, remotePath };
   }
 }

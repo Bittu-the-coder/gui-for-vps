@@ -6,6 +6,11 @@ export const VaultStatusSchema = z.object({ initialized: z.boolean(), unlocked: 
 export type VaultStatus = z.infer<typeof VaultStatusSchema>;
 
 export const CreateVaultBodySchema = z.object({ password: z.string().min(8).max(256) });
+export const ChangePasswordBodySchema = z.object({
+  oldPassword: z.string().min(1).max(256),
+  newPassword: z.string().min(8).max(256),
+});
+
 export const UnlockBodySchema = z.object({ password: z.string().min(1).max(256) });
 
 // ---- Servers -----------------------------------------------------------

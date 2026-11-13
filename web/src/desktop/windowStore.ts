@@ -68,7 +68,12 @@ function topVisibleId(windows: Record<string, WindowState>): string | null {
 
 function loadInitial(): Pick<DesktopState, 'windows' | 'nextZ' | 'theme'> {
   const parsed = PersistedSchema.safeParse(readJson(STORAGE_KEY));
-  if (!parsed.success) return { windows: {}, nextZ: 1, theme: 'dark' };
+  // First visit: follow the system's light/dark preference.
+  const system = (): 'light' | 'dark' =>
+    typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches
+      ? 'light'
+      : 'dark';
+  if (!parsed.success) return { windows: {}, nextZ: 1, theme: system() };
   const windows = Object.fromEntries(parsed.data.windows.map((w) => [w.id, w]));
   return { windows, nextZ: parsed.data.nextZ, theme: parsed.data.theme };
 }

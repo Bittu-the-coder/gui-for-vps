@@ -4,7 +4,10 @@ import { WsMessageSchema, type ConnStatus } from '@gfv/shared';
  * Subscribes to server-pushed connection statuses. Reconnects automatically
  * (e.g. if the dev server restarts). Returns a function that stops everything.
  */
-export function startStatusSocket(onStatuses: (s: Record<string, ConnStatus>) => void): () => void {
+export function startStatusSocket(
+  onStatuses: (s: Record<string, ConnStatus>) => void,
+  onLive: (live: boolean) => void = () => {},
+): () => void {
   let ws: WebSocket | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let stopped = false;
@@ -20,8 +23,11 @@ export function startStatusSocket(onStatuses: (s: Record<string, ConnStatus>) =>
         /* ignore malformed frames */
       }
     };
+    ws.onopen = () => onLive(true);
     ws.onclose = () => {
-      if (!stopped) timer = setTimeout(open, 2000);
+      if (stopped) return;
+      onLive(false); // the GFV server went away: the desktop shows a banner until it is back
+      timer = setTimeout(open, 2000);
     };
   };
   open();

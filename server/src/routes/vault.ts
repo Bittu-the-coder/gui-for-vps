@@ -1,9 +1,29 @@
-import type { FastifyInstance } from 'fastify';
-import { CreateVaultBodySchema, UnlockBodySchema, type VaultStatus } from '@gfv/shared';
+import type { FastifyInstance, FastifyReply } from 'fastify';
+import { eq } from 'drizzle-orm';
+import {
+  ChangePasswordBodySchema,
+  CreateVaultBodySchema,
+  UnlockBodySchema,
+  type VaultStatus,
+} from '@gfv/shared';
 import type { AppContext } from '../context.js';
+import { servers } from '../db/schema.js';
+import { AttemptThrottle } from './throttle.js';
 import { parseBody, sendVaultError } from './util.js';
 
-export function vaultRoutes(app: FastifyInstance, { vault, pool }: AppContext): void {
+export function vaultRoutes(app: FastifyInstance, { vault, pool, db }: AppContext): void {
+  // One counter for every route that checks the master password (unlock and change-password).
+  const throttle = new AttemptThrottle();
+  const tooMany = (reply: FastifyReply) => {
+    const wait = throttle.retryAfterMs();
+    if (wait <= 0) return false;
+    const sec = Math.ceil(wait / 1000);
+    void reply
+      .header('retry-after', sec)
+      .code(429)
+      .send({ error: 'too_many_attempts', retryAfterSec: sec });
+    return true;
+  };
   const status = (): VaultStatus => ({ initialized: vault.initialized, unlocked: vault.unlocked });
 
   app.get('/api/vault', async () => status());
@@ -22,10 +42,41 @@ export function vaultRoutes(app: FastifyInstance, { vault, pool }: AppContext): 
   app.post('/api/vault/unlock', async (req, reply) => {
     const body = parseBody(UnlockBodySchema, req.body, reply);
     if (!body) return;
+    if (tooMany(reply)) return;
     try {
       await vault.unlock(body.password);
+      throttle.succeed();
       return status();
     } catch (e) {
+      if (e instanceof Error && 'code' in e && e.code === 'wrong_password') throttle.fail();
+      return sendVaultError(e, reply);
+    }
+  });
+
+  /** Re-encrypts every stored credential under a new master password. */
+  app.post('/api/vault/change-password', async (req, reply) => {
+    const body = parseBody(ChangePasswordBodySchema, req.body, reply);
+    if (!body) return;
+    if (!vault.unlocked) return reply.code(423).send({ error: 'locked' });
+    if (tooMany(reply)) return;
+    try {
+      await vault.changePassword(
+        body.oldPassword,
+        body.newPassword,
+        (decryptOld, encryptNew) => {
+          for (const row of db.select().from(servers).all()) {
+            db.update(servers)
+              .set({ credential: encryptNew(decryptOld(row.credential)) })
+              .where(eq(servers.id, row.id))
+              .run();
+          }
+        },
+        (fn) => db.transaction(fn),
+      );
+      throttle.succeed();
+      return status();
+    } catch (e) {
+      if (e instanceof Error && 'code' in e && e.code === 'wrong_password') throttle.fail();
       return sendVaultError(e, reply);
     }
   });

@@ -188,6 +188,7 @@ export function FilesApp({ windowId }: { windowId: string }) {
 
   return (
     <div
+      data-path={path}
       className={cn('relative flex h-full flex-col text-sm', dragging && 'bg-sky-500/10')}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes('Files')) {

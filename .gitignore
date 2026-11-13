@@ -9,3 +9,8 @@ test-results
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+dist-pkg
+*.tgz
+e2e/.results
+test-results
+playwright-report

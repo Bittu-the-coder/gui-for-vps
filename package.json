@@ -1,7 +1,7 @@
 {
   "name": "gfv",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -13,12 +13,14 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "e2e": "playwright test --config e2e/playwright.config.ts"
+    "e2e": "pnpm --filter @gfv/web build && playwright test --config e2e/playwright.config.ts",
+    "build:package": "node scripts/build-package.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.65.0",
     "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
     "eslint": "^10.14.0",
     "prettier": "^3.10.1",
     "tsx": "^4.23.15",

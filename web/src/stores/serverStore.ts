@@ -10,6 +10,8 @@ interface ServerState {
   vault: VaultStatus | null; // null = not loaded yet
   servers: Server[];
   statuses: Record<string, ConnStatus>;
+  /** The live link to the GFV server (the status WebSocket) is up. */
+  live: boolean;
   activeId: string | null;
 
   refreshVault: () => Promise<void>;
@@ -28,7 +30,10 @@ export const useServers = create<ServerState>((set, get) => {
   const onUnlocked = async () => {
     await Promise.all([get().refreshServers(), get().refreshStatuses()]);
     stopSocket?.();
-    stopSocket = startStatusSocket((statuses) => set({ statuses }));
+    stopSocket = startStatusSocket(
+      (statuses) => set({ statuses }),
+      (live) => set({ live }),
+    );
   };
   const onLocked = () => {
     stopSocket?.();
@@ -40,6 +45,7 @@ export const useServers = create<ServerState>((set, get) => {
     vault: null,
     servers: [],
     statuses: {},
+    live: true,
     activeId: typeof readJson(ACTIVE_KEY) === 'string' ? (readJson(ACTIVE_KEY) as string) : null,
 
     refreshVault: async () => {

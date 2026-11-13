@@ -5,6 +5,7 @@ import { useRecording } from '../stores/recordingStore';
 import { useServers } from '../stores/serverStore';
 import { openApp } from './openApp';
 import { ServerSwitcher } from './ServerSwitcher';
+import { ChangePasswordDialog } from '../components/ChangePasswordDialog';
 import { StartMenu } from './StartMenu';
 import { useDesktop } from './windowStore';
 
@@ -20,6 +21,7 @@ export function Taskbar() {
   } = useRecording();
   const { activeId, servers } = useServers();
   const [menu, setMenu] = useState(false);
+  const [changePw, setChangePw] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => void refreshRecording(), [refreshRecording]);
@@ -41,10 +43,14 @@ export function Taskbar() {
         <button className={`${btn} px-3 font-semibold`} onClick={() => setMenu((m) => !m)}>
           ⊞ Start
         </button>
-        {menu && <StartMenu onClose={() => setMenu(false)} />}
+        {menu && (
+          <StartMenu onClose={() => setMenu(false)} onChangePassword={() => setChangePw(true)} />
+        )}
       </div>
 
-      <ServerSwitcher onManage={() => openApp(appById('servers')!)} />
+      <div data-tour="server-switcher">
+        <ServerSwitcher onManage={() => openApp(appById('servers')!)} />
+      </div>
 
       <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
         {list.map((w) => {
@@ -65,6 +71,7 @@ export function Taskbar() {
 
       {recording ? (
         <button
+          data-tour="record"
           aria-label="Stop recording"
           title={`Recording "${recording.name}" on ${servers.find((x) => x.id === recording.serverId)?.name ?? 'a server'}`}
           className={`${btn} flex items-center gap-1 bg-red-500/20 text-red-600 dark:text-red-300`}
@@ -78,6 +85,7 @@ export function Taskbar() {
         </button>
       ) : (
         <button
+          data-tour="record"
           aria-label="Start recording"
           title="Record the actions you run so you can export them as a bash script"
           disabled={!activeId}
@@ -88,6 +96,7 @@ export function Taskbar() {
         </button>
       )}
       <button
+        data-tour="learn"
         aria-label="Toggle Learn Mode"
         aria-pressed={learnOpen}
         title="Learn Mode: see the commands behind every action"
@@ -110,6 +119,7 @@ export function Taskbar() {
       <span className="tabular-nums">
         {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </span>
+      {changePw && <ChangePasswordDialog onClose={() => setChangePw(false)} />}
     </div>
   );
 }

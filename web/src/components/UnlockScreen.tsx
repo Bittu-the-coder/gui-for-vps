@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError } from '../lib/api';
 import { useServers } from '../stores/serverStore';
 import { Button } from './ui/button';
@@ -12,6 +12,15 @@ export function UnlockScreen({ initialized }: { initialized: boolean }) {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // After a 429 the button stays off until the server would accept another try.
+  const [waitUntil, setWaitUntil] = useState(0);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (waitUntil <= Date.now()) return;
+    const t = setTimeout(() => tick((n) => n + 1), waitUntil - Date.now() + 50);
+    return () => clearTimeout(t);
+  }, [waitUntil]);
+  const waiting = waitUntil > Date.now();
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -21,13 +30,21 @@ export function UnlockScreen({ initialized }: { initialized: boolean }) {
     try {
       await (initialized ? unlock(password) : createVault(password));
     } catch (err) {
-      setError(
-        err instanceof ApiError && err.status === 401
-          ? 'Wrong master password.'
-          : err instanceof ApiError
-            ? err.detail
-            : 'Could not reach the GFV server.',
-      );
+      if (err instanceof ApiError && err.status === 429) {
+        const sec = (err.body as { retryAfterSec?: number })?.retryAfterSec ?? 5;
+        setWaitUntil(Date.now() + sec * 1000);
+        setError(
+          `Too many wrong attempts. Wait ${sec} second${sec === 1 ? '' : 's'}, then try again.`,
+        );
+      } else {
+        setError(
+          err instanceof ApiError && err.status === 401
+            ? 'Wrong master password.'
+            : err instanceof ApiError
+              ? err.detail
+              : 'Could not reach the GFV server.',
+        );
+      }
     } finally {
       setBusy(false);
     }
@@ -85,7 +102,7 @@ export function UnlockScreen({ initialized }: { initialized: boolean }) {
             {error}
           </p>
         )}
-        <Button type="submit" disabled={busy || !password}>
+        <Button type="submit" disabled={busy || !password || waiting}>
           {busy ? 'Working…' : initialized ? 'Unlock' : 'Create vault'}
         </Button>
       </form>

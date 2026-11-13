@@ -29,7 +29,7 @@ describe.skipIf(!reachable)('files over SFTP (vps-a)', () => {
   let id: string;
 
   const call = (
-    method: 'GET' | 'POST' | 'PUT',
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     url: string,
     payload?: object | Buffer,
     type?: string,
@@ -125,6 +125,33 @@ describe.skipIf(!reachable)('files over SFTP (vps-a)', () => {
     const copy = await ctx.sftp.readText(id, rows[0]!.remotePath);
     expect(copy).toMatchObject({ kind: 'text', content: 'v1' });
     expect(rows[0]!.remotePath).toMatch(/^\/home\/gfv\/\.gfv\/snapshots\//);
+  });
+
+  it('keeps only the newest backups of a file (prune), and a single backup can be deleted', async () => {
+    const f = `${dir}/conf/prune.conf`;
+    for (const v of ['v1', 'v2', 'v3', 'v4', 'v5']) {
+      await new Promise((r) => setTimeout(r, 5)); // distinct timestamps
+      expect((await put(f, v)).statusCode).toBe(200);
+    }
+    const mine = () =>
+      ctx.db
+        .select()
+        .from(snapshots)
+        .all()
+        .filter((r) => r.path === f);
+    expect(mine()).toHaveLength(4); // v1 was the first write (nothing to back up)
+    const oldest = [...mine()].sort((a, b) => a.createdAt - b.createdAt).slice(0, 2);
+    expect(await ctx.sftp.prune(id, f, 2)).toBe(2);
+    expect(mine()).toHaveLength(2);
+    for (const r of oldest) expect(await ctx.sftp.stat(id, r.remotePath)).toBeNull(); // copies are gone too
+
+    const keep = mine()[0]!;
+    expect((await call('DELETE', `/api/servers/${id}/snapshots/${keep.id}`)).statusCode).toBe(200);
+    expect(await ctx.sftp.stat(id, keep.remotePath)).toBeNull();
+    expect((await call('DELETE', `/api/servers/${id}/snapshots/${keep.id}`)).statusCode).toBe(404);
+    expect((await call('DELETE', `/api/servers/other/snapshots/${mine()[0]!.id}`)).statusCode).toBe(
+      404,
+    );
   });
 
   it('a refused save (read-only file) leaves no stray backup behind', async () => {

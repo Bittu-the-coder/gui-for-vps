@@ -78,3 +78,59 @@ describe('Vault', () => {
     expect(JSON.stringify(store.meta)).not.toContain('my-master-password');
   });
 });
+
+describe('Vault.changePassword', () => {
+  it('re-encrypts with a new key, in the callback, and swaps keys', async () => {
+    const store = memStore();
+    const v = new Vault(store, FAST);
+    await v.create('old-password');
+    const blob = v.encrypt('secret credential');
+    let migrated: Buffer | undefined;
+    await v.changePassword(
+      'old-password',
+      'new-password',
+      (dec, enc) => {
+        migrated = enc(dec(blob));
+      },
+      (fn) => fn(),
+    );
+    expect(v.decrypt(migrated!)).toBe('secret credential'); // live key is already the new one
+    const again = new Vault(store, FAST);
+    await expect(again.unlock('old-password')).rejects.toMatchObject({ code: 'wrong_password' });
+    await again.unlock('new-password');
+    expect(again.decrypt(migrated!)).toBe('secret credential');
+  });
+  it('a wrong old password changes nothing', async () => {
+    const store = memStore();
+    const v = new Vault(store, FAST);
+    await v.create('old-password');
+    const before = store.meta;
+    await expect(
+      v.changePassword(
+        'nope',
+        'x'.repeat(8),
+        () => {},
+        (fn) => fn(),
+      ),
+    ).rejects.toMatchObject({ code: 'wrong_password' });
+    expect(store.meta).toBe(before);
+  });
+  it('if the transaction throws, the old password still works', async () => {
+    const store = memStore();
+    const v = new Vault(store, FAST);
+    await v.create('old-password');
+    const before = store.meta;
+    await expect(
+      v.changePassword(
+        'old-password',
+        'new-password',
+        () => {},
+        () => {
+          throw new Error('disk full');
+        },
+      ),
+    ).rejects.toThrow('disk full');
+    expect(store.meta).toBe(before);
+    await new Vault(store, FAST).unlock('old-password');
+  });
+});

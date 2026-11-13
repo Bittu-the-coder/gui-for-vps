@@ -11,7 +11,7 @@ import { servers, snapshots } from '../db/schema.js';
 import { parseBody } from './util.js';
 
 /** Recipes + the recorder, and the snapshot list for the timeline. */
-export function recipeRoutes(app: FastifyInstance, { db, vault, recipes }: AppContext): void {
+export function recipeRoutes(app: FastifyInstance, { db, vault, recipes, sftp }: AppContext): void {
   app.addHook('preHandler', async (req, reply) => {
     const u = req.url;
     const mine =
@@ -98,5 +98,14 @@ export function recipeRoutes(app: FastifyInstance, { db, vault, recipes }: AppCo
       .where(eq(snapshots.serverId, req.params.id))
       .orderBy(desc(snapshots.createdAt))
       .all(),
+  );
+
+  /** Delete one backup (row + the copy on the server). */
+  app.delete<{ Params: { id: string; snapshotId: string } }>(
+    '/api/servers/:id/snapshots/:snapshotId',
+    async (req, reply) =>
+      (await sftp.deleteSnapshot(req.params.id, req.params.snapshotId).catch(() => false))
+        ? { ok: true }
+        : notFound(reply),
   );
 }

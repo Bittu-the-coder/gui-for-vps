@@ -1,5 +1,6 @@
 import { Rnd } from 'react-rnd';
 import { appById } from '../apps/registry';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useServers } from '../stores/serverStore';
 import { tryClose, useDesktop, type WindowState } from './windowStore';
 
@@ -89,7 +90,9 @@ export function Window({ win }: { win: WindowState }) {
           </span>
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
-          <App windowId={win.id} />
+          <ErrorBoundary>
+            <App windowId={win.id} />
+          </ErrorBoundary>
         </div>
       </div>
     </Rnd>

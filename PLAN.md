@@ -193,7 +193,7 @@ gfv/
 | M6  | **System Monitor** + process kill, **Services**, **Docker**                                | Live charts update and you can restart nginx                                | 5–6 days |
 | M7  | **Dev Hub** (6 tools) on Ubuntu                                                            | Node and Postgres install on a clean Ubuntu container                       | 4–5 days |
 | M8  | **Snapshots timeline** + **Recipes** (record and export bash)                              | Exporting a recipe produces a script that works on a fresh container        | 4–5 days |
-| M9  | Polish: onboarding tour, themes, error states, `npx gfv` packaging, README, and a demo GIF | A new user can go from install to their first server in under 3 minutes     | 4–5 days |
+| M9  | ✅ Polish: onboarding tour, themes, error states, `npx gfv` packaging, README, and a demo GIF | A new user can go from install to their first server in under 3 minutes     | 4–5 days |
 
 **Total: about 6–8 weeks part-time.** Each milestone is a usable step, so we commit and demo after every one.
 --

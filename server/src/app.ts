@@ -15,7 +15,7 @@ import { wsRoutes } from './routes/ws.js';
 export async function buildApp(token: string, ctx: AppContext) {
   const app = Fastify({
     logger: {
-      level: process.env.VITEST ? 'silent' : 'info',
+      level: process.env.VITEST ? 'silent' : (process.env.GFV_LOG_LEVEL ?? 'info'),
       redact: ['req.headers.cookie', 'req.headers["x-gfv-token"]'],
     },
   });
@@ -36,7 +36,7 @@ export async function buildApp(token: string, ctx: AppContext) {
     done(null, payload),
   );
   await app.register(websocket);
-  registerAuth(app, token);
+  registerAuth(app, token, ctx.allowedOrigins);
 
   app.get('/api/health', async (): Promise<Health> => ({
     ok: true,

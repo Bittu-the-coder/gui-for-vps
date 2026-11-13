@@ -187,6 +187,20 @@ export function SnapshotsApp({ windowId }: { windowId: string }) {
                   Compare with the previous backup
                 </option>
               </select>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-red-500"
+                onClick={() => {
+                  if (!window.confirm('Delete this backup? This cannot be undone.')) return;
+                  void api.deleteSnapshot(serverId, selected.id).then(() => {
+                    setSelectedId(null);
+                    return load();
+                  });
+                }}
+              >
+                Delete backup
+              </Button>
               <Button size="sm" onClick={() => restore(selected)}>
                 Restore this version…
               </Button>

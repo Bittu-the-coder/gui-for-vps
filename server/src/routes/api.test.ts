@@ -119,3 +119,80 @@ describe('server routes', () => {
     expect((await app.inject({ method: 'GET', url: '/api/servers' })).statusCode).toBe(401);
   });
 });
+
+describe('master password protection', () => {
+  it('throttles repeated wrong passwords with 429 and a retry time, and a correct one resets it', async () => {
+    const { call } = await setup();
+    await call('POST', '/api/vault/lock');
+    for (let i = 0; i < 3; i++) {
+      expect((await call('POST', '/api/vault/unlock', { password: 'wrong-pass' })).statusCode).toBe(
+        401,
+      );
+    }
+    expect((await call('POST', '/api/vault/unlock', { password: 'wrong-pass' })).statusCode).toBe(
+      401,
+    ); // 4th wrong: now blocked
+    const blocked = await call('POST', '/api/vault/unlock', { password: 'master-pass' });
+    expect(blocked.statusCode).toBe(429);
+    expect(blocked.json()).toMatchObject({ error: 'too_many_attempts', retryAfterSec: 1 });
+    expect(blocked.headers['retry-after']).toBe('1');
+    await new Promise((r) => setTimeout(r, 1100));
+    expect((await call('POST', '/api/vault/unlock', { password: 'master-pass' })).statusCode).toBe(
+      200,
+    );
+  });
+
+  it('changes the master password: credentials survive, the old password stops working', async () => {
+    const { call } = await setup();
+    const created = (await call('POST', '/api/servers', keyServer)).json();
+    expect(
+      (
+        await call('POST', '/api/vault/change-password', {
+          oldPassword: 'nope-nope',
+          newPassword: 'new-master-pass',
+        })
+      ).statusCode,
+    ).toBe(401);
+    expect(
+      (
+        await call('POST', '/api/vault/change-password', {
+          oldPassword: 'master-pass',
+          newPassword: 'short',
+        })
+      ).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await call('POST', '/api/vault/change-password', {
+          oldPassword: 'master-pass',
+          newPassword: 'new-master-pass',
+        })
+      ).statusCode,
+    ).toBe(200);
+    await call('POST', '/api/vault/lock');
+    expect((await call('POST', '/api/vault/unlock', { password: 'master-pass' })).statusCode).toBe(
+      401,
+    );
+    expect(
+      (await call('POST', '/api/vault/unlock', { password: 'new-master-pass' })).statusCode,
+    ).toBe(200);
+    // The stored key still decrypts: updating just the name keeps the credential, and listing works.
+    expect((await call('PUT', `/api/servers/${created.id}`, { name: 'renamed' })).statusCode).toBe(
+      200,
+    );
+    expect((await call('GET', '/api/servers')).json()).toHaveLength(1);
+  });
+
+  it('refuses to change the password while locked', async () => {
+    const { call } = await setup();
+    await call('POST', '/api/vault/lock');
+    expect(
+      (
+        await call('POST', '/api/vault/change-password', {
+          oldPassword: 'master-pass',
+          newPassword: 'new-master-pass',
+        })
+      ).statusCode,
+    ).toBe(423);
+  });
+});

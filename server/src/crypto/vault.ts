@@ -104,7 +104,8 @@ export class Vault {
     this.key = key;
   }
 
-  async unlock(password: string): Promise<void> {
+  /** Derives the key for `password` and checks it against the canary. Throws wrong_password. */
+  private async verify(password: string): Promise<Buffer> {
     const meta = this.store.load();
     if (!meta) throw new VaultError('not_initialized', 'vault not created yet');
     const key = await deriveKey(password, Buffer.from(meta.salt, 'base64'), meta.params);
@@ -119,7 +120,41 @@ export class Vault {
       ok = false;
     }
     if (!ok) throw new VaultError('wrong_password', 'wrong master password');
-    this.key = key;
+    return key;
+  }
+
+  async unlock(password: string): Promise<void> {
+    this.key = await this.verify(password);
+  }
+
+  /**
+   * Switch to a new master password. `migrate` re-encrypts everything stored with the old key
+   * and `inTransaction` runs migrate + saving the new metadata as ONE database transaction, so a
+   * crash can never leave credentials encrypted with a key the metadata doesn't match.
+   */
+  async changePassword(
+    oldPassword: string,
+    newPassword: string,
+    migrate: (decryptOld: (blob: Buffer) => string, encryptNew: (text: string) => Buffer) => void,
+    inTransaction: (fn: () => void) => void,
+  ): Promise<void> {
+    const oldKey = await this.verify(oldPassword);
+    const salt = randomBytes(16);
+    const newKey = await deriveKey(newPassword, salt, this.scryptParams);
+    inTransaction(() => {
+      migrate(
+        (blob) => decryptWithKey(oldKey, blob),
+        (text) => encryptWithKey(newKey, text),
+      );
+      this.store.save({
+        salt: salt.toString('base64'),
+        params: this.scryptParams,
+        canary: encryptWithKey(newKey, CANARY_PLAINTEXT).toString('base64'),
+      });
+    });
+    this.key?.fill(0);
+    this.key = newKey;
+    oldKey.fill(0);
   }
 
   lock(): void {

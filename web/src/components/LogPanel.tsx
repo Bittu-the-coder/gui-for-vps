@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { queryProblem } from './NoServer';
 import { Button } from './ui/button';
 
-/** Recent log lines for one service/container. Refreshes on demand or every 3 s (not a live stream). */
+/** Recent log lines for one service/container. Refreshes on demand or every 2 s while Follow is on (re-reads the latest lines, not a live stream). */
 export function LogPanel({
   serverId,
   actionId,
@@ -36,7 +36,7 @@ export function LogPanel({
   };
 
   // Always load once when the selection changes (or Refresh is pressed); poll only if auto is on.
-  usePolling(fetchLogs, 3000, active && auto);
+  usePolling(fetchLogs, 2000, active && auto);
   useEffect(() => {
     void fetchLogs().catch(() => setError('Could not read the logs.'));
   }, [serverId, actionId, JSON.stringify(params), tick]);
@@ -50,7 +50,7 @@ export function LogPanel({
         <strong className="min-w-0 flex-1 truncate">Logs: {title}</strong>
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
-          Auto-refresh
+          Follow (every 2 s)
         </label>
         <Button
           variant="outline"

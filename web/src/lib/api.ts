@@ -184,4 +184,10 @@ export const api = {
     void (await request('POST', '/api/recording/start', { serverId })),
   stopRecording: async (): Promise<{ recipeId: string }> =>
     z.object({ recipeId: z.string() }).parse(await request('POST', '/api/recording/stop')),
+
+  changePassword: async (oldPassword: string, newPassword: string) =>
+    void (await request('POST', '/api/vault/change-password', { oldPassword, newPassword })),
+
+  deleteSnapshot: async (serverId: string, snapshotId: string) =>
+    void (await request('DELETE', `/api/servers/${serverId}/snapshots/${snapshotId}`)),
 };

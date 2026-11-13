@@ -10,8 +10,10 @@ export function dbVaultStore(db: Db): VaultMetaStore {
       return row && { salt: row.salt, params: row.params, canary: row.canary };
     },
     save(meta) {
+      // Upsert: the first save creates the row, changing the master password replaces it.
       db.insert(vaultMeta)
         .values({ id: 1, ...meta })
+        .onConflictDoUpdate({ target: vaultMeta.id, set: meta })
         .run();
     },
   };

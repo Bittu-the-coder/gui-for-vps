@@ -16,12 +16,14 @@ export function testCtx(): AppContext {
   const runner = new Runner(db, pool);
   const recipes = new RecipeService(db);
   runner.onSuccess(recipes.recordRun);
+  const sftp = new SftpService(pool, db);
+  runner.onSnapshot((e) => void sftp.prune(e.serverId, e.path).catch(() => {}));
   return {
     db,
     vault,
     pool,
     runner,
-    sftp: new SftpService(pool, db),
+    sftp,
     recipes,
     allowedOrigins: ['http://localhost:5173'],
   };
