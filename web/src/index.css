@@ -199,3 +199,23 @@
     width var(--dur-slow) var(--ease-out),
     height var(--dur-slow) var(--ease-out);
 }
+
+/* Dock: an icon hops while its app launches. */
+@keyframes dock-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-22px);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  70% {
+    transform: translateY(-10px);
+  }
+}
+.dock-bounce {
+  animation: dock-bounce 1.2s var(--ease-out) 1;
+}

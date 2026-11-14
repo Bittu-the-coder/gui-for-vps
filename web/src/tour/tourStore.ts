@@ -17,27 +17,27 @@ export const TOUR_STEPS = [
   {
     target: 'app-servers',
     title: 'Add your first server',
-    body: 'Double-click Servers, then add the host, user and an SSH key or password. They are encrypted with your master password and never leave this computer.',
+    body: 'Click Servers in the Dock, then add the host, user and an SSH key or password. They are encrypted with your master password and never leave this computer.',
   },
   {
     target: 'server-switcher',
     title: 'Pick the active server',
-    body: 'Every window is tied to one server, shown by its colour. New windows open on the one you pick here.',
+    body: 'Every window is tied to one server, shown by its colour. New windows open on the one you pick here, in the menu bar.',
   },
   {
     target: 'app-terminal',
     title: 'Open apps on it',
-    body: 'Terminal, Files, Monitor, Services, Docker, Dev Hub… Dangerous commands ask for confirmation first: that is the Safety Net.',
+    body: 'Click an app in the Dock: Terminal, Files, Monitor, Services, Docker, Dev Hub… Dangerous commands ask for confirmation first: that is the Safety Net.',
   },
   {
     target: 'learn',
     title: 'Learn Mode',
-    body: 'Every action shows the real command and a plain-English explanation. The journal on the right keeps every command GFV ran for you.',
+    body: 'The Learn button in the menu bar shows a panel: every action shows the real command and a plain-English explanation. The journal on the right keeps every command GFV ran for you.',
   },
   {
     target: 'record',
     title: 'Record a recipe',
-    body: 'Press Record, do things in GFV, press Stop, and export what you did as a bash script you can run on another server.',
+    body: 'Press Record in the menu bar, do things in GFV, press Stop, and export what you did as a bash script you can run on another server.',
   },
 ] as const;
 

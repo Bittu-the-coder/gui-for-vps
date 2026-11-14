@@ -16,7 +16,7 @@ export function LearnPanel() {
   return (
     <aside
       aria-label="Learn Mode"
-      className="absolute bottom-11 right-0 top-0 z-[99990] flex w-80 flex-col border-l border-slate-300 bg-slate-50/95 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100"
+      className="absolute bottom-0 right-0 top-[var(--menubar-h)] z-[99990] flex w-80 flex-col border-l border-slate-300 bg-slate-50/95 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100"
       onMouseDown={(e) => e.stopPropagation()}
     >
       <header className="border-b border-slate-300 p-3 dark:border-slate-700">

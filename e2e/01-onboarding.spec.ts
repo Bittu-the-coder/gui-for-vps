@@ -48,7 +48,7 @@ test('a new user goes from the address to a connected server in under 3 minutes'
 
   // The tour does not come back after a reload.
   await page.reload();
-  await expect(page.getByRole('button', { name: '⊞ Start' })).toBeVisible();
+  await expect(page.locator('[data-tour="server-switcher"]')).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Tour' })).toBeHidden();
 });
 

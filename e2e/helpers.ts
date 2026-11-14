@@ -21,7 +21,7 @@ export async function openGfv(page: Page): Promise<void> {
   await page.goto(`/?token=${TOKEN}`);
   await expect(page).toHaveURL(/\/$/); // the token is gone from the address bar
   // Either the unlock screen (after a server restart) or the desktop.
-  const desktop = page.getByRole('button', { name: '⊞ Start' });
+  const desktop = page.locator('[data-tour="server-switcher"]');
   const unlock = page.getByRole('button', { name: 'Unlock' });
   await expect(desktop.or(unlock)).toBeVisible();
   if (await unlock.isVisible()) {
@@ -40,9 +40,17 @@ export async function openGfv(page: Page): Promise<void> {
     await skip.first().click();
 }
 
-/** Open an app by double-clicking its desktop icon (`id` is the app id: terminal, files, monitor, devhub...). */
+/**
+ * Open an app by clicking its Dock icon (`id` is the app id: terminal, files, monitor, devhub...).
+ *
+ * The Dock magnifies icons under the pointer and pushes their neighbours aside (like macOS), so an icon's
+ * position depends on where the pointer is. A test pointer that teleports from one icon to the next would
+ * aim at the old, displaced position and land on a neighbour. Parking the pointer off the Dock first
+ * restores the resting layout, where the aim is exact.
+ */
 export async function openApp(page: Page, id: string): Promise<void> {
-  await page.locator(`[data-tour="app-${id}"]`).dblclick();
+  await page.mouse.move(5, 300);
+  await page.locator(`[data-tour="app-${id}"]`).click();
 }
 
 /** Run a Command Runner action through the real dialog: preview, confirm if needed, wait for the result. */

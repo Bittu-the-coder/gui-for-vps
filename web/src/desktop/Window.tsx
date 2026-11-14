@@ -13,9 +13,8 @@ import {
   clearAnimations,
   minimizeTarget,
 } from './windowAnim';
+import { DOCK_SAFE } from './layout';
 import { consumeFresh, tryClose, useDesktop, type WindowState } from './windowStore';
-
-const TASKBAR_H = 44;
 
 // Tailwind only generates classes it can read literally, so every variant is spelled out in full.
 const BTN =
@@ -147,7 +146,7 @@ export function Window({ win }: { win: WindowState }) {
   // Maximized = a CSS-level override. The stored x/y/w/h stay untouched,
   // so restoring is trivial and react-rnd's drag is just disabled.
   const rect = win.maximized
-    ? { x: 0, y: 0, width: '100%', height: `calc(100% - ${TASKBAR_H}px)` }
+    ? { x: 0, y: 0, width: '100%', height: `calc(100% - ${DOCK_SAFE}px)` }
     : { x: win.x, y: win.y, width: win.w, height: win.h };
 
   // A window tied to a server gets a ring in that server's colour (dimmed when inactive), so you can

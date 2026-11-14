@@ -21,14 +21,14 @@ test.beforeEach(async ({ page }) => {
   await expect(wins(page)).toHaveCount(0);
 });
 
-test('minimize hides the window, the taskbar button restores it', async ({ page }) => {
+test('minimize hides the window, its Dock icon restores it', async ({ page }) => {
   await openApp(page, 'files');
   const win = wins(page).first();
   await expect(win).toBeVisible();
 
   await win.getByRole('button', { name: 'Minimize' }).click();
   await expect(win).toBeHidden(); // after the animation, the window is display:none
-  await page.locator('[data-win-anchor]').first().click(); // taskbar button restores it
+  await page.locator('[data-win-anchor]').first().click(); // the minimized window's Dock item restores it
   await expect(win).toBeVisible();
   // The restore animation leaves nothing behind: the window is fully opaque and un-transformed.
   await expect
@@ -103,4 +103,20 @@ test('screenshots mid-animation', async ({ page }) => {
   await wins(page).last().getByRole('button', { name: 'Minimize' }).click();
   await page.waitForTimeout(160);
   await page.screenshot({ path: join(out, 'chrome-minimizing.png') });
+  await page.locator('[data-win-anchor]').first().click();
+  await page.mouse.move(5, 300);
+  const dockBox = (await page.locator('[data-tour="app-docker"]').boundingBox())!;
+  await page.mouse.move(dockBox.x + dockBox.width / 2, dockBox.y + dockBox.height / 2, {
+    steps: 6,
+  });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: join(out, 'dock-hover.png') });
+  await page.mouse.move(5, 300);
+  await page.getByRole('button', { name: 'Window menu' }).click();
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: join(out, 'menu-window.png') });
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'GFV menu' }).click();
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: join(out, 'menu-gfv.png') });
 });

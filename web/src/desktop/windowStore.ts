@@ -58,6 +58,7 @@ interface DesktopState {
   move: (id: string, x: number, y: number) => void;
   resize: (id: string, w: number, h: number, x: number, y: number) => void;
   toggleTheme: () => void;
+  setTheme: (theme: 'light' | 'dark') => void;
 }
 
 /** Remembers the un-maximized rectangle so restore puts the window back. */
@@ -201,6 +202,7 @@ export const useDesktop = create<DesktopState>((set, get) => ({
   },
 
   toggleTheme: () => set({ theme: get().theme === 'dark' ? 'light' : 'dark' }),
+  setTheme: (theme) => set({ theme }),
 }));
 
 // Persist layout (debounced) whenever windows or theme change. Dragging fires many updates,

@@ -15,7 +15,12 @@ test('create a folder, upload a file, edit it in the editor and save', async ({ 
   await page.getByRole('button', { name: 'Create' }).click();
   await expect(page.getByText(`mkdir -p -- /tmp/${dir}`).first()).toBeVisible(); // Learn Mode: the real command
   await confirmRun(page);
-  await page.getByTestId('file-row').filter({ hasText: dir }).dblclick();
+  // The list refreshes after the run, which can replace the row between the two clicks of a double-click:
+  // retry until the Files window has really moved into the new folder.
+  await expect(async () => {
+    await page.getByTestId('file-row').filter({ hasText: dir }).dblclick();
+    await expect(page.locator(`[data-path="/tmp/${dir}"]`)).toBeVisible({ timeout: 1500 });
+  }).toPass({ timeout: 15_000 });
 
   await page.getByTestId('upload-input').setInputFiles({
     name: 'notes.txt',

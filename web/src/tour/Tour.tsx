@@ -38,20 +38,16 @@ export function Tour() {
   if (!open || !s) return null;
 
   const pad = 6;
-  // Put the card next to the element, kept inside the screen. Taskbar items sit at the bottom: open upwards.
+  // Put the card next to the element, kept inside the screen: under things in the menu bar (top),
+  // above things in the Dock (bottom), beside anything else.
   const cardW = 300;
-  const left = box
-    ? Math.min(Math.max(8, box.x), window.innerWidth - cardW - 8)
-    : window.innerWidth / 2 - cardW / 2;
-  const below = box ? box.y < window.innerHeight / 2 : true;
-  const style = box
-    ? below
-      ? {
-          left: Math.min(box.x + box.w + 14, window.innerWidth - cardW - 8),
-          top: Math.max(8, box.y),
-        }
-      : { left, bottom: window.innerHeight - box.y + 14 }
-    : { left, top: window.innerHeight / 2 - 80 };
+  const clampX = (x: number) => Math.min(Math.max(8, x), window.innerWidth - cardW - 8);
+  let style: { left: number; top?: number; bottom?: number };
+  if (!box) style = { left: window.innerWidth / 2 - cardW / 2, top: window.innerHeight / 2 - 80 };
+  else if (box.y < 48) style = { left: clampX(box.x), top: box.y + box.h + pad + 12 };
+  else if (box.y > window.innerHeight / 2)
+    style = { left: clampX(box.x), bottom: window.innerHeight - box.y + pad + 12 };
+  else style = { left: clampX(box.x + box.w + 14), top: Math.max(8, box.y) };
 
   return (
     <div className="fixed inset-0 z-[300000]" role="dialog" aria-label="Tour">
