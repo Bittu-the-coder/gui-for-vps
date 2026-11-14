@@ -3,6 +3,7 @@ import {
   Container,
   FileCode2,
   FolderOpen,
+  GraduationCap,
   Hammer,
   History,
   ListChecks,
@@ -26,6 +27,7 @@ import { EditorApp } from './editor/EditorApp';
 import { FilesApp } from './files/FilesApp';
 import { ActionsApp } from './actions/ActionsApp';
 import { JobsApp } from './jobs/JobsApp';
+import { LessonsApp } from './lessons/LessonsApp';
 
 export interface AppDef extends AppIconSpec {
   id: string;
@@ -130,6 +132,15 @@ export const APPS: AppDef[] = [
     tint: ['#2dd4bf', '#0f8f84'],
     component: JobsApp,
     defaultSize: { w: 880, h: 580 },
+    singleton: true,
+  },
+  {
+    id: 'lessons',
+    title: 'Lessons',
+    icon: GraduationCap,
+    tint: ['#facc15', '#d97706'],
+    component: LessonsApp,
+    defaultSize: { w: 760, h: 560 },
     singleton: true,
   },
   {

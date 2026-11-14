@@ -155,7 +155,8 @@ export const api = {
     RunStartedSchema.parse(
       await request('POST', '/api/runs', { serverId, actionId, params, confirmed }),
     ).runId,
-  history: async (): Promise<HistoryResponse> =>    HistoryResponseSchema.parse(await request('GET', '/api/history')),
+  history: async (): Promise<HistoryResponse> =>
+    HistoryResponseSchema.parse(await request('GET', '/api/history')),
 
   fsList: async (serverId: string, path: string): Promise<ListResponse> =>
     ListResponseSchema.parse(

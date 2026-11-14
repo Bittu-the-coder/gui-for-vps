@@ -1,3 +1,5 @@
+import { LEVEL_EFFECTS } from '@gfv/shared';
+import { useSkill } from '../stores/skillStore';
 import type { RunMsg } from '@gfv/shared';
 import { RunMsgSchema } from '@gfv/shared';
 import { useEffect, useRef, useState } from 'react';
@@ -63,6 +65,7 @@ export function RunDialogHost() {
 function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () => void }) {
   const server = useServers((s) => s.servers.find((x) => x.id === request.serverId));
   const refreshLearn = useLearn((s) => s.refresh);
+  const level = useSkill((s) => s.level);
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
   const [understood, setUnderstood] = useState(false);
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -222,12 +225,13 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
 
       {preview && phase.kind === 'preview' && (
         <>
-          <section>
-            <h3 className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+          {/* Skill level: beginners see the explanation open; others can unfold it. Nothing else changes. */}
+          <details open={LEVEL_EFFECTS[level].explainOpen}>
+            <summary className="mb-1 cursor-pointer text-xs font-semibold uppercase text-muted-foreground">
               What this does
-            </h3>
+            </summary>
             <p className="text-sm">{preview.explain}</p>
-          </section>
+          </details>
           <section className="flex flex-col gap-1.5">
             <h3 className="text-xs font-semibold uppercase text-muted-foreground">
               Commands GFV will run

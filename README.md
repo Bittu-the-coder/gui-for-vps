@@ -145,6 +145,8 @@ shows **what it does** in plain English, the **exact commands**, and the **risk*
 Caution and danger actions need you to tick _I understand the risk_. Press **Run** and the output streams in
 live. Nothing runs before you confirm.
 
+**Lessons.** The **Lessons** app has short guided lessons that use your real server: read a step, do something in GFV (the lesson notices when you did it), and answer quiz questions (a wrong answer just lets you try again). Progress is saved in this browser. Pick a **skill level** at the top: _Beginner_ keeps everything explained, _Intermediate_ folds the explanations away, _Expert_ starts with the Learn panel closed. The level never changes the safety confirmations.
+
 **Learn Mode (_Learn_ in the menu bar).** The panel on the right keeps a **journal** of every command GFV ran
 for you, with its explanation, and counts how many different commands you have seen. Press **Try it yourself**
 next to any command to type it into a terminal **without running it**.

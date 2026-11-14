@@ -23,3 +23,5 @@ export * from './recipes/describe.js';
 export * from './recipes/share.js';
 export * from './recipes/library.js';
 export * from './jobs.js';
+export * from './lessons/engine.js';
+export * from './lessons/content.js';

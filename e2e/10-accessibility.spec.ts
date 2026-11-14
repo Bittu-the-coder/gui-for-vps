@@ -137,6 +137,7 @@ for (const theme of ['light', 'dark'] as const) {
       'snapshots',
       'recipes',
       'jobs',
+      'lessons',
     ]) {
       await openApp(page, id);
       await check(id);
