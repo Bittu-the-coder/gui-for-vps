@@ -38,6 +38,7 @@ type Phase =
       exitCode: number | null;
       error?: string;
       cancelled?: 'user' | 'timeout';
+      reverted?: boolean;
     };
 
 interface Block {
@@ -120,7 +121,13 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
       });
     else if (m.type === 'done') {
       settle();
-      setPhase({ kind: 'finished', preview, exitCode: m.exitCode, cancelled: m.cancelled });
+      setPhase({
+        kind: 'finished',
+        preview,
+        exitCode: m.exitCode,
+        cancelled: m.cancelled,
+        reverted: m.reverted,
+      });
       request.onDone?.(m.exitCode);
       void refreshLearn();
       void useRecording.getState().refresh();
@@ -240,6 +247,17 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
               <CommandLine key={i} command={c} serverId={request.serverId} onTried={onClose} />
             ))}
           </section>
+          {preview.guard && (
+            <p
+              data-testid="guard-note"
+              className="rounded border border-separator bg-sunken p-3 text-sm"
+            >
+              <b>Lockout protection.</b> GFV saves the current state on the server first, starts a{' '}
+              {preview.guard.seconds}-second safety timer there, makes the change, then checks it
+              can still open a NEW connection. Only then is the timer cancelled; if not, the server
+              puts everything back by itself.
+            </p>
+          )}
           {preview.reasons.length > 0 && (
             <section
               className={`rounded border p-3 text-sm ${
@@ -316,17 +334,20 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
       {phase.kind === 'finished' && (
         <p
           role="status"
-          className={`text-sm font-medium ${phase.exitCode === 0 ? 'text-success' : 'text-danger'}`}
+          data-testid="run-result"
+          className={`text-sm font-medium ${phase.exitCode === 0 ? 'text-success' : phase.reverted ? 'text-warning' : 'text-danger'}`}
         >
           {phase.error
             ? phase.error
-            : phase.cancelled === 'timeout'
-              ? '■ Stopped: it ran for more than 30 minutes.'
-              : phase.cancelled === 'user'
-                ? '■ Cancelled.'
-                : phase.exitCode === 0
-                  ? '✓ Finished successfully (exit code 0)'
-                  : `✗ Failed (exit code ${phase.exitCode}). Later commands were skipped.`}
+            : phase.reverted
+              ? '↩ Undone automatically: after this change GFV could no longer connect, so the server put the previous state back. Nothing was left half-done.'
+              : phase.cancelled === 'timeout'
+                ? '■ Stopped: it ran for more than 30 minutes.'
+                : phase.cancelled === 'user'
+                  ? '■ Cancelled.'
+                  : phase.exitCode === 0
+                    ? '✓ Finished successfully (exit code 0)'
+                    : `✗ Failed (exit code ${phase.exitCode}). Later commands were skipped.`}
         </p>
       )}
 

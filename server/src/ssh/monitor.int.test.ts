@@ -62,11 +62,14 @@ describe.skipIf(!reachable)('monitor, services, docker (vps-a)', () => {
   });
 
   it('detects sudo for a non-root user and shows it in the preview', async () => {
-    expect(await ctx.runner.ctxFor(id)).toEqual({
+    const c = await ctx.runner.ctxFor(id);
+    expect(c).toEqual({
       sudo: 'sudo -n ',
       home: '/home/gfv',
       pkg: 'apt',
       user: 'gfv',
+      sshPort: 22, // as the SERVER sees it (SSH_CONNECTION), not the host port Docker maps
+      clientIp: expect.stringMatching(/^\d+\.\d+\.\d+\.\d+$/),
     });
     const r = await call('POST', '/api/runs/preview', {
       serverId: id,

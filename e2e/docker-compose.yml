@@ -16,3 +16,12 @@ services:
     container_name: gfv-vps-fedora
     ports: ['127.0.0.1:2203:22']
     profiles: ['fedora']
+  # Real systemd + real ufw (M14). Privileged: systemd needs cgroups and the firewall needs netfilter.
+  #   docker compose -f e2e/docker-compose.yml --profile systemd up -d --build vps-systemd
+  vps-systemd:
+    build: { context: ., dockerfile: Dockerfile.systemd }
+    container_name: gfv-vps-systemd
+    ports: ['127.0.0.1:2204:22']
+    privileged: true
+    tmpfs: ['/run', '/run/lock']
+    profiles: ['systemd']

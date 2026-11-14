@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import type { GuardDef } from '../guard.js';
 
 export type Risk = 'safe' | 'caution' | 'danger';
 
@@ -17,6 +18,10 @@ export interface ActionCtx {
   pkg?: 'apt' | 'dnf' | 'auto';
   /** The account GFV connects as (services run as this user, never as root by default). */
   user?: string;
+  /** The port the server's sshd answers on, as the SERVER sees it (a firewall rule must name this one). */
+  sshPort?: number;
+  /** GFV's address as the server sees it (a rule against this address would lock GFV out). */
+  clientIp?: string;
 }
 
 /** A text field the (temporary) Actions app renders for a param. */
@@ -65,8 +70,16 @@ export interface ActionDef<S extends z.ZodTypeAny = z.ZodTypeAny> {
    * dialog, not saved to history. Must be `safe`.
    */
   quiet?: boolean;
+  /** A quiet query that legitimately takes longer than the default 10 seconds (e.g. package checks). */
+  queryTimeoutMs?: number;
   /** Risk that depends on the params (e.g. killing sshd). Can only raise the declared risk. */
-  dynamicRisk?(params: z.infer<S>): { risk: Risk; reason: string } | undefined;
+  dynamicRisk?(params: z.infer<S>, ctx?: ActionCtx): { risk: Risk; reason: string } | undefined;
+  /**
+   * A change that could cut GFV's own SSH access. The preview wraps it: save the state on the server, start a
+   * server-side timer that undoes the change, run it, and only after GFV proved with a NEW connection that it can
+   * still get in is the timer cancelled. See guard.ts.
+   */
+  guard?: GuardDef;
   /**
    * Takes minutes (package installs). Runs in a PTY so Cancel (Ctrl-C) stops the whole process
    * group, gets a 30-minute timeout, and the run dialog offers Hide and Cancel.

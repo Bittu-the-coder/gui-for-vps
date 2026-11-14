@@ -8,6 +8,9 @@ import {
   Hammer,
   Workflow,
   Network,
+  ShieldCheck,
+  ShieldAlert,
+  Archive,
   History,
   ListChecks,
   ScrollText,
@@ -32,6 +35,9 @@ import { ActionsApp } from './actions/ActionsApp';
 import { JobsApp } from './jobs/JobsApp';
 import { LessonsApp } from './lessons/LessonsApp';
 import { ServerMapApp } from './map/ServerMapApp';
+import { BackupsApp } from './backups/BackupsApp';
+import { FirewallApp } from './firewall/FirewallApp';
+import { SecurityApp } from './security/SecurityApp';
 import { NetworkApp } from './network/NetworkApp';
 import { ProjectsApp } from './projects/ProjectsApp';
 
@@ -165,6 +171,33 @@ export const APPS: AppDef[] = [
     tint: ['#38bdf8', '#2563eb'],
     component: NetworkApp,
     defaultSize: { w: 780, h: 520 },
+    serverBound: true,
+  },
+  {
+    id: 'firewall',
+    title: 'Firewall',
+    icon: ShieldCheck,
+    tint: ['#fb7185', '#be123c'],
+    component: FirewallApp,
+    defaultSize: { w: 780, h: 520 },
+    serverBound: true,
+  },
+  {
+    id: 'security',
+    title: 'Security',
+    icon: ShieldAlert,
+    tint: ['#fbbf24', '#b45309'],
+    component: SecurityApp,
+    defaultSize: { w: 780, h: 540 },
+    serverBound: true,
+  },
+  {
+    id: 'backups',
+    title: 'Backups',
+    icon: Archive,
+    tint: ['#a78bfa', '#6d28d9'],
+    component: BackupsApp,
+    defaultSize: { w: 800, h: 540 },
     serverBound: true,
   },
   {

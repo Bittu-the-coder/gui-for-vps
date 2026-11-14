@@ -1171,6 +1171,119 @@ to be decided).
 
 ---
 
+## 19b. The compact (phone) layout (M25)
+
+`desktop/compact.ts` (`useCompact`, `isCompact`) is one media query, `max-width: 767px`. It is decided by the
+measured width, never by the user agent, so a narrow desktop window gets the same shell and a tablet keeps the
+desktop. `Desktop.tsx` switches on it:
+
+- **Windows:** `CompactWindow` (`desktop/Mobile.tsx`) fills the workspace, has no drag/resize/animation and shows
+  only while it is `topWindowId` (the highest non-minimized one). The others stay mounted with `display:none`, so
+  terminals and polling keep running. "Home" (`goHome`) minimizes every window. Closing goes through the same
+  `tryClose` guard as on the desktop.
+- **Launcher:** `MobileHome` (a grid of `LAUNCHABLE` apps) is mounted only while no window is on screen, and
+  carries `data-tour="app-<id>"` like the Dock, so specs open apps the same way.
+- **Bars:** the Dock is not rendered; `TabBar` (Home, Windows list, Search, Learn) replaces it. The menu bar keeps
+  the GFV menu, app name, server picker and Control Center (the rest is `max-md:hidden`). Tokens `--menubar-h`
+  (40 px) and `--tabbar-h` change the geometry.
+- **Learn Mode** is a full-screen sheet whose open state is local to `Desktop` (`learnSheet`), closed at start, so
+  the saved desktop preference is never changed by a phone. The first-run tour is not started (its targets are
+  Dock icons).
+- **Apps:** most already wrap. List + detail apps (Recipes, Snapshots, Jobs) show one pane at a time with
+  `BackBar`. The Terminal shows a key row (Ctrl, Esc, Tab, arrows, `| ~ / -`): its keys go through the same
+  socket, so the Safety Net still sees them; Ctrl is armed and turns the next typed letter into its control code.
+- **Tests:** `e2e/18-mobile.spec.ts` (390x844 touch) covers the shell, the window list, Learn, the key row with a
+  real Ctrl+C, master/detail, overlays fitting the screen, every app for sideways overflow, and contrast in both
+  themes. Not done: pinch-zoom on the Server Map (it scrolls), Monaco editing on a phone keyboard was not
+  exercised, Mission Control and drag-and-drop between windows are desktop only, Control Center's Learn switch
+  changes the desktop preference, not the sheet.
+
+## 19c. Installing GFV as an app (PWA, M26)
+
+`web/public/` holds `manifest.webmanifest` (standalone, icons 192/512 + maskable), `icons/*.png` (made from
+`favicon.svg` by `node scripts/make-icons.mjs`; commit the result), `sw.js` and `offline.html`. `web/src/pwa.ts`
+registers the worker in the production build only. The static server serves all of these without a cookie (the
+browser fetches the manifest before any sign-in); `sw.js` comes with `max-age=0` so updates reach people.
+
+The service worker is deliberately tiny and **never stores anything from `/api`**: it caches only the
+content-hashed `/assets/*` files (cache-first, trimmed to 150 entries) and the offline page, and answers a failed
+page load with `offline.html` ("GFV is not running, start it with `npx gfv`"). Everything else, including the
+WebSockets, goes straight to the network. `e2e/19-pwa.spec.ts` looks inside every cache after real API calls and
+fails if any entry is not `/assets/…` or the offline page.
+
+Limits worth knowing: the session cookie is a browser-session cookie and the token is random per `npx gfv`
+run, so an installed app opened after a restart shows the "old session" screen until you open the new address
+once (a persisted login is a hosted-mode (M24) topic, not changed here). Offline, the app cannot do anything
+useful (it only talks to a live server), so there is no offline mode beyond the explanation page.
+
+## 19d. Lockout protection and the Firewall (M14)
+
+**The problem:** a firewall rule (or an sshd setting) can cut the very connection GFV uses, and then nothing in the
+browser can fix it. **The idea:** the undo must live on the SERVER, because that is the one thing that still
+works when the connection is gone. `shared/src/guard.ts` wraps an action that declares `guard: GuardDef`
+(`save`, `restore`, `seconds`); `previewAction` adds these visible commands around the action's own:
+
+1. `mkdir ~/.gfv/guard/<runId>` and **save** the current state there (for ufw: a copy of `/etc/ufw` and
+   `/etc/default/ufw`), plus a `meta` file (title, time);
+2. write `revert.sh` and start a detached timer (`nohup setsid sh -c 'sleep 40; [ -e $DIR/ok ] || { sh revert.sh; touch reverted; }'`);
+3. the action's commands;
+4. last command: `touch <dir>/ok`, which cancels the undo. The runner (`execute`, `preview.guard.confirmIndex`)
+   runs it ONLY after `SshPool.probe` succeeded: a brand-new SSH connection (an already established one keeps
+   working under ufw, so only a fresh one proves we can still get in). If the probe fails the runner does NOT
+   cancel; it polls until a fresh connection works again (the timer restored the rules), then ends the run with
+   `done {exitCode: 1, reverted: true}`. A failed step also leaves the timer running, so a half-applied change is
+   undone too.
+
+`ActionCtx` now has `sshPort` and `clientIp`, read from `$SSH_CONNECTION` (as the SERVER sees them: 22, not the
+host port Docker maps; this is what a rule must name). `dynamicRisk(params, ctx)` raises a deny that matches SSH
+and the deletion of the allow that carries SSH to `danger` (`shared/src/firewall/ufw.ts`: `blocksSsh`,
+`removesSshAccess`). Enabling the firewall allows the SSH port first.
+
+**Undo timeline:** the saved folders ARE the history (stateless: no GFV table, any GFV sees them). `firewall.backups`
+lists them, `firewall.restore {backup}` (id validated by `GUARD_ID`, never a path) restores one, itself guarded and
+saving the current state first, so an undo can be undone. **ufw quirks handled:** rules are first-match-wins, so a
+deny is inserted at position 1; `insert` refuses on an empty list and silently skips when the same match already
+exists as an allow, so the command falls back to a plain `ufw deny`, which flips that rule in place.
+
+**Web:** `apps/firewall/` (state, Turn on/off, rules with a Remove button, "SSH: how GFV connects" label,
+RuleDialog with a live lockout hint, Undo timeline). The run dialog shows a "Lockout protection" note and the
+"Undone automatically" result.
+
+**Test server:** `e2e/Dockerfile.systemd` + compose profile `systemd` (`vps-systemd`, port 2204, **privileged**):
+Ubuntu with REAL systemd and REAL ufw. The firewall filters that container's own network, so a rule that blocks
+SSH really locks GFV out. `ssh/firewall.int.test.ts` and `e2e/20-firewall.spec.ts` do exactly that, twice
+(deny 22, and deleting the only allow 22) and check, from inside the box, that the server undid it by itself.
+
+## 19e. Security checkup and scheduled backups (M15)
+
+**Checkup** (`shared/src/security/audit.ts`, `apps/security/`): `security.audit` is ONE quiet read-only command that
+prints `key=value` lines (the effective sshd config from `sshd -T`, firewall state, pending/security updates,
+automatic updates, fail2ban, extra uid-0 and empty-password accounts, authorized keys, disk, public ports). A pure
+parser (`parseAudit`) and a pure rule set (`evaluate`) turn that into findings, worst first; a check that cannot run
+simply makes no finding. A finding may carry a fix: an ordinary Action (previewed and confirmed like any other) or a
+link to another app. It never offers "switch passwords off" when the account has no SSH key, and the action itself
+refuses too (`HAS_KEY`). The query has its own timeout (`ActionDef.queryTimeoutMs`, 60 s) because package checks are slow.
+
+**SSH hardening** (`security.ssh.harden`) writes lines into `/etc/ssh/sshd_config.d/00-gfv-hardening.conf`
+(additive, idempotent; `00-` because sshd keeps the FIRST value it reads, so it beats `50-cloud-init.conf`),
+checks `sshd -t` (and undoes at once if it fails), reloads sshd, and runs under the **same lockout guard as the
+firewall** (`sshdGuard`, kind `sshd`). `GuardDef.kind` is written into each undo point's `meta`, so the Firewall and
+Security apps list only their own (`firewall.backups` lists all, the UI filters; `security.ssh.restore` undoes).
+
+**Backups** (`shared/src/backups/schedule.ts`, `apps/backups/`): `backup.schedule` writes a root script
+`/usr/local/lib/gfv/backup-<name>.sh`, a oneshot service and a timer (`Persistent=true`) and enables the timer. The
+script `tar`s the chosen folders (relative to `/`, so a restore goes anywhere) into `~/.gfv/backups/<name>/<stamp>.tar.gz`
+(mode 600, chowned to the SSH user so Files can download it), writes via `.partial` + `mv`, and keeps the newest N.
+Names and paths are validated (no spaces or shell/unit syntax, no `..`, not `/`). `backup.restore` unpacks into a NEW
+folder `~/gfv-restore/...`, never over live files. The list is read back from `# gfv:` comment lines in the script and
+`systemctl show`, so it is stateless like Projects.
+
+**Tests:** `backupScript.test.ts` runs the generated script for real (tar, retention, a missing folder fails loudly);
+`ssh/security.int.test.ts` (real systemd, sshd, apt): audit, a risky setting fixed and undone, refusal without a key,
+the server reverting sshd by itself when the confirmation never comes, real installs of fail2ban / unattended-upgrades /
+updates, a backup timer that really fires on its own, retention, restore, removal; `e2e/21-security-backups.spec.ts`.
+`exclusive('systemd')` (`testUtil.ts`) serialises the integration files that share the systemd container.
+
 ## 20. Testing strategy
 
 Three layers, each answering a different question.

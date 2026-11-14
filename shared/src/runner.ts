@@ -26,6 +26,7 @@ export const PreviewSchema = z.object({
   reasons: z.array(z.string()),
   longRunning: z.boolean(),
   snapshots: z.array(z.object({ path: z.string(), name: z.string() })),
+  guard: z.object({ seconds: z.number(), confirmIndex: z.number().int() }).optional(),
   matches: z.array(
     z.object({
       id: z.string(),
@@ -58,6 +59,8 @@ export const RunMsgSchema = z.discriminatedUnion('type', [
     failedStep: z.number().int().optional(),
     /** Stopped by the user (Cancel) or by the timeout. */
     cancelled: z.enum(['user', 'timeout']).optional(),
+    /** Lockout protection: GFV could not connect again, so the server undid the change by itself. */
+    reverted: z.boolean().optional(),
   }),
   z.object({ type: z.literal('error'), message: z.string() }),
 ]);

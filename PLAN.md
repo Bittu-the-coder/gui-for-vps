@@ -277,9 +277,9 @@ Sizes are part-time days. "Needs" lists dependencies between milestones. Each mi
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ------------ |
 | M11 | ✅ **Job engine**: replay a recipe on another server (progress, retry/skip/abort on failure), recipe parameters, multi-server broadcast. (Recording of file edits moved to a later milestone.) | done  | none         |
 | M12 | ✅ Recipe exports (Dockerfile, compose, Ansible), "Clone this server" (Dev Hub tools), recipe files + bundled starter library (no backend: a "community library" is a Git repo of files)       | done  | M11          |
-| M13 | **Distros**: package/service-manager abstraction, Fedora/RHEL first (Alpine, Arch as a Dev Hub subset), systemd-capable test containers                                                        | 7–10  | none         |
-| M14 | Firewall app, **lockout protection** (server-side auto-revert), undo timeline                                                                                                                  | 7–9   | M13          |
-| M15 | Security checkup app, scheduled backups                                                                                                                                                        | 6–8   | M14          |
+| M13 | ✅ (Fedora) **Distros**: package abstraction, dnf verified on a real Fedora 41 container. Not done: Alpine, Arch, real-systemd test containers (move to M14) | done  | none         |
+| M14 | ✅ Firewall app (ufw), **lockout protection** (server-side auto-revert, proven on a real firewall), undo timeline. Not done: firewalld (Fedora), sshd settings under the same guard | done  | M13          |
+| M15 | ✅ Security checkup (audit + one-click fixes, sshd hardening under the lockout guard) and scheduled backups (real systemd timers). Not done: backups to a REMOTE place, a cron fallback without systemd | done  | M14          |
 | M16 | ✅ Learn Mode advanced: lessons, quizzes, skill levels (AI explain is in M23)                                                                                                                  | done  | M10          |
 | M17 | ✅ Ports & Domains (nginx sites with rollback; HTTPS via certbot is built but not run against a real domain)                                                                                   | done  | M13          |
 | M18 | ✅ Projects (deploy from git, env vars, systemd service, update check). Scheduled auto-redeploy not built.                                                                                     | done  | M17          |
@@ -289,8 +289,8 @@ Sizes are part-time days. "Needs" lists dependencies between milestones. Each mi
 | M22 | ✅ Cross-server drag and drop (files; folders not yet)                                                                                                                                         | done  | M11          |
 | M23 | AI assistant + AI explain (own key or local model; nothing sent without a per-send preview; only proposes Actions)                                                                             | 8–10  | most Actions |
 | M24 | Hosted mode (TLS via a front proxy, login + 2FA, audit log, multi-user)                                                                                                                        | 15–20 | everything   |
-| M25 | Mobile layout                                                                                                                                                                                  | 5–7   | M10          |
-| M26 | Desktop wrapper (PWA first; Tauri only if the toolchain download is acceptable)                                                                                                                | 2–3   | M25          |
+| M25 | ✅ Mobile layout (compact shell under 768 px: launcher, full-screen windows, tab bar, Learn sheet, terminal key row; tablets keep the desktop)                                                 | done  | M10          |
+| M26 | PWA ✅ (installable app, offline page; Tauri only if the toolchain download is acceptable, not started)                                                                                          | done  | M25          |
 
 Decisions: AI provider interface with the Anthropic API (user's key, in the vault) and any OpenAI-compatible
 endpoint (Ollama = nothing leaves the machine); one `aiGateway` module is the only outbound LLM path. Hosted mode

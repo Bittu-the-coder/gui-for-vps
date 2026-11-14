@@ -146,6 +146,24 @@ export class SshPool extends EventEmitter {
     return 'ok';
   }
 
+  /**
+   * Can a brand-new SSH connection be opened right now? (Not the pooled one: while a firewall blocks NEW
+   * connections, an already established one keeps working, so only a fresh one proves we can still get in.)
+   */
+  async probe(id: string): Promise<boolean> {
+    const target = this.target(id);
+    if (!target) return false;
+    try {
+      const outcome = await connect(target, this.hostKeys);
+      if (outcome.status !== 'connected') return false;
+      outcome.client.on('error', () => {});
+      outcome.client.end();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   disconnect(id: string) {
     this.wanted.delete(id);
     this.clearTimer(id);

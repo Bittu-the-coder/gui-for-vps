@@ -31,3 +31,29 @@ export function testCtx(): AppContext {
     allowedOrigins: ['http://localhost:5173'],
   };
 }
+
+/**
+ * Integration test files run in parallel, but some share ONE test server whose state they change (the firewall, sshd).
+ * This is a lock across processes: `const release = await exclusive('systemd')` in beforeAll, `release()` in afterAll.
+ * (A directory is created atomically; a lock older than `staleMs` belongs to a crashed run and is taken over.)
+ */
+export async function exclusive(name: string, staleMs = 15 * 60_000): Promise<() => void> {
+  const { mkdirSync, rmSync, statSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const dir = join(tmpdir(), `gfv-test-lock-${name}`);
+  for (;;) {
+    try {
+      mkdirSync(dir);
+      return () => rmSync(dir, { recursive: true, force: true });
+    } catch {
+      try {
+        if (Date.now() - statSync(dir).mtimeMs > staleMs)
+          rmSync(dir, { recursive: true, force: true });
+      } catch {
+        /* released meanwhile */
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
+}

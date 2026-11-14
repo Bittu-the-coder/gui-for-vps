@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import { detectDanger, type DangerMatch } from '../danger.js';
+import { guardConfirmCommand, guardStartCommands } from '../guard.js';
 import { snapshotCommands, snapshotFileName } from '../snapshots.js';
 import {
   defineAction,
@@ -10,6 +11,9 @@ import {
 } from './define.js';
 import { devhubActions } from './devhub.js';
 import { dockerActions } from './docker.js';
+import { backupActions } from './backups.js';
+import { firewallActions } from './firewall.js';
+import { securityActions } from './security.js';
 import { monitorActions } from './monitor.js';
 import { networkActions } from './network.js';
 import { projectActions } from './projects.js';
@@ -36,6 +40,9 @@ export const ACTIONS: ActionDef[] = [
   ...devhubActions,
   ...networkActions,
   ...projectActions,
+  ...firewallActions,
+  ...securityActions,
+  ...backupActions,
 ];
 
 export const actionById = (id: string): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
@@ -73,6 +80,11 @@ export interface Preview {
   longRunning: boolean;
   /** Files that get a backup first (their backup commands are already in `commands`). */
   snapshots: { path: string; name: string }[];
+  /**
+   * Lockout protection (see guard.ts): the runner checks, before step `confirmIndex`, that a NEW connection works,
+   * and undoes nothing itself: the timer on the server does.
+   */
+  guard?: { seconds: number; confirmIndex: number };
 }
 
 export type PreviewResult =
@@ -107,9 +119,12 @@ export function previewAction(
   }
   const snapPaths = action.snapshotPaths?.(parsed.data) ?? [];
   const runId = ctx.runId ?? 'preview';
+  const guardStart = action.guard ? guardStartCommands(action.guard, runId, action.title, ctx) : [];
   const commands = [
     ...snapPaths.flatMap((p) => snapshotCommands(p, runId, ctx.sudo)),
+    ...guardStart,
     ...action.commands(parsed.data, ctx),
+    ...(action.guard ? [guardConfirmCommand(runId)] : []),
   ];
   // The detector may RAISE the declared risk, never lower it.
   const matches = commands.flatMap((c) => detectDanger(c));
@@ -117,7 +132,7 @@ export function previewAction(
   const unique = matches.filter((m) => !seen.has(m.id) && seen.add(m.id));
   let risk: Risk = action.risk;
   for (const m of unique) if (RANK[m.level] > RANK[risk]) risk = m.level;
-  const dyn = action.dynamicRisk?.(parsed.data);
+  const dyn = action.dynamicRisk?.(parsed.data, ctx);
   if (dyn && RANK[dyn.risk] > RANK[risk]) risk = dyn.risk;
   const reasons = [
     ...(dyn ? [dyn.reason] : []),
@@ -137,6 +152,9 @@ export function previewAction(
       matches: unique,
       longRunning: !!action.longRunning,
       snapshots: snapPaths.map((path) => ({ path, name: snapshotFileName(runId, path) })),
+      ...(action.guard
+        ? { guard: { seconds: action.guard.seconds, confirmIndex: commands.length - 1 } }
+        : {}),
     },
   };
 }

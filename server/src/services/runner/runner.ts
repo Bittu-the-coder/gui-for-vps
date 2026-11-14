@@ -110,6 +110,28 @@ export class Runner {
     }
   }
 
+  /** After a guarded change locked us out: poll with fresh connections until one works again (the server undid it). */
+  private async waitForAccess(serverId: string, seconds: number, run: Run): Promise<boolean> {
+    const deadline = Date.now() + seconds * 1000;
+    while (Date.now() < deadline && !run.abort.signal.aborted) {
+      await new Promise((r) => setTimeout(r, 3000));
+      if (await this.pool.probe(serverId)) {
+        run.emit({
+          type: 'output',
+          stream: 'stdout',
+          text: 'The server undid the change: GFV can connect again. Nothing was left half-done.\n',
+        });
+        return true;
+      }
+    }
+    run.emit({
+      type: 'output',
+      stream: 'stderr',
+      text: 'GFV still cannot connect. If this server has a console in its provider panel, use it to run "sudo ufw disable".\n',
+    });
+    return false;
+  }
+
   /** Stops a running run: Ctrl-C into its PTY, then a hard close if it ignores that. */
   cancel(id: string): boolean {
     const run = this.runs.get(id);
@@ -136,17 +158,21 @@ export class Runner {
       // uid, home, and the distro family (os-release ID + ID_LIKE) so actions can choose apt or dnf.
       await execStep(
         client,
-        'id -u; echo "$HOME"; (. /etc/os-release 2>/dev/null && echo "$ID $ID_LIKE") || echo unknown; id -un',
+        'id -u; echo "$HOME"; (. /etc/os-release 2>/dev/null && echo "$ID $ID_LIKE") || echo unknown; id -un; echo "$SSH_CONNECTION"',
         (m) => m.type === 'output' && (out += m.text),
         { timeoutMs: 5000 },
       );
-      const [uid, home, family, user] = out.trim().split('\n');
+      const [uid, home, family, user, conn] = out.trim().split('\n');
+      // SSH_CONNECTION = "client_ip client_port server_ip server_port", all as the SERVER sees them.
+      const [clientIp, , , sshPort] = (conn ?? '').trim().split(/\s+/);
       const pkg = pkgManagerFor(family ?? '');
       return {
         sudo: uid?.trim() === '0' ? '' : 'sudo -n ',
         ...(home?.trim() ? { home: home.trim() } : {}),
         ...(pkg ? { pkg } : {}),
         ...(user?.trim() ? { user: user.trim() } : {}),
+        ...(sshPort && /^\d+$/.test(sshPort) ? { sshPort: Number(sshPort) } : {}),
+        ...(clientIp && /^[0-9.]+$/.test(clientIp) ? { clientIp } : {}),
       };
     } catch {
       return DEFAULT_CTX;
@@ -182,7 +208,7 @@ export class Runner {
             if (m.stream === 'stdout' && stdout.length < QUERY_MAX_BYTES) stdout += m.text;
             else if (m.stream === 'stderr' && stderr.length < QUERY_MAX_BYTES) stderr += m.text;
           },
-          { timeoutMs: QUERY_TIMEOUT_MS },
+          { timeoutMs: action.queryTimeoutMs ?? QUERY_TIMEOUT_MS },
         );
         if (exitCode !== 0) break;
       }
@@ -246,9 +272,27 @@ export class Runner {
       ? setTimeout(() => run.cancel('timeout'), LONG_TIMEOUT_MS)
       : undefined;
 
+    let reverted = false;
     try {
       for (let i = 0; i < total; i++) {
         run.emit({ type: 'step', index: i, total, command: preview.commands[i]! });
+        // Lockout protection: before the last step (which cancels the server's undo timer) prove, with a NEW
+        // connection, that we can still get in. If not, do NOT cancel: the timer on the server undoes the change.
+        if (
+          preview.guard &&
+          i === preview.guard.confirmIndex &&
+          !(await this.pool.probe(serverId))
+        ) {
+          run.emit({
+            type: 'output',
+            stream: 'stderr',
+            text: `GFV can no longer open a new connection to this server. The server will undo the change by itself within ${preview.guard.seconds} seconds. Waiting for it...\n`,
+          });
+          reverted = await this.waitForAccess(serverId, preview.guard.seconds + 25, run);
+          exitCode = 1;
+          failedStep = i;
+          break;
+        }
         let stepText = '';
         const code = await execStep(
           client,
@@ -274,6 +318,7 @@ export class Runner {
         exitCode,
         ...(failedStep !== undefined ? { failedStep } : {}),
         ...(cancelled ? { cancelled } : {}),
+        ...(reverted ? { reverted: true } : {}),
       });
     } catch (err) {
       exitCode = null;
