@@ -1,4 +1,6 @@
 import { confirmDialog } from '../../components/confirmStore';
+import { BackBar } from '../../components/BackBar';
+import { useCompact } from '../../desktop/compact';
 import { RefreshCw } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { NoServer } from '../../components/NoServer';
@@ -29,6 +31,7 @@ export function SnapshotsApp({ windowId }: { windowId: string }) {
   const win = useDesktop((s) => s.windows[windowId]);
   const dark = useDesktop((s) => s.theme) === 'dark';
   const serverId = win?.serverId;
+  const compact = useCompact();
   const [rows, setRows] = useState<SnapshotRow[] | null>(null);
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -117,7 +120,13 @@ export function SnapshotsApp({ windowId }: { windowId: string }) {
 
   return (
     <div className="flex h-full text-sm">
-      <div className="w-64 shrink-0 overflow-auto border-r border-border">
+      <div
+        className={
+          compact
+            ? `min-w-0 flex-1 overflow-auto ${selectedId ? 'hidden' : ''}`
+            : 'w-64 shrink-0 overflow-auto border-r border-border'
+        }
+      >
         <div className="flex items-center justify-between px-2 py-1.5 text-xs text-muted-foreground">
           <span>{rows ? `${rows.length} backups` : 'Loading…'}</span>
           <button
@@ -167,7 +176,10 @@ export function SnapshotsApp({ windowId }: { windowId: string }) {
         ))}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className={`min-w-0 flex-1 flex-col ${compact && !selectedId ? 'hidden' : 'flex'}`}>
+        {compact && selectedId && (
+          <BackBar label="All backups" onBack={() => setSelectedId(null)} />
+        )}
         {!selected ? (
           <div className="grid flex-1 place-items-center p-4 text-center text-muted-foreground">
             Pick a backup to see what changed since.

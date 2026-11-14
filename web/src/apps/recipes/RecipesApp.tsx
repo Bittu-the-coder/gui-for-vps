@@ -1,4 +1,6 @@
 import { confirmDialog } from '../../components/confirmStore';
+import { BackBar } from '../../components/BackBar';
+import { useCompact } from '../../desktop/compact';
 import { ArrowDown, ArrowUp, Circle, Pencil, Play, X } from 'lucide-react';
 import { EXPORT_FORMATS, type ExportFormat, type Recipe, type RecipeDetail } from '@gfv/shared';
 import { useCallback, useEffect, useState } from 'react';
@@ -20,6 +22,7 @@ export function RecipesApp() {
   const justStopped = useRecording((s) => s.justStopped);
   const clearJustStopped = useRecording((s) => s.clearJustStopped);
   const servers = useServers((s) => s.servers);
+  const compact = useCompact();
   const [list, setList] = useState<Recipe[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<RecipeDetail | null>(null);
@@ -134,7 +137,13 @@ export function RecipesApp() {
 
   return (
     <div className="flex h-full text-sm">
-      <div className="w-56 shrink-0 overflow-auto border-r border-border">
+      <div
+        className={
+          compact
+            ? `min-w-0 flex-1 overflow-auto ${selectedId ? 'hidden' : ''}`
+            : 'w-56 shrink-0 overflow-auto border-r border-border'
+        }
+      >
         <div className="border-b border-border p-2">
           <Button size="sm" variant="outline" className="w-full" onClick={() => setLibrary(true)}>
             Library…
@@ -167,7 +176,16 @@ export function RecipesApp() {
         ))}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className={`min-w-0 flex-1 flex-col ${compact && !selectedId ? 'hidden' : 'flex'}`}>
+        {compact && selectedId && (
+          <BackBar
+            label="All recipes"
+            onBack={() => {
+              setSelectedId(null);
+              setDetail(null);
+            }}
+          />
+        )}
         {!detail ? (
           <div className="grid flex-1 place-items-center p-4 text-center text-muted-foreground">
             Pick a recipe.

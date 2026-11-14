@@ -6,6 +6,7 @@ import '@xterm/xterm/css/xterm.css';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { api } from '../../lib/api';
+import { useCompact } from '../../desktop/compact';
 import { registerTerminal, terminalReady, type TerminalHandle } from './terminalBus';
 
 type Phase =
@@ -36,6 +37,9 @@ export function TerminalView({
   const wsRef = useRef<WebSocket | null>(null);
   const [session, setSession] = useState(0); // bump to start a fresh shell
   const [phase, setPhase] = useState<Phase>({ kind: 'connecting' });
+  const compact = useCompact();
+  const ctrlArmed = useRef(false);
+  const [ctrlOn, setCtrlOn] = useState(false);
   const [danger, setDanger] = useState<DangerPrompt | null>(null);
   const [reconnectNote, setReconnectNote] = useState('');
 
@@ -127,7 +131,16 @@ export function TerminalView({
       );
     };
 
-    term.onData((d) => send(enc.encode(d)));
+    term.onData((d) => {
+      // Ctrl armed from the touch key row: the next single character becomes its control code (c -> ^C).
+      if (ctrlArmed.current && d.length === 1) {
+        ctrlArmed.current = false;
+        setCtrlOn(false);
+        const code = d.toUpperCase().charCodeAt(0);
+        if (code >= 64 && code <= 95) return void send(Uint8Array.of(code - 64));
+      }
+      send(enc.encode(d));
+    });
     term.onBinary((d) => send(Uint8Array.from(d, (c) => c.charCodeAt(0))));
     term.onResize(({ cols, rows }) => send(JSON.stringify({ type: 'resize', cols, rows })));
 
@@ -208,8 +221,21 @@ export function TerminalView({
         : null;
 
   return (
-    <div className="relative h-full w-full bg-code p-2">
-      <div ref={host} className="h-full w-full" />
+    <div className="relative flex h-full w-full flex-col bg-code p-2">
+      <div ref={host} className="min-h-0 w-full flex-1" />
+      {compact && phase.kind === 'live' && (
+        <KeyRow
+          ctrlOn={ctrlOn}
+          onCtrl={() => {
+            ctrlArmed.current = !ctrlArmed.current;
+            setCtrlOn(ctrlArmed.current);
+          }}
+          onKey={(seq) => {
+            const ws = wsRef.current;
+            if (ws?.readyState === WebSocket.OPEN) ws.send(new TextEncoder().encode(seq));
+          }}
+        />
+      )}
 
       {danger && (
         <div
@@ -264,6 +290,64 @@ export function TerminalView({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+const KEYS: [label: string, seq: string, name: string][] = [
+  ['Esc', '\x1b', 'Escape'],
+  ['Tab', '\t', 'Tab'],
+  ['↑', '\x1b[A', 'Arrow up'],
+  ['↓', '\x1b[B', 'Arrow down'],
+  ['←', '\x1b[D', 'Arrow left'],
+  ['→', '\x1b[C', 'Arrow right'],
+  ['|', '|', 'Pipe'],
+  ['~', '~', 'Tilde'],
+  ['/', '/', 'Slash'],
+  ['-', '-', 'Dash'],
+];
+
+/** Keys a phone keyboard lacks. They go through the same socket, so the Safety Net still sees them. */
+function KeyRow({
+  ctrlOn,
+  onCtrl,
+  onKey,
+}: {
+  ctrlOn: boolean;
+  onCtrl: () => void;
+  onKey: (seq: string) => void;
+}) {
+  // pointerdown is cancelled so the tap does not take focus from the terminal (the keyboard stays up).
+  const keep = (e: React.PointerEvent) => e.preventDefault();
+  const cls =
+    'min-h-9 min-w-9 shrink-0 rounded-md bg-white/10 px-2 text-footnote font-medium text-code-foreground active:bg-white/25';
+  return (
+    <div
+      role="toolbar"
+      aria-label="Terminal keys"
+      data-testid="terminal-keys"
+      className="mt-1 flex gap-1 overflow-x-auto"
+    >
+      <button
+        aria-label="Control"
+        aria-pressed={ctrlOn}
+        className={`${cls} ${ctrlOn ? 'bg-primary text-primary-foreground' : ''}`}
+        onPointerDown={keep}
+        onClick={onCtrl}
+      >
+        Ctrl
+      </button>
+      {KEYS.map(([label, seq, name]) => (
+        <button
+          key={name}
+          aria-label={name}
+          className={cls}
+          onPointerDown={keep}
+          onClick={() => onKey(seq)}
+        >
+          {label}
+        </button>
+      ))}
     </div>
   );
 }

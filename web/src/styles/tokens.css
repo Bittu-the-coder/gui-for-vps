@@ -89,6 +89,7 @@
 
   /* --- Layout (radii and easings live in index.css @theme) ------------- */
   --menubar-h: 28px;
+  --tabbar-h: 56px;
   --dock-safe: 88px; /* room kept below maximized windows for the Dock */
 }
 
@@ -144,4 +145,11 @@
     0 0 0 0.5px rgb(255 255 255 / 0.16);
   --elev-window-inactive:
     0 12px 32px rgb(0 0 0 / 0.45), 0 3px 8px rgb(0 0 0 / 0.3), 0 0 0 0.5px rgb(255 255 255 / 0.1);
+}
+
+/* Compact (phone) layout: bigger touch targets in the bars. */
+@media (max-width: 767px) {
+  :root {
+    --menubar-h: 40px;
+  }
 }

@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
+import { useCompact } from '../../desktop/compact';
 import { useEffect, useState } from 'react';
 import { useLearn } from '../../stores/learnStore';
 import { useToasts, type Toast } from '../../stores/toastStore';
@@ -23,7 +24,7 @@ function ToastItem({ t }: { t: Toast }) {
     <div
       role={t.kind === 'error' ? 'alert' : 'status'}
       data-toast={t.kind}
-      className="toast-in glass-popover pointer-events-auto flex w-80 items-start gap-2.5 rounded-xl border border-separator p-3 text-body text-foreground shadow-elev-3"
+      className="toast-in glass-popover pointer-events-auto flex w-80 max-w-[calc(100vw-24px)] items-start gap-2.5 rounded-xl border border-separator p-3 text-body text-foreground shadow-elev-3"
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
     >
@@ -60,11 +61,15 @@ function ToastItem({ t }: { t: Toast }) {
 export function ToastHost() {
   const toasts = useToasts((s) => s.toasts);
   const learnOpen = useLearn((s) => s.open);
+  const compact = useCompact();
   return (
     <div
       aria-live="polite"
       className="pointer-events-none fixed z-[215000] flex flex-col gap-2"
-      style={{ top: 'calc(var(--menubar-h) + 10px)', right: learnOpen ? 'calc(20rem + 12px)' : 12 }}
+      style={{
+        top: 'calc(var(--menubar-h) + 10px)',
+        right: learnOpen && !compact ? 'calc(20rem + 12px)' : 12,
+      }}
     >
       {toasts.map((t) => (
         <ToastItem key={t.id} t={t} />

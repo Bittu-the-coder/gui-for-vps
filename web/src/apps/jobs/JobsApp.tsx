@@ -1,4 +1,6 @@
 import type { JobSnapshot, StepStatus, TargetState, TargetStatus } from '@gfv/shared';
+import { BackBar } from '../../components/BackBar';
+import { useCompact } from '../../desktop/compact';
 import {
   CircleCheck,
   CircleMinus,
@@ -60,6 +62,7 @@ export function JobsApp() {
   const output = useJobs((s) => s.output);
   const setJobs = useJobs((s) => s.setJobs);
   const servers = useServers((s) => s.servers);
+  const compact = useCompact();
   const [selected, setSelected] = useState<string | null>(null);
   const [view, setView] = useState<{ serverId: string; step: number } | null>(null);
   const [broadcast, setBroadcast] = useState(false);
@@ -110,7 +113,13 @@ export function JobsApp() {
 
   return (
     <div className="flex h-full text-body">
-      <div className="flex w-60 shrink-0 flex-col border-r border-border bg-sunken">
+      <div
+        className={`flex flex-col bg-sunken ${
+          compact
+            ? `min-w-0 flex-1 ${selected ? 'hidden' : ''}`
+            : 'w-60 shrink-0 border-r border-border'
+        }`}
+      >
         <div className="border-b border-border p-2">
           <Button size="sm" className="w-full" onClick={() => setBroadcast(true)}>
             New broadcast…
@@ -149,7 +158,8 @@ export function JobsApp() {
         </ul>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className={`min-w-0 flex-1 flex-col ${compact && !selected ? 'hidden' : 'flex'}`}>
+        {compact && selected && <BackBar label="All jobs" onBack={() => setSelected(null)} />}
         {!job ? (
           <div className="grid flex-1 place-items-center p-4 text-center text-muted-foreground">
             Pick a job.

@@ -34,7 +34,7 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 const BAR_BTN =
-  'flex h-[22px] items-center gap-1.5 rounded px-2 text-body hover:bg-foreground/10 aria-expanded:bg-foreground/15 focus-visible:outline-offset-0';
+  'flex h-[22px] items-center gap-1.5 max-md:h-8 rounded px-2 text-body hover:bg-foreground/10 aria-expanded:bg-foreground/15 focus-visible:outline-offset-0';
 
 /**
  * A menu-bar button that opens a Menu under itself. `data-menu-trigger` lets the button toggle its own menu.
@@ -194,7 +194,7 @@ export function MenuBar() {
       style={{ height: 'var(--menubar-h)' }}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <nav aria-label="Menu bar" className="flex items-center gap-0.5">
+      <nav aria-label="Menu bar" className="flex min-w-0 items-center gap-0.5">
         <BarMenu
           id="m:gfv"
           open={open}
@@ -205,10 +205,11 @@ export function MenuBar() {
         >
           <GfvMark />
         </BarMenu>
-        <span className="px-2 text-body font-semibold">{activeApp?.title ?? 'GFV'}</span>
+        <span className="truncate px-2 text-body font-semibold">{activeApp?.title ?? 'GFV'}</span>
         {ORDER.map((k) => (
           <BarMenu
             key={k}
+            className="max-md:hidden"
             id={`m:${k}`}
             open={open}
             setOpen={setOpen}
@@ -225,7 +226,7 @@ export function MenuBar() {
         <button
           aria-label="Search"
           title="Spotlight: search apps, windows, servers and commands (Ctrl+K)"
-          className={BAR_BTN}
+          className={`${BAR_BTN} max-md:hidden`}
           onClick={commands.spotlight}
         >
           <Search size={14} />
@@ -256,7 +257,7 @@ export function MenuBar() {
             onClick={() => void commands.toggleRecording()}
           >
             <Circle size={10} fill="currentColor" className="animate-pulse" />
-            Stop ({recording.stepCount})
+            <span className="max-md:sr-only">Stop ({recording.stepCount})</span>
           </button>
         ) : (
           <button
@@ -268,7 +269,7 @@ export function MenuBar() {
             onClick={() => void commands.toggleRecording()}
           >
             <Circle size={10} className="text-danger" fill="currentColor" />
-            Record
+            <span className="max-md:sr-only">Record</span>
           </button>
         )}
 
@@ -277,7 +278,7 @@ export function MenuBar() {
           aria-label="Toggle Learn Mode"
           aria-pressed={learnOpen}
           title="Learn Mode: see the commands behind every action"
-          className={`${BAR_BTN} ${learnOpen ? 'bg-foreground/15' : ''}`}
+          className={`${BAR_BTN} max-md:hidden ${learnOpen ? 'bg-foreground/15' : ''}`}
           onClick={toggleLearn}
         >
           <GraduationCap size={15} />
@@ -289,7 +290,7 @@ export function MenuBar() {
             aria-label={fullscreen ? 'Exit full screen' : 'Enter full screen'}
             aria-pressed={fullscreen}
             title={fullscreen ? 'Exit full screen (Esc)' : 'Make GFV fill the whole screen'}
-            className={BAR_BTN}
+            className={`${BAR_BTN} max-md:hidden`}
             onClick={() => void toggleFullscreen()}
           >
             {fullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
@@ -308,7 +309,7 @@ export function MenuBar() {
           <SlidersHorizontal size={14} />
         </button>
 
-        <span className="px-2 text-body tabular-nums">
+        <span className="px-2 text-body tabular-nums max-md:hidden">
           {now.toLocaleString([], {
             weekday: 'short',
             month: 'short',
