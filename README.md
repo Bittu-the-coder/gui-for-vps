@@ -177,6 +177,8 @@ always has to be typed. In an exported script each parameter is an environment v
 
 **Copy between servers.** Open two Files windows on different servers and drag a file from one onto the other (or onto a folder row). It is streamed through GFV, never overwrites an existing file, and works for files only (not folders yet).
 
+**Network (ports and domains).** The **Network** app has two tabs. _Ports_ shows every port the server is listening on and which program owns it, marking whether it is reachable from anywhere or only from the server itself. _Sites & domains_ manages nginx: **Add site** points a domain at an app on a local port (or a folder of files), checks the whole nginx configuration before reloading, and automatically undoes the change if nginx rejects it. **Get HTTPS** uses certbot (Let’s Encrypt): the domain must already point at the server, and the preview shows that it accepts Let’s Encrypt’s Terms of Service on your behalf. Every change shows its exact commands first.
+
 **Broadcast.** In Jobs press **New broadcast…** to run one action on several servers at once.
 
 **Other formats.** On a recipe's **Script** tab pick the format: **Bash script**, **Dockerfile**, **Docker Compose**

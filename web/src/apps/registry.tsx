@@ -5,6 +5,7 @@ import {
   FolderOpen,
   GraduationCap,
   Hammer,
+  Network,
   History,
   ListChecks,
   ScrollText,
@@ -28,6 +29,7 @@ import { FilesApp } from './files/FilesApp';
 import { ActionsApp } from './actions/ActionsApp';
 import { JobsApp } from './jobs/JobsApp';
 import { LessonsApp } from './lessons/LessonsApp';
+import { NetworkApp } from './network/NetworkApp';
 
 export interface AppDef extends AppIconSpec {
   id: string;
@@ -133,6 +135,15 @@ export const APPS: AppDef[] = [
     component: JobsApp,
     defaultSize: { w: 880, h: 580 },
     singleton: true,
+  },
+  {
+    id: 'network',
+    title: 'Network',
+    icon: Network,
+    tint: ['#38bdf8', '#2563eb'],
+    component: NetworkApp,
+    defaultSize: { w: 780, h: 520 },
+    serverBound: true,
   },
   {
     id: 'lessons',

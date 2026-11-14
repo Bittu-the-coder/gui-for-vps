@@ -45,6 +45,8 @@ describe('M6 actions', () => {
       'docker.logs',
       'monitor.processes',
       'monitor.sample',
+      'nginx.sites.list',
+      'ports.list',
       'services.list',
       'services.logs',
     ]);

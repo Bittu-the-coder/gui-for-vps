@@ -11,6 +11,7 @@ import {
 import { devhubActions } from './devhub.js';
 import { dockerActions } from './docker.js';
 import { monitorActions } from './monitor.js';
+import { networkActions } from './network.js';
 import { serviceActions } from './services.js';
 import { chmodPath, makeDir, renamePath, restoreSnapshot, writeRoot } from './files.js';
 import { clearAptCache, connectionTest, deletePath, systemUptime } from './samples.js';
@@ -32,6 +33,7 @@ export const ACTIONS: ActionDef[] = [
   ...serviceActions,
   ...dockerActions,
   ...devhubActions,
+  ...networkActions,
 ];
 
 export const actionById = (id: string): ActionDef | undefined => ACTIONS.find((a) => a.id === id);

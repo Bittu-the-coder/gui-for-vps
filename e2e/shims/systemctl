@@ -21,7 +21,7 @@ OUT
   is-active)
     case "$2" in postgresql*) echo inactive; exit 3 ;; *) echo active ;; esac
     ;;
-  start|stop|restart|enable|disable)
+  start|stop|restart|reload|enable|disable)
     echo "shim: systemctl $1 $2 (ok)"
     ;;
   *) echo "shim: unsupported systemctl $*" >&2; exit 1 ;;
