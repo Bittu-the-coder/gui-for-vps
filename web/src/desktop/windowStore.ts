@@ -67,6 +67,29 @@ const restoreRects = new Map<string, Pick<WindowState, 'x' | 'y' | 'w' | 'h'>>()
 
 let idCounter = 0;
 
+/** Size of the area windows live in, reported by the Desktop (null until it is measured). */
+let workspaceSize: { w: number; h: number } | null = null;
+export function setWorkspaceSize(w: number, h: number): void {
+  workspaceSize = { w, h };
+}
+
+/** Shrink a new window's size so its far edges stay inside the workspace (never below a usable minimum). */
+export function fitToWorkspace(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  area = workspaceSize,
+): { w: number; h: number } {
+  if (!area) return { w, h };
+  const margin = 24;
+  const dock = 90; // the floating Dock sits at the bottom
+  return {
+    w: Math.min(w, Math.max(420, area.w - x - margin)),
+    h: Math.min(h, Math.max(300, area.h - y - dock)),
+  };
+}
+
 /** Windows opened since the page loaded: only these play the open animation (not every window on a reload). */
 const freshIds = new Set<string>();
 export function consumeFresh(id: string): boolean {
@@ -124,14 +147,18 @@ export const useDesktop = create<DesktopState>((set, get) => ({
     const id = `win-${Date.now().toString(36)}-${idCounter++}`;
     // Cascade new windows so they don't stack exactly on top of each other.
     const offset = (Object.keys(windows).length % 8) * 28;
+    const x = 80 + offset;
+    const y = 60 + offset;
+    // A new window must fit the space that is really there (the Learn panel narrows the workspace).
+    const fit = fitToWorkspace(x, y, w, h);
     const win: WindowState = {
       id,
       appId,
       title,
-      x: 80 + offset,
-      y: 60 + offset,
-      w,
-      h,
+      x,
+      y,
+      w: fit.w,
+      h: fit.h,
       z: nextZ,
       minimized: false,
       maximized: false,

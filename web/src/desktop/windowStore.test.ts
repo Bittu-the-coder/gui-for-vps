@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { consumeFresh, tryClose, useDesktop } from './windowStore';
+import { consumeFresh, fitToWorkspace, tryClose, useDesktop } from './windowStore';
 
 const app = { appId: 'notes', title: 'Notes', w: 400, h: 300 };
 const s = () => useDesktop.getState();
@@ -84,5 +84,15 @@ describe('windowStore', () => {
     expect(consumeFresh(id)).toBe(true);
     expect(consumeFresh(id)).toBe(false);
     expect(consumeFresh('win-from-a-reload')).toBe(false);
+  });
+});
+
+describe('fitToWorkspace', () => {
+  it('shrinks a window that would stick out of the workspace, but not below a usable size', () => {
+    const area = { w: 1080, h: 850 };
+    expect(fitToWorkspace(80, 60, 1000, 560, area)).toEqual({ w: 976, h: 560 });
+    expect(fitToWorkspace(80, 60, 700, 400, area)).toEqual({ w: 700, h: 400 });
+    expect(fitToWorkspace(80, 60, 900, 900, { w: 500, h: 400 })).toEqual({ w: 420, h: 300 });
+    expect(fitToWorkspace(80, 60, 900, 500, null)).toEqual({ w: 900, h: 500 });
   });
 });

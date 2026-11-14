@@ -23,13 +23,19 @@ import { Spotlight } from './Spotlight';
 import { Wallpaper } from './Wallpaper';
 import { WALLPAPERS } from './wallpapers';
 import { Window } from './Window';
-import { useDesktop } from './windowStore';
+import { CompactWindow, MobileHome, TabBar, topWindowId } from './Mobile';
+import { isCompact, useCompact } from './compact';
+import { setWorkspaceSize, useDesktop } from './windowStore';
 
 export function Desktop() {
   const windows = useDesktop((s) => s.windows);
   const close = useDesktop((s) => s.close);
   const theme = useDesktop((s) => s.theme);
-  const learnOpen = useLearn((s) => s.open);
+  const learnPref = useLearn((s) => s.open);
+  const compact = useCompact();
+  // On a phone the Learn panel is a full-screen sheet, closed until asked for (the saved preference is untouched).
+  const [learnSheet, setLearnSheet] = useState(false);
+  const learnOpen = compact ? learnSheet : learnPref;
   const noServers = useServers((s) => s.servers.length === 0);
   const live = useServers((s) => s.live);
   const startTour = useTour((s) => s.start);
@@ -45,7 +51,10 @@ export function Desktop() {
   useEffect(() => {
     const el = workspace.current;
     if (!el) return;
-    const measure = () => setArea({ w: el.clientWidth, h: el.clientHeight });
+    const measure = () => {
+      setArea({ w: el.clientWidth, h: el.clientHeight });
+      setWorkspaceSize(el.clientWidth, el.clientHeight);
+    };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
@@ -84,6 +93,7 @@ export function Desktop() {
       }));
     return Object.fromEntries(overviewLayout(visible, area).map((s) => [s.id, s]));
   }, [overview, windows, area]);
+  const topId = useMemo(() => topWindowId(windows), [windows]);
   const overviewEmpty = overview && slots && Object.keys(slots).length === 0;
 
   // Arrow keys move between windows in Mission Control.
@@ -111,7 +121,7 @@ export function Desktop() {
 
   // First visit: walk the user through the desktop once.
   useEffect(() => {
-    if (!tourSeen()) startTour();
+    if (!tourSeen() && !isCompact()) startTour();
   }, [startTour]);
 
   // Windows saved from an older version may belong to apps that no longer exist.
@@ -148,8 +158,12 @@ export function Desktop() {
           so windows never hide under either. It is also the windows' drag boundary. */}
       <div
         ref={workspace}
-        className="absolute bottom-0 left-0"
-        style={{ top: 'var(--menubar-h)', right: learnOpen ? '20rem' : 0 }}
+        className="absolute left-0"
+        style={{
+          top: 'var(--menubar-h)',
+          bottom: compact ? 'var(--tabbar-h)' : 0,
+          right: !compact && learnOpen ? '20rem' : 0,
+        }}
         onContextMenu={(e) => {
           if (e.target !== e.currentTarget) return;
           e.preventDefault();
@@ -157,7 +171,7 @@ export function Desktop() {
         }}
       >
         {noServers && (
-          <div className="glass-popover absolute left-1/2 top-1/3 w-80 -translate-x-1/2 rounded-window border border-separator p-5 text-center shadow-elev-3">
+          <div className="glass-popover absolute left-1/2 top-1/3 z-10 w-80 max-w-[calc(100%-2rem)] -translate-x-1/2 max-md:top-4 rounded-window border border-separator p-5 text-center shadow-elev-3">
             <p className="text-title font-semibold">Add your first server</p>
             <p className="mt-1 text-body text-muted-foreground">
               Connect a VPS over SSH to open a terminal, browse files and install tools on it.
@@ -185,11 +199,16 @@ export function Desktop() {
           </p>
         )}
 
-        {Object.values(windows).map((w) => (
-          <Window key={w.id} win={w} slot={slots?.[w.id]} />
-        ))}
+        {compact && !topId && <MobileHome topGap={noServers} />}
+        {Object.values(windows).map((w) =>
+          compact ? (
+            <CompactWindow key={w.id} win={w} visible={w.id === topId} />
+          ) : (
+            <Window key={w.id} win={w} slot={slots?.[w.id]} />
+          ),
+        )}
 
-        <Dock />
+        {!compact && <Dock />}
       </div>
 
       {ctx && (
@@ -202,6 +221,7 @@ export function Desktop() {
         />
       )}
       {learnOpen && <LearnPanel />}
+      {compact && <TabBar learnOpen={learnSheet} onLearn={() => setLearnSheet((v) => !v)} />}
       <Spotlight />
       <ControlCenter />
       <ToastHost />

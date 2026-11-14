@@ -101,8 +101,8 @@ export function ServerMapApp({ windowId }: { windowId: string }) {
           {error}
         </p>
       )}
-      <div className="flex min-h-0 flex-1">
-        <div className="min-w-0 flex-1 overflow-auto p-3">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 min-w-0 flex-1 overflow-auto p-3">
           {!map && !error && <p className="text-muted-foreground">Reading the server…</p>}
           {noSs && (
             <p className="mb-2 rounded-lg border border-warning bg-warning/10 p-2 text-footnote">
@@ -120,9 +120,16 @@ export function ServerMapApp({ windowId }: { windowId: string }) {
             <svg
               role="group"
               aria-label="Server map"
-              width={layout.width + PAD * 2}
-              height={layout.height + TOP + PAD * 2}
-              className="max-w-none"
+              // Scales down to fit the window (never up, and not below 70% so text stays readable;
+              // narrower than that the container scrolls).
+              viewBox={`0 0 ${layout.width + PAD * 2} ${layout.height + TOP + PAD * 2}`}
+              style={{
+                width: '100%',
+                maxWidth: layout.width + PAD * 2,
+                minWidth: (layout.width + PAD * 2) * 0.7,
+                height: 'auto',
+              }}
+              className="block"
             >
               <g transform={`translate(${PAD} ${PAD})`}>
                 {HEADERS.map((h, i) => (
@@ -130,7 +137,7 @@ export function ServerMapApp({ windowId }: { windowId: string }) {
                     key={h}
                     x={i * 224}
                     y={12}
-                    className="fill-faint-foreground text-[11px] font-semibold uppercase tracking-wide"
+                    className="fill-faint-foreground text-[12px] font-semibold uppercase tracking-wide"
                   >
                     {h}
                   </text>
@@ -187,11 +194,11 @@ export function ServerMapApp({ windowId }: { windowId: string }) {
                         strokeWidth={1.5}
                         className={FILL[n.health]}
                       />
-                      <text x={10} y={19} className="fill-foreground text-[12px] font-medium">
+                      <text x={10} y={19} className="fill-foreground text-[13px] font-medium">
                         {n.label.length > 22 ? `${n.label.slice(0, 21)}…` : n.label}
                       </text>
                       {n.sub && (
-                        <text x={10} y={34} className="fill-muted-foreground text-[10.5px]">
+                        <text x={10} y={34} className="fill-muted-foreground text-[11.5px]">
                           {n.sub.length > 26 ? `${n.sub.slice(0, 25)}…` : n.sub}
                         </text>
                       )}
@@ -221,7 +228,7 @@ export function ServerMapApp({ windowId }: { windowId: string }) {
         </div>
         <aside
           aria-label="Problems"
-          className="w-64 shrink-0 overflow-auto border-l border-border bg-sunken p-3"
+          className="max-h-44 shrink-0 overflow-auto border-t border-border bg-sunken p-3"
         >
           <h2 className="mb-2 flex items-center gap-1.5 text-footnote font-semibold uppercase tracking-wide text-muted-foreground">
             {problems.length ? (
@@ -236,7 +243,7 @@ export function ServerMapApp({ windowId }: { windowId: string }) {
               {map.nodes.length ? 'Everything on this map looks healthy.' : 'No problems found.'}
             </p>
           )}
-          <ul className="flex flex-col gap-2">
+          <ul className="grid grid-cols-2 gap-1">
             {problems.map((p, i) => (
               <li key={i} data-testid="map-problem" data-health={p.health}>
                 <button
@@ -252,7 +259,7 @@ export function ServerMapApp({ windowId }: { windowId: string }) {
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-caption text-faint-foreground">
+          <p className="mt-2 text-caption text-faint-foreground">
             Updates every 5 seconds. Click a box to open the app that manages it. Dashed red lines
             are links that do not work.
           </p>

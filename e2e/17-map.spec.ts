@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { auditContrast, prepare, settle } from './a11y';
 import { KEY, api, openApp, openGfv, vpsUp } from './helpers';
 
 // M19 in the browser, on REAL data from vps-b: nginx sites, a real listening program started from a project folder.
@@ -128,6 +129,40 @@ test('Server Map: the path from a domain to its code, and the broken link in red
     await node('project', 'mapdemo').focus();
     await page.keyboard.press('Enter');
     await expect(page.locator('[data-testid="window"][data-app="projects"]')).toBeVisible();
+
+    // Contrast (WCAG AA) of the Map, the Network tabs and the Projects cards with REAL data, in both themes.
+    // Reduce Transparency is on, so backgrounds are solid and the ratio is exact (see 10-accessibility).
+    const failures: string[] = [];
+    for (const theme of ['light', 'dark'] as const) {
+      await prepare(page, theme);
+      await page.getByRole('button', { name: 'Active server' }).click();
+      await page.getByRole('menuitemcheckbox', { name: 'vps-b' }).click();
+      const close = () =>
+        page.getByTestId('window').last().getByRole('button', { name: 'Close' }).click();
+      const check = async (name: string) => {
+        await settle(page);
+        for (const f of await auditContrast(page)) failures.push(`[${theme}] ${name}: ${f}`);
+      };
+      await openApp(page, 'map');
+      await expect(node('site', 'map-dead.test')).toBeVisible({ timeout: 30_000 });
+      await check('map');
+      await close();
+      await openApp(page, 'network');
+      await expect(page.getByTestId('port-row').first()).toBeVisible({ timeout: 30_000 });
+      await check('network: ports');
+      await page.getByRole('tab', { name: /Sites/ }).click();
+      await expect(page.getByText('map-dead.test').first()).toBeVisible();
+      await check('network: sites');
+      await page.getByRole('button', { name: /Add site/ }).click();
+      await check('network: add site dialog');
+      await page.keyboard.press('Escape');
+      await close();
+      await openApp(page, 'projects');
+      await expect(page.getByText('mapdemo').first()).toBeVisible({ timeout: 30_000 });
+      await check('projects');
+      await close();
+    }
+    expect(failures, failures.join('\n')).toEqual([]);
   } finally {
     sh(
       '[ -f /tmp/gfv-e2e-map.pid ] && kill $(cat /tmp/gfv-e2e-map.pid) 2>/dev/null; rm -rf ~/gfv-projects/mapdemo /tmp/gfv-e2e-map.pl /tmp/gfv-e2e-map.pid; true',

@@ -111,7 +111,7 @@ export function NetworkApp({ windowId }: { windowId: string }) {
                   <th className="w-14 px-2 py-1">Type</th>
                   <th className="w-40 px-2 py-1">Listening on</th>
                   <th className="px-2 py-1">Program</th>
-                  <th className="w-24 px-2 py-1">Reachable</th>
+                  <th className="w-32 px-2 py-1">Reachable</th>
                 </tr>
               </thead>
               <tbody>
@@ -132,7 +132,9 @@ export function NetworkApp({ windowId }: { windowId: string }) {
                       )}
                     </td>
                     <td className="px-2 py-1">
-                      <span className={isPublic(p) ? 'text-warning' : 'text-success'}>
+                      <span
+                        className={`whitespace-nowrap ${isPublic(p) ? 'text-warning' : 'text-success'}`}
+                      >
                         {isPublic(p) ? 'any address' : 'this server only'}
                       </span>
                     </td>
@@ -169,7 +171,9 @@ export function NetworkApp({ windowId }: { windowId: string }) {
                 >
                   <div className="flex items-center gap-2">
                     <Globe size={15} className="text-link" />
-                    <span className="font-medium">{s.serverNames.join(', ') || s.name}</span>
+                    <span className="font-medium">
+                      {s.serverNames.filter((n) => n !== '_').join(', ') || s.name}
+                    </span>
                     {s.https && (
                       <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 text-caption text-success">
                         <Lock size={11} /> HTTPS
