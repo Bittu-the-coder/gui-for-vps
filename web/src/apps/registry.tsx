@@ -6,6 +6,7 @@ import {
   GraduationCap,
   FolderGit2,
   Hammer,
+  Workflow,
   Network,
   History,
   ListChecks,
@@ -30,6 +31,7 @@ import { FilesApp } from './files/FilesApp';
 import { ActionsApp } from './actions/ActionsApp';
 import { JobsApp } from './jobs/JobsApp';
 import { LessonsApp } from './lessons/LessonsApp';
+import { ServerMapApp } from './map/ServerMapApp';
 import { NetworkApp } from './network/NetworkApp';
 import { ProjectsApp } from './projects/ProjectsApp';
 
@@ -145,6 +147,15 @@ export const APPS: AppDef[] = [
     tint: ['#fb923c', '#dc2626'],
     component: ProjectsApp,
     defaultSize: { w: 820, h: 560 },
+    serverBound: true,
+  },
+  {
+    id: 'map',
+    title: 'Server Map',
+    icon: Workflow,
+    tint: ['#34d399', '#0d9488'],
+    component: ServerMapApp,
+    defaultSize: { w: 1000, h: 560 },
     serverBound: true,
   },
   {

@@ -203,3 +203,22 @@ describe('the nginx actions', () => {
     expect(risk('ports.list', {})).toBe('safe');
   });
 });
+
+describe('parsePorts: the plain view and the sudo view are merged', () => {
+  it('the same socket seen without and with its program becomes one entry that names the program', () => {
+    const plain = 'tcp LISTEN 0 5 127.0.0.1:4568 0.0.0.0:*\ntcp LISTEN 0 128 0.0.0.0:22 0.0.0.0:*';
+    const sudo = 'tcp LISTEN 0 128 0.0.0.0:22 0.0.0.0:* users:(("sshd",pid=1,fd=3))';
+    const ports = parsePorts(`${plain}\n${sudo}`);
+    expect(ports.find((p) => p.port === 22)).toMatchObject({ process: 'sshd', pid: 1 });
+    expect(ports.filter((p) => p.port === 22)).toHaveLength(1);
+    expect(ports.find((p) => p.port === 4568)).toEqual({
+      proto: 'tcp',
+      address: '127.0.0.1',
+      port: 4568,
+    }); // own process, no name: kept
+  });
+  it('identical lines (root sees what the user sees) collapse too', () => {
+    const l = 'tcp LISTEN 0 5 127.0.0.1:4568 0.0.0.0:* users:(("perl",pid=9,fd=3))';
+    expect(parsePorts(`${l}\n${l}`)).toHaveLength(1);
+  });
+});

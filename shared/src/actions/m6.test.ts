@@ -43,6 +43,7 @@ describe('M6 actions', () => {
       'docker.images',
       'docker.list',
       'docker.logs',
+      'map.cwds',
       'monitor.processes',
       'monitor.sample',
       'nginx.sites.list',

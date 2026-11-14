@@ -5,8 +5,15 @@ import { shellQuote } from '../shell.js';
 import { defineAction } from './define.js';
 
 /** `ss` shows which program owns each port only to root (or for your own processes): hence sudo. */
+/**
+ * `ss` shows which program owns a port only for processes you may inspect. Your OWN programs (your projects) are always
+ * visible; other users' need root. So ask both ways and merge: the plain view, then (when not root) the sudo view.
+ */
+export const SS = 'ss -H -lntup 2>/dev/null';
 export const LIST_PORTS_COMMAND = (sudo: string) =>
-  `${sudo}ss -H -lntup 2>/dev/null || echo "NO_SS"`;
+  sudo
+    ? `command -v ss >/dev/null 2>&1 || { echo NO_SS; exit 0; }; { ${SS}; ${sudo}${SS}; }`
+    : `command -v ss >/dev/null 2>&1 || { echo NO_SS; exit 0; }; ${SS}`;
 
 export const listPorts = defineAction({
   id: 'ports.list',
@@ -144,6 +151,27 @@ export const enableHttps = defineAction({
   internal: true,
 });
 
+/**
+ * For the Server Map: the working directory of every program that listens on a port, so a running program can be tied
+ * to the project folder it was started from. (Other users' directories are only readable with sudo.)
+ */
+export const MAP_CWDS_COMMAND = (sudo: string) =>
+  `for pid in $({ ${SS}; ${sudo}${SS}; } | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u); do ` +
+  `echo "PID:$pid:$(readlink /proc/$pid/cwd 2>/dev/null || ${sudo}readlink /proc/$pid/cwd 2>/dev/null)"; done`;
+
+export const mapCwds = defineAction({
+  id: 'map.cwds',
+  title: 'Find where listening programs run from',
+  explain:
+    'For every program that listens on a port, reads where it was started (the working directory, /proc/<pid>/cwd). The Server Map uses it to connect a running program to the project folder it belongs to.',
+  params: z.object({}),
+  commands: (_p, ctx) => [MAP_CWDS_COMMAND(ctx.sudo)],
+  risk: 'safe',
+  recordable: false,
+  quiet: true,
+  internal: true,
+});
+
 export const networkActions = [
   listPorts,
   listSites,
@@ -151,4 +179,5 @@ export const networkActions = [
   removeSite,
   installCertbot,
   enableHttps,
+  mapCwds,
 ];

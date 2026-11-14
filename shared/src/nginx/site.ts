@@ -116,6 +116,15 @@ export function parsePorts(text: string): ListeningPort[] {
       ...(proc ? { process: proc[1]!, pid: Number(proc[2]) } : {}),
     });
   }
+  // The same socket can be reported twice (the plain view and the sudo view): keep the entry that names the program.
+  const bySocket = new Map<string, ListeningPort>();
+  for (const p of out) {
+    const k = `${p.proto}:${p.address}:${p.port}`;
+    const have = bySocket.get(k);
+    if (!have || (!have.process && p.process)) bySocket.set(k, p);
+  }
+  out.length = 0;
+  out.push(...bySocket.values());
   // The same service often listens on IPv4 and IPv6: show each (proto, port, process) once, most specific first.
   const seen = new Set<string>();
   return out
