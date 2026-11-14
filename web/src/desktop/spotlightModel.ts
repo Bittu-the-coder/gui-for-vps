@@ -92,6 +92,7 @@ export interface SpotlightCtx {
   wallpaper: string;
   reduceTransparency: boolean;
   learnOpen: boolean;
+  fullscreen: boolean;
   recording: boolean;
   /** Runner actions that need no input (from GET /api/actions). */
   actions: ActionInfo[];
@@ -105,6 +106,7 @@ export interface SpotlightCtx {
     toggleLearn: () => void;
     toggleRecording: () => void;
     missionControl: () => void;
+    toggleFullscreen: () => void;
     controlCenter: () => void;
     lock: () => void;
     changePassword: () => void;
@@ -195,6 +197,12 @@ export function buildSpotlightItems(c: SpotlightCtx): SpotlightItem[] {
     { disabled: !c.recording && !c.activeServerId },
   );
   cmd('mission', 'Mission Control', act.missionControl, 'windows overview exposé');
+  cmd(
+    'fullscreen',
+    c.fullscreen ? 'Exit Full Screen' : 'Enter Full Screen',
+    act.toggleFullscreen,
+    'browser maximize screen f11',
+  );
   cmd('cc', 'Open Control Center', act.controlCenter, 'settings server theme');
   cmd('lock', 'Lock Vault', act.lock, 'security master password disconnect');
   cmd('pw', 'Change Master Password…', act.changePassword, 'security vault');

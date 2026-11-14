@@ -3,7 +3,9 @@ import { shellQuote } from '../shell.js';
 import { findPlaceholders, substitute, type RecipeParam } from './params.js';
 
 /** In an exported script the sudo prefix is a variable, so the script works as root or as a sudo user. */
-const SCRIPT_CTX = { sudo: '$SUDO ', runId: 'recipe' } as const;
+const SCRIPT_CTX = { sudo: '$SUDO ', runId: 'recipe', pkg: 'auto' } as const;
+/** The Dockerfile builds on Ubuntu, so its install steps are apt only. */
+const IMAGE_CTX = { sudo: '$SUDO ', runId: 'recipe', pkg: 'apt' } as const;
 
 export interface StepInfo {
   title: string;
@@ -14,14 +16,19 @@ export interface StepInfo {
 }
 
 /** What one recorded step would run in a script (null if the action no longer exists or its params are invalid). */
-export function recipeStepInfo(actionId: string, params: unknown): StepInfo | null {
+export function recipeStepInfo(
+  actionId: string,
+  params: unknown,
+  target: 'script' | 'image' = 'script',
+): StepInfo | null {
+  const ctx = target === 'image' ? IMAGE_CTX : SCRIPT_CTX;
   const action = actionById(actionId);
-  const p = previewAction(actionId, params, SCRIPT_CTX);
+  const p = previewAction(actionId, params, ctx);
   if (!action || !p.ok) return null;
   // exportCommands (when present) replace the normal commands; the snapshot steps never belong in a script.
   const commands = action.exportCommands
-    ? action.exportCommands(p.params, SCRIPT_CTX)
-    : action.commands(p.params, SCRIPT_CTX);
+    ? action.exportCommands(p.params, ctx)
+    : action.commands(p.params, ctx);
   return {
     title: p.preview.title,
     explain: p.preview.explain,

@@ -148,8 +148,9 @@ export function DevHubApp({ windowId }: { windowId: string }) {
         )}
         {status && !status.os.supported && (
           <p role="alert" className="mb-3 rounded border border-warning bg-warning/10 p-2 text-xs">
-            This server runs {status.os.pretty}. The Dev Hub can only install tools on Ubuntu and
-            Debian for now, so installs are turned off. You can still see what is installed.
+            This server runs {status.os.pretty}. The Dev Hub can only install tools on Ubuntu,
+            Debian, Fedora and RHEL-family systems for now, so installs are turned off. You can
+            still see what is installed.
           </p>
         )}
         {status?.os.supported && (

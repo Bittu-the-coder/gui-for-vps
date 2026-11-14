@@ -1,0 +1,16 @@
+# A throwaway Fedora server for the dnf side of the package-manager abstraction (user "gfv", key auth, passwordless sudo).
+# Like the Ubuntu image it has no systemd: shims print canned output for systemctl/journalctl/docker,
+# so dnf installs are REAL but "running" states are canned.
+FROM fedora:41
+RUN dnf -y -q install openssh-server sudo procps-ng && dnf clean all \
+    && useradd -m -s /bin/bash gfv \
+    && echo 'gfv ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/gfv \
+    && sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config \
+    && rm -f /etc/ssh/ssh_host_*
+COPY keys/id_test.pub /tmp/id_test.pub
+RUN mkdir -p /home/gfv/.ssh && cp /tmp/id_test.pub /home/gfv/.ssh/authorized_keys \
+    && chown -R gfv:gfv /home/gfv/.ssh && chmod 700 /home/gfv/.ssh && chmod 600 /home/gfv/.ssh/authorized_keys
+COPY shims/ /usr/local/bin/
+RUN chmod +x /usr/local/bin/systemctl /usr/local/bin/journalctl /usr/local/bin/docker
+EXPOSE 22
+CMD ["sh", "-c", "ssh-keygen -A && exec /usr/sbin/sshd -D -e"]

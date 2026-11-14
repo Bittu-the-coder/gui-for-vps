@@ -28,8 +28,16 @@ export interface ToolStatus {
   running?: boolean;
 }
 
+/** Which package manager a distro uses, from its os-release ID and ID_LIKE. Unknown families return null. */
+export function pkgManagerFor(idAndLike: string): 'apt' | 'dnf' | null {
+  const f = idAndLike.toLowerCase();
+  if (/\b(ubuntu|debian)\b/.test(f)) return 'apt';
+  if (/\b(fedora|rhel|centos|rocky|almalinux|ol)\b/.test(f)) return 'dnf';
+  return null;
+}
+
 export interface DevHubStatus {
-  os: { pretty: string; supported: boolean };
+  os: { pretty: string; supported: boolean; pkg: 'apt' | 'dnf' | null };
   tools: Record<ToolId, ToolStatus>;
 }
 
@@ -63,7 +71,8 @@ export function parseDetect(text: string): DevHubStatus {
   return {
     os: {
       pretty: field('PRETTY_NAME') || 'unknown system',
-      supported: /\b(ubuntu|debian)\b/.test(family),
+      supported: pkgManagerFor(family) !== null,
+      pkg: pkgManagerFor(family),
     },
     tools,
   };

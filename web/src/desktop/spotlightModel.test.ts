@@ -39,6 +39,7 @@ function ctx(over: Partial<SpotlightCtx> = {}) {
     toggleLearn: vi.fn(),
     toggleRecording: vi.fn(),
     missionControl: vi.fn(),
+    toggleFullscreen: vi.fn(),
     controlCenter: vi.fn(),
     lock: vi.fn(),
     changePassword: vi.fn(),
@@ -57,6 +58,7 @@ function ctx(over: Partial<SpotlightCtx> = {}) {
     wallpaper: 'aurora',
     reduceTransparency: false,
     learnOpen: true,
+    fullscreen: false,
     recording: false,
     actions: [
       {

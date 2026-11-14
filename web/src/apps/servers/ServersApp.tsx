@@ -106,7 +106,7 @@ export function ServersApp() {
             code === 'nothing_to_clone'
               ? 'No Dev Hub tools (Node, Python, Docker, PostgreSQL, nginx, Git) are installed on it.'
               : code === 'unsupported_os'
-                ? 'Only Ubuntu and Debian servers can be cloned for now.'
+                ? 'Only Ubuntu, Debian, Fedora and RHEL-family servers can be cloned for now.'
                 : code === 'not_connected'
                   ? 'Connect it first.'
                   : 'Something went wrong.',

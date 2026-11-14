@@ -120,3 +120,48 @@ test('screenshots mid-animation', async ({ page }) => {
   await page.waitForTimeout(200);
   await page.screenshot({ path: join(out, 'menu-gfv.png') });
 });
+
+test('zoom fills the whole workspace to the screen edge; the Dock tucks away and returns on hover', async ({
+  page,
+}) => {
+  await openApp(page, 'files');
+  const win = wins(page).first();
+  await settled(win);
+  await win.getByRole('button', { name: 'Maximize' }).click();
+  const vp = page.viewportSize()!;
+  // The window reaches the bottom of the screen (no gap for the Dock) and starts under the menu bar.
+  await expect
+    .poll(async () => Math.round((await win.boundingBox())!.y + (await win.boundingBox())!.height))
+    .toBe(vp.height);
+  const bar = (await page.locator('header').first().boundingBox())!;
+  expect(Math.round((await win.boundingBox())!.y)).toBe(Math.round(bar.y + bar.height));
+  // The Dock is tucked below the screen edge while the window is zoomed...
+  const icon = page.locator('[data-tour="app-files"]');
+  await expect.poll(async () => (await icon.boundingBox())!.y).toBeGreaterThan(vp.height - 4);
+  // ...and slides back when the pointer touches the bottom edge.
+  await page.mouse.move(vp.width / 2, vp.height - 1);
+  await expect.poll(async () => (await icon.boundingBox())!.y).toBeLessThan(vp.height - 40);
+  // Restoring the window brings the Dock back for good.
+  await page.mouse.move(vp.width / 2, 300);
+  await win.getByRole('button', { name: 'Maximize' }).click();
+  await expect.poll(async () => (await icon.boundingBox())!.y).toBeLessThan(vp.height - 40);
+});
+
+test('the full screen button puts the whole GUI in browser full screen and back', async ({
+  page,
+}) => {
+  const isFs = () => page.evaluate(() => !!document.fullscreenElement);
+  await page.getByRole('button', { name: 'Enter full screen' }).click();
+  await expect.poll(isFs).toBe(true);
+  await expect(page.getByRole('button', { name: 'Exit full screen' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.getByRole('button', { name: 'Exit full screen' }).click();
+  await expect.poll(isFs).toBe(false);
+  // Also reachable from the View menu.
+  await page.getByRole('button', { name: 'View menu' }).click();
+  await page.getByRole('menuitem', { name: 'Enter Full Screen' }).click();
+  await expect.poll(isFs).toBe(true);
+  await page.evaluate(() => document.exitFullscreen());
+});

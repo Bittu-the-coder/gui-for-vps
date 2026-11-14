@@ -10,6 +10,11 @@ export interface ActionCtx {
   runId?: string;
   /** The SSH user's home directory (known once connected). */
   home?: string;
+  /**
+   * Which package manager the server has. Undefined means apt (the original target). `auto` is for exported
+   * scripts: they pick apt or dnf when they RUN, on whatever machine they land on.
+   */
+  pkg?: 'apt' | 'dnf' | 'auto';
 }
 
 /** A text field the (temporary) Actions app renders for a param. */

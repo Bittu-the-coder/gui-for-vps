@@ -98,8 +98,15 @@ git version 2.43.0
     expect(s.tools.git.version).toBe('2.43.0');
   });
   it('knows if the distro is supported', () => {
-    expect(s.os).toEqual({ pretty: 'Ubuntu 24.04.1 LTS', supported: true });
-    expect(parseDetect('==os\nID=fedora\nPRETTY_NAME="Fedora 40"\n').os.supported).toBe(false);
+    expect(s.os).toEqual({ pretty: 'Ubuntu 24.04.1 LTS', supported: true, pkg: 'apt' });
+    expect(parseDetect('==os\nID=fedora\nPRETTY_NAME="Fedora 40"\n').os).toMatchObject({
+      supported: true,
+      pkg: 'dnf',
+    });
+    expect(parseDetect('==os\nID=alpine\nPRETTY_NAME="Alpine"\n').os).toMatchObject({
+      supported: false,
+      pkg: null,
+    });
     expect(parseDetect('').os.supported).toBe(false);
   });
   it('treats missing sections as not installed', () => {

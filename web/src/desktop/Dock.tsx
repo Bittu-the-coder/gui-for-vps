@@ -32,6 +32,12 @@ interface Entry {
 
 export function Dock() {
   const windows = useDesktop((s) => s.windows);
+  const zoomed = useDesktop((s) => {
+    const f = s.focusedId ? s.windows[s.focusedId] : undefined;
+    return !!f && f.maximized && !f.minimized;
+  });
+  const [peek, setPeek] = useState(false);
+  const tucked = zoomed && !peek;
   const reduced = useReducedMotion();
   const listRef = useRef<HTMLUListElement>(null);
   const [pointerX, setPointerX] = useState<number | null>(null);
@@ -189,10 +195,27 @@ export function Dock() {
       className="pointer-events-none absolute inset-x-0 bottom-2 z-[100000] flex justify-center"
       onMouseDown={(e) => e.stopPropagation()}
     >
+      {/* While a zoomed window fills the screen the Dock tucks away; touching the bottom edge brings it back.
+          (This strip stays put: only the bar below is transformed, because fixed children follow a transformed parent.) */}
+      {zoomed && (
+        <div
+          data-testid="dock-reveal"
+          aria-hidden
+          className="pointer-events-auto fixed inset-x-0 bottom-0 z-[100001] h-2"
+          onPointerEnter={() => setPeek(true)}
+        />
+      )}
       <div
         className="pointer-events-auto relative px-2 pb-1 pt-2"
+        style={{
+          transform: tucked ? 'translateY(calc(100% + 16px))' : 'none',
+          transition: reduced ? undefined : 'transform var(--dur) var(--ease-out)',
+        }}
         onPointerMove={onMove}
-        onPointerLeave={onLeave}
+        onPointerLeave={() => {
+          onLeave();
+          setPeek(false);
+        }}
       >
         {/* The glass bar is a separate layer so it can grow to hold the magnified icons. */}
         <div

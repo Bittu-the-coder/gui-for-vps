@@ -25,26 +25,97 @@ export const NVM_URL = `https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSI
 export const NVM_SHA256 = '2d8359a64a3cb07c02389ad88ceecd43f2fa469c06104f92f98df5b6f315275f';
 export const NODE_MAJOR = 22;
 
-/** First command of every install: refuse politely on anything that is not Ubuntu/Debian. */
+const UNSUPPORTED = (pretty = '$PRETTY_NAME') =>
+  `echo "GFV can only install tools on Ubuntu, Debian, Fedora and RHEL-family servers for now (this server runs ${pretty})." >&2; exit 1`;
+
+/** First command of every install: refuse politely on a distro family we do not know. */
 export const DISTRO_GUARD =
   '. /etc/os-release && case "$ID $ID_LIKE" in *ubuntu*|*debian*) echo "Detected $PRETTY_NAME" ;; ' +
-  '*) echo "GFV can only install tools on Ubuntu or Debian for now (this server runs $PRETTY_NAME)." >&2; exit 1 ;; esac';
+  `*) ${UNSUPPORTED()} ;; esac`;
+export const DNF_GUARD =
+  '. /etc/os-release && case "$ID $ID_LIKE" in *fedora*|*rhel*|*centos*) echo "Detected $PRETTY_NAME" ;; ' +
+  `*) ${UNSUPPORTED()} ;; esac`;
+const ANY_GUARD =
+  '. /etc/os-release && case "$ID $ID_LIKE" in *ubuntu*|*debian*|*fedora*|*rhel*|*centos*) echo "Detected $PRETTY_NAME" ;; ' +
+  `*) ${UNSUPPORTED()} ;; esac`;
 
 /** apt without questions, waiting (up to 2 min) for another package manager to finish. */
 const apt = (ctx: ActionCtx, args: string) =>
   `${ctx.sudo}env DEBIAN_FRONTEND=noninteractive apt-get -y -q -o DPkg::Lock::Timeout=120 ${args}`;
+const dnf = (ctx: ActionCtx, args: string) => `${ctx.sudo}dnf -y -q ${args}`;
 
-const aptInstall = (ctx: ActionCtx, packages: string, check: string): string[] => [
-  DISTRO_GUARD,
-  apt(ctx, 'update'),
-  apt(ctx, `install ${packages}`),
-  check,
-];
+/** The package manager a command list should be written for. */
+const pm = (ctx: ActionCtx) => ctx.pkg ?? 'apt';
 
-const aptRemove = (ctx: ActionCtx, packages: string): string[] => [
-  apt(ctx, `remove ${packages}`),
-  apt(ctx, 'autoremove'),
-];
+/**
+ * For exported scripts (`pkg: 'auto'`): ONE command that picks apt or dnf when it runs. The branches are the
+ * very command lists the live server would run, so what you preview is what a script does.
+ */
+function either(aptCmds: string[], dnfCmds: string[] | null): string[] {
+  const dnfBranch = dnfCmds
+    ? `elif command -v dnf >/dev/null 2>&1; then ${dnfCmds.join(' && ')}; `
+    : `elif command -v dnf >/dev/null 2>&1; then ${UNSUPPORTED('a dnf-based system')}; `;
+  return [
+    `if command -v apt-get >/dev/null 2>&1; then ${aptCmds.join(' && ')}; ${dnfBranch}` +
+      `else ${UNSUPPORTED('this system')}; fi`,
+  ];
+}
+
+interface PkgSpec {
+  /** apt packages to install / remove. */
+  apt: string;
+  /** dnf packages; null = not available from the standard repositories (the install explains that). */
+  dnf: string | null;
+  /** Commands to run after a dnf install (initialise a database...). */
+  dnfAfter?: string[];
+  /** Packages to remove with dnf (defaults to `dnf`). */
+  dnfRemove?: string;
+  aptRemove?: string;
+  check: string;
+}
+
+function pkgInstall(ctx: ActionCtx, spec: PkgSpec): string[] {
+  const aptCmds = [apt(ctx, 'update'), apt(ctx, `install ${spec.apt}`)];
+  const dnfCmds = spec.dnf
+    ? [
+        dnf(ctx, `install ${spec.dnf}`),
+        ...(spec.dnfAfter?.map((c) => c.replace('$SUDO', ctx.sudo.trim())) ?? []),
+      ]
+    : null;
+  const check = spec.check;
+  switch (pm(ctx)) {
+    case 'dnf':
+      return dnfCmds
+        ? [DNF_GUARD, ...dnfCmds, check]
+        : [
+            DNF_GUARD,
+            `echo "${spec.apt.split(' ')[0]} is not in the standard Fedora/RHEL repositories. Install it from the project's own repository." >&2; exit 1`,
+          ];
+    case 'auto':
+      return [ANY_GUARD, ...either(aptCmds, dnfCmds), check];
+    default:
+      return [DISTRO_GUARD, ...aptCmds, check];
+  }
+}
+
+function pkgRemove(ctx: ActionCtx, spec: PkgSpec): string[] {
+  const aptCmds = [apt(ctx, `remove ${spec.aptRemove ?? spec.apt}`), apt(ctx, 'autoremove')];
+  const dnfCmds = spec.dnf
+    ? [dnf(ctx, `remove ${spec.dnfRemove ?? spec.dnf}`), dnf(ctx, 'autoremove')]
+    : null;
+  switch (pm(ctx)) {
+    case 'dnf':
+      return (
+        dnfCmds ?? [
+          'echo "Nothing to remove: this tool is not installed with dnf by GFV." >&2; exit 1',
+        ]
+      );
+    case 'auto':
+      return either(aptCmds, dnfCmds);
+    default:
+      return aptCmds;
+  }
+}
 
 export const TOOLS: ToolDef[] = [
   {
@@ -57,9 +128,17 @@ export const TOOLS: ToolDef[] = [
     uninstallExplain:
       'Deletes the ~/.nvm folder, which holds nvm and every Node version installed with it. Lines nvm added to ~/.bashrc stay but are harmless.',
     install: (ctx) => [
-      DISTRO_GUARD,
-      apt(ctx, 'update'),
-      apt(ctx, 'install curl ca-certificates'),
+      ...(pm(ctx) === 'dnf'
+        ? [DNF_GUARD, dnf(ctx, 'install curl ca-certificates tar gzip')]
+        : pm(ctx) === 'auto'
+          ? [
+              ANY_GUARD,
+              ...either(
+                [apt(ctx, 'update'), apt(ctx, 'install curl ca-certificates')],
+                [dnf(ctx, 'install curl ca-certificates tar gzip')],
+              ),
+            ]
+          : [DISTRO_GUARD, apt(ctx, 'update'), apt(ctx, 'install curl ca-certificates')]),
       `curl -fsSL -o /tmp/gfv-nvm-install.sh ${NVM_URL}`,
       `echo "${NVM_SHA256}  /tmp/gfv-nvm-install.sh" | sha256sum -c -`,
       'bash /tmp/gfv-nvm-install.sh',
@@ -72,14 +151,19 @@ export const TOOLS: ToolDef[] = [
     name: 'Python 3',
     icon: '🐍',
     description:
-      'Python 3 with pip (package installer) and venv (isolated environments) from the Ubuntu/Debian repositories.',
+      'Python 3 with pip (package installer) and venv (isolated environments) from the system repositories.',
     installExplain:
-      'Updates the package list, then installs python3, python3-pip and python3-venv with apt.',
+      'Updates the package list, then installs python3, pip and venv with the system package manager (apt, or dnf on Fedora/RHEL).',
     uninstallExplain:
       'Removes pip and venv. Python 3 itself is kept: the operating system depends on it.',
     install: (ctx) =>
-      aptInstall(ctx, 'python3 python3-pip python3-venv', 'python3 --version && pip3 --version'),
-    uninstall: (ctx) => aptRemove(ctx, 'python3-pip python3-venv'),
+      pkgInstall(ctx, {
+        apt: 'python3 python3-pip python3-venv',
+        dnf: 'python3 python3-pip',
+        check: 'python3 --version && pip3 --version',
+      }),
+    uninstall: (ctx) =>
+      pkgRemove(ctx, { apt: 'python3-pip python3-venv', dnf: 'python3-pip', check: '' }),
   },
   {
     id: 'docker',
@@ -92,8 +176,9 @@ export const TOOLS: ToolDef[] = [
     uninstallExplain:
       'Removes Docker Engine. Your images, containers and volumes under /var/lib/docker are kept on disk.',
     unit: 'docker.service',
-    install: (ctx) => aptInstall(ctx, 'docker.io', `${ctx.sudo}docker --version`),
-    uninstall: (ctx) => aptRemove(ctx, 'docker.io'),
+    install: (ctx) =>
+      pkgInstall(ctx, { apt: 'docker.io', dnf: null, check: `${ctx.sudo}docker --version` }),
+    uninstall: (ctx) => pkgRemove(ctx, { apt: 'docker.io', dnf: null, check: '' }),
   },
   {
     id: 'postgresql',
@@ -105,8 +190,23 @@ export const TOOLS: ToolDef[] = [
     uninstallExplain:
       'Removes the PostgreSQL programs. Your databases and configuration stay on disk, so installing again brings them back.',
     unit: 'postgresql.service',
-    install: (ctx) => aptInstall(ctx, 'postgresql postgresql-contrib', 'psql --version'),
-    uninstall: (ctx) => aptRemove(ctx, 'postgresql postgresql-contrib'),
+    install: (ctx) =>
+      pkgInstall(ctx, {
+        apt: 'postgresql postgresql-contrib',
+        dnf: 'postgresql-server postgresql-contrib',
+        // Fedora/RHEL do not create the database cluster for you: initialise it, then start the service.
+        dnfAfter: [
+          '$SUDO postgresql-setup --initdb || true',
+          '$SUDO systemctl enable --now postgresql',
+        ],
+        check: 'psql --version',
+      }),
+    uninstall: (ctx) =>
+      pkgRemove(ctx, {
+        apt: 'postgresql postgresql-contrib',
+        dnf: 'postgresql-server postgresql-contrib',
+        check: '',
+      }),
   },
   {
     id: 'nginx',
@@ -117,8 +217,9 @@ export const TOOLS: ToolDef[] = [
       'Installs nginx with apt. It starts automatically and serves a welcome page on port 80.',
     uninstallExplain: 'Removes nginx. Your site configuration in /etc/nginx stays on disk.',
     unit: 'nginx.service',
-    install: (ctx) => aptInstall(ctx, 'nginx', 'nginx -v 2>&1'),
-    uninstall: (ctx) => aptRemove(ctx, 'nginx nginx-common'),
+    install: (ctx) => pkgInstall(ctx, { apt: 'nginx', dnf: 'nginx', check: 'nginx -v 2>&1' }),
+    uninstall: (ctx) =>
+      pkgRemove(ctx, { apt: 'nginx', aptRemove: 'nginx nginx-common', dnf: 'nginx', check: '' }),
   },
   {
     id: 'git',
@@ -127,16 +228,24 @@ export const TOOLS: ToolDef[] = [
     description: 'Git version control.',
     installExplain: 'Updates the package list, then installs git with apt.',
     uninstallExplain: 'Removes git. Your repositories are ordinary folders and are not touched.',
-    install: (ctx) => aptInstall(ctx, 'git', 'git --version'),
-    uninstall: (ctx) => aptRemove(ctx, 'git'),
+    install: (ctx) => pkgInstall(ctx, { apt: 'git', dnf: 'git', check: 'git --version' }),
+    uninstall: (ctx) => pkgRemove(ctx, { apt: 'git', dnf: 'git', check: '' }),
   },
 ];
 
 export const toolById = (id: string): ToolDef | undefined => TOOLS.find((t) => t.id === id);
 
 /** Postgres only: remove the programs AND every database. */
-export const purgePostgresCommands = (ctx: ActionCtx): string[] => [
-  apt(ctx, 'purge postgresql postgresql-contrib postgresql-common'),
-  apt(ctx, 'autoremove'),
-  `${ctx.sudo}rm -rf /var/lib/postgresql /etc/postgresql`,
-];
+export const purgePostgresCommands = (ctx: ActionCtx): string[] => {
+  const aptCmds = [
+    apt(ctx, 'purge postgresql postgresql-contrib postgresql-common'),
+    apt(ctx, 'autoremove'),
+    `${ctx.sudo}rm -rf /var/lib/postgresql /etc/postgresql`,
+  ];
+  const dnfCmds = [
+    dnf(ctx, 'remove postgresql-server postgresql-contrib'),
+    dnf(ctx, 'autoremove'),
+    `${ctx.sudo}rm -rf /var/lib/pgsql`,
+  ];
+  return pm(ctx) === 'dnf' ? dnfCmds : pm(ctx) === 'auto' ? either(aptCmds, dnfCmds) : aptCmds;
+};

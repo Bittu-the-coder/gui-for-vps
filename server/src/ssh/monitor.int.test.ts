@@ -62,7 +62,11 @@ describe.skipIf(!reachable)('monitor, services, docker (vps-a)', () => {
   });
 
   it('detects sudo for a non-root user and shows it in the preview', async () => {
-    expect(await ctx.runner.ctxFor(id)).toEqual({ sudo: 'sudo -n ', home: '/home/gfv' });
+    expect(await ctx.runner.ctxFor(id)).toEqual({
+      sudo: 'sudo -n ',
+      home: '/home/gfv',
+      pkg: 'apt',
+    });
     const r = await call('POST', '/api/runs/preview', {
       serverId: id,
       actionId: 'service.restart',

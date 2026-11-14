@@ -44,14 +44,14 @@ function allParams(input: ExportInput): { name: string; p?: RecipeParam }[] {
 }
 
 /** Sentinel substitution (see export.ts) so steps built from placeholders still validate. */
-function stepInfos(input: ExportInput) {
+function stepInfos(input: ExportInput, target: 'script' | 'image' = 'script') {
   const used = new Set<string>();
   input.steps.forEach((s) => findPlaceholders(s.params, used));
   const sentinels = Object.fromEntries(
     [...used].map((n) => [n, `__GFVPARAM_${n.toUpperCase()}__`]),
   );
   return input.steps.map((s) => {
-    const info = recipeStepInfo(s.actionId, substitute(s.params, sentinels));
+    const info = recipeStepInfo(s.actionId, substitute(s.params, sentinels), target);
     return { ...s, info: info && { ...info, commands: info.commands.map(injectVars) } };
   });
 }
@@ -93,7 +93,7 @@ export function exportDockerfile(input: ExportInput): ExportResult {
     lines.push('');
   }
 
-  const infos = stepInfos(input);
+  const infos = stepInfos(input, 'image');
   infos.forEach(({ actionId, info }, i) => {
     const head = `# Step ${i + 1}/${infos.length}: ${info?.title ?? actionId}`;
     if (!info) {

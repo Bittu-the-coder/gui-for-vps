@@ -118,6 +118,7 @@ Without it those actions fail with "a password is required"; everything else sti
 - **Spotlight** (**Ctrl+K**, or the magnifier): type to open an app, jump to a window, switch server, change a
   setting or run a safe action. Inside the Terminal and the Editor Ctrl+K belongs to bash/Monaco, so use **Cmd+K**
   there or the magnifier.
+- **Full screen:** the zoom button (green) makes a window fill the whole workspace and the Dock tucks away (touch the bottom edge to bring it back). The full-screen button in the menu bar (or View > Enter Full Screen) puts the whole GUI in browser full screen; Esc exits. Turn the _Learn_ panel off for the full width.
 - **Mission Control** (**Ctrl+Up**, View menu, or Spotlight): all windows side by side; click one to bring it
   forward, Esc to leave.
 - **Control Center** (the sliders icon): server, light/dark, wallpaper, Learn, Record, lock.

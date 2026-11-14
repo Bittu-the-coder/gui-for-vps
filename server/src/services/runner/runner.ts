@@ -3,6 +3,7 @@ import { StringDecoder } from 'node:string_decoder';
 import {
   actionById,
   DEFAULT_CTX,
+  pkgManagerFor,
   type ActionCtx,
   previewAction,
   redactParams,
@@ -132,13 +133,19 @@ export class Runner {
   private async detectCtx(client: Client): Promise<ActionCtx> {
     try {
       let out = '';
-      await execStep(client, 'id -u; echo "$HOME"', (m) => m.type === 'output' && (out += m.text), {
-        timeoutMs: 5000,
-      });
-      const [uid, home] = out.trim().split('\n');
+      // uid, home, and the distro family (os-release ID + ID_LIKE) so actions can choose apt or dnf.
+      await execStep(
+        client,
+        'id -u; echo "$HOME"; (. /etc/os-release 2>/dev/null && echo "$ID $ID_LIKE") || echo unknown',
+        (m) => m.type === 'output' && (out += m.text),
+        { timeoutMs: 5000 },
+      );
+      const [uid, home, family] = out.trim().split('\n');
+      const pkg = pkgManagerFor(family ?? '');
       return {
         sudo: uid?.trim() === '0' ? '' : 'sudo -n ',
         ...(home?.trim() ? { home: home.trim() } : {}),
+        ...(pkg ? { pkg } : {}),
       };
     } catch {
       return DEFAULT_CTX;

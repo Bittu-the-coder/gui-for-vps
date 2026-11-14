@@ -9,3 +9,10 @@ services:
     build: { context: ., dockerfile: Dockerfile }
     container_name: gfv-vps-b
     ports: ['127.0.0.1:2202:22']
+  # Fedora (dnf). Only started when asked for (it needs the fedora base image, roughly 60 MB plus packages):
+  #   docker compose -f e2e/docker-compose.yml --profile fedora up -d --build vps-fedora
+  vps-fedora:
+    build: { context: ., dockerfile: Dockerfile.fedora }
+    container_name: gfv-vps-fedora
+    ports: ['127.0.0.1:2203:22']
+    profiles: ['fedora']

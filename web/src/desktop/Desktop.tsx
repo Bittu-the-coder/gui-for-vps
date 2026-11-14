@@ -13,7 +13,6 @@ import { Tour } from '../tour/Tour';
 import { tourSeen, useTour } from '../tour/tourStore';
 import { ControlCenter } from './ControlCenter';
 import { Dock } from './Dock';
-import { DOCK_SAFE } from './layout';
 import { MenuBar } from './MenuBar';
 import { focusContext, shortcutFor } from './hotkeys';
 import { commands } from './commands';
@@ -80,7 +79,7 @@ export function Desktop() {
       .map((w) => ({
         id: w.id,
         rect: w.maximized
-          ? { x: 0, y: 0, w: area.w, h: area.h - DOCK_SAFE }
+          ? { x: 0, y: 0, w: area.w, h: area.h }
           : { x: w.x, y: w.y, w: w.w, h: w.h },
       }));
     return Object.fromEntries(overviewLayout(visible, area).map((s) => [s.id, s]));

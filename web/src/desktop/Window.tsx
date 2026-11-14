@@ -14,7 +14,6 @@ import {
   clearAnimations,
   minimizeTarget,
 } from './windowAnim';
-import { DOCK_SAFE } from './layout';
 import { useOverlays } from './overlayStore';
 import type { Slot } from './overviewLayout';
 import { consumeFresh, tryClose, useDesktop, type WindowState } from './windowStore';
@@ -152,7 +151,7 @@ export function Window({ win, slot }: { win: WindowState; slot?: Slot }) {
   // Maximized = a CSS-level override. The stored x/y/w/h stay untouched,
   // so restoring is trivial and react-rnd's drag is just disabled.
   const rect = win.maximized
-    ? { x: 0, y: 0, width: '100%', height: `calc(100% - ${DOCK_SAFE}px)` }
+    ? { x: 0, y: 0, width: '100%', height: '100%' }
     : { x: win.x, y: win.y, width: win.w, height: win.h };
 
   // A window tied to a server gets a ring in that server's colour (dimmed when inactive), so you can

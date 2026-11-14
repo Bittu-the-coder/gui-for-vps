@@ -11,6 +11,7 @@ import { useLearn } from '../stores/learnStore';
 import { useRecording } from '../stores/recordingStore';
 import { useServers } from '../stores/serverStore';
 import { commands } from './commands';
+import { toggleFullscreen, useFullscreen } from './fullscreen';
 import { openApp } from './openApp';
 import { useOverlays } from './overlayStore';
 import {
@@ -48,6 +49,7 @@ export function Spotlight() {
   const activeId = useServers((s) => s.activeId);
   const appearance = useAppearance();
   const learnOpen = useLearn((s) => s.open);
+  const fullscreen = useFullscreen();
   const recording = useRecording((s) => !!s.active);
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
@@ -100,6 +102,7 @@ export function Spotlight() {
         wallpaper: appearance.wallpaper,
         reduceTransparency: appearance.reduceTransparency,
         learnOpen,
+        fullscreen,
         recording,
         actions,
         act: {
@@ -112,6 +115,7 @@ export function Spotlight() {
           toggleLearn: useLearn.getState().toggle,
           toggleRecording: () => void commands.toggleRecording(),
           missionControl: commands.missionControl,
+          toggleFullscreen: () => void toggleFullscreen(),
           controlCenter: commands.controlCenter,
           lock: commands.lock,
           changePassword: commands.changePassword,
@@ -119,7 +123,7 @@ export function Spotlight() {
           runAction: (serverId, actionId) => requestRun({ serverId, actionId, params: {} }),
         },
       }),
-    [desk, servers, activeId, appearance, learnOpen, recording, actions],
+    [desk, servers, activeId, appearance, learnOpen, fullscreen, recording, actions],
   );
   const results = useMemo(() => rankItems(items, query), [items, query]);
 

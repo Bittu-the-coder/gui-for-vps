@@ -18,12 +18,15 @@ export interface MenuCtx {
   wallpaper: string;
   reduceTransparency: boolean;
   learnOpen: boolean;
+  /** The page is in browser full screen. */
+  fullscreen: boolean;
   /** Apps that can be opened (the Dock's apps). */
   launchable: AppDef[];
   act: {
     openApp: (app: AppDef) => void;
     copyText: (text: string) => void;
     missionControl: () => void;
+    toggleFullscreen: () => void;
     closeWindow: (id: string) => void;
     minimize: (id: string) => void;
     zoom: (id: string) => void;
@@ -113,6 +116,11 @@ export function buildMenus(c: MenuCtx): Record<MenuKey, MenuItem[]> {
       onSelect: () => win && act.zoom(win.id),
     },
     { label: 'Mission Control', onSelect: act.missionControl },
+    { type: 'separator' },
+    {
+      label: c.fullscreen ? 'Exit Full Screen' : 'Enter Full Screen',
+      onSelect: act.toggleFullscreen,
+    },
   ];
   const view = withApp(c.app.view, viewShell);
 

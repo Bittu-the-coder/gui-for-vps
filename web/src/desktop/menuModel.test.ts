@@ -23,6 +23,7 @@ function ctx(over: Partial<MenuCtx> = {}) {
     openApp: vi.fn(),
     copyText: vi.fn(),
     missionControl: vi.fn(),
+    toggleFullscreen: vi.fn(),
     closeWindow: vi.fn(),
     minimize: vi.fn(),
     zoom: vi.fn(),
@@ -44,6 +45,7 @@ function ctx(over: Partial<MenuCtx> = {}) {
     wallpaper: 'aurora',
     reduceTransparency: false,
     learnOpen: true,
+    fullscreen: false,
     launchable,
     act,
     ...over,
@@ -144,5 +146,12 @@ describe('buildMenus', () => {
     expect(copy.disabled).toBe(false);
     copy.onSelect();
     expect(act.copyText).toHaveBeenCalledWith('hello');
+  });
+
+  it('View has a Full Screen item that follows the state', () => {
+    const { c, act } = ctx();
+    find(buildMenus(c).view, 'Enter Full Screen').onSelect();
+    expect(act.toggleFullscreen).toHaveBeenCalled();
+    expect(find(buildMenus(ctx({ fullscreen: true }).c).view, 'Exit Full Screen')).toBeDefined();
   });
 });

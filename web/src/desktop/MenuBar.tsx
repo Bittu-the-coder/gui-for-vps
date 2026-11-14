@@ -1,4 +1,13 @@
-import { Circle, GraduationCap, Moon, Search, SlidersHorizontal, Sun } from 'lucide-react';
+import {
+  Circle,
+  GraduationCap,
+  Maximize,
+  Minimize,
+  Moon,
+  Search,
+  SlidersHorizontal,
+  Sun,
+} from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { LAUNCHABLE, appById } from '../apps/registry';
 import { GfvMark } from '../components/icons/GfvMark';
@@ -11,6 +20,7 @@ import { toast } from '../stores/toastStore';
 import { useTour } from '../tour/tourStore';
 import { appMenusFor } from './appMenus';
 import { commands } from './commands';
+import { fullscreenSupported, toggleFullscreen, useFullscreen } from './fullscreen';
 import { buildMenus, type MenuKey } from './menuModel';
 import { openApp } from './openApp';
 import { useOverlays } from './overlayStore';
@@ -101,6 +111,7 @@ export function MenuBar() {
   const recording = useRecording((s) => s.active);
   const refreshRecording = useRecording((s) => s.refresh);
   const controlCenterOpen = useOverlays((s) => s.controlCenter);
+  const fullscreen = useFullscreen();
 
   const [open, setOpen] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
@@ -127,6 +138,7 @@ export function MenuBar() {
       wallpaper: appearance.wallpaper,
       reduceTransparency: appearance.reduceTransparency,
       learnOpen,
+      fullscreen,
       launchable: LAUNCHABLE,
       act: {
         openApp,
@@ -134,6 +146,7 @@ export function MenuBar() {
           void navigator.clipboard?.writeText(text).then(() => toast({ title: 'Copied' }));
         },
         missionControl: commands.missionControl,
+        toggleFullscreen: () => void toggleFullscreen(),
         closeWindow: d.requestClose,
         minimize: d.minimize,
         zoom: d.toggleMaximize,
@@ -271,6 +284,17 @@ export function MenuBar() {
           Learn
         </button>
 
+        {fullscreenSupported() && (
+          <button
+            aria-label={fullscreen ? 'Exit full screen' : 'Enter full screen'}
+            aria-pressed={fullscreen}
+            title={fullscreen ? 'Exit full screen (Esc)' : 'Make GFV fill the whole screen'}
+            className={BAR_BTN}
+            onClick={() => void toggleFullscreen()}
+          >
+            {fullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+          </button>
+        )}
         <button
           data-menu-trigger
           aria-label="Control Center"
