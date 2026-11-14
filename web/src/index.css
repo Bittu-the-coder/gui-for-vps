@@ -191,3 +191,11 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Maximize / restore: the rectangle animates (only while this class is on, never during a drag). */
+.win-rect-anim {
+  transition:
+    transform var(--dur-slow) var(--ease-out),
+    width var(--dur-slow) var(--ease-out),
+    height var(--dur-slow) var(--ease-out);
+}

@@ -58,6 +58,7 @@ export function Taskbar() {
           return (
             <button
               key={w.id}
+              data-win-anchor={w.id}
               className={`max-w-40 truncate rounded px-3 py-1 ${
                 active ? 'bg-sky-500/30' : 'hover:bg-slate-300/60 dark:hover:bg-slate-700'
               } ${w.minimized ? 'opacity-60' : ''}`}

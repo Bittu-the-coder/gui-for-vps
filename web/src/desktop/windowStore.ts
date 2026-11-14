@@ -44,7 +44,12 @@ interface DesktopState {
   focusedId: string | null;
   nextZ: number;
   theme: 'light' | 'dark';
+  /** Windows whose close animation is running (transient, never persisted). */
+  closing: Record<string, true>;
   open: (opts: OpenOptions) => string;
+  /** Start closing: the Window plays its close animation, then calls `close`. */
+  requestClose: (id: string) => void;
+  /** Remove the window right now (no animation). */
   close: (id: string) => void;
   setTitle: (id: string, title: string) => void;
   focus: (id: string) => void;
@@ -59,6 +64,12 @@ interface DesktopState {
 const restoreRects = new Map<string, Pick<WindowState, 'x' | 'y' | 'w' | 'h'>>();
 
 let idCounter = 0;
+
+/** Windows opened since the page loaded: only these play the open animation (not every window on a reload). */
+const freshIds = new Set<string>();
+export function consumeFresh(id: string): boolean {
+  return freshIds.delete(id);
+}
 
 function topVisibleId(windows: Record<string, WindowState>): string | null {
   const visible = Object.values(windows).filter((w) => !w.minimized);
@@ -87,15 +98,16 @@ export function registerCloseGuard(windowId: string, isDirty: () => boolean): ()
   };
 }
 
-/** What the window's ✕ button calls: asks before discarding unsaved changes. */
+/** What the close button calls: asks before discarding unsaved changes, then closes with an animation. */
 export function tryClose(windowId: string): void {
   if (closeGuards.get(windowId)?.() && !window.confirm('Discard your unsaved changes?')) return;
-  useDesktop.getState().close(windowId);
+  useDesktop.getState().requestClose(windowId);
 }
 
 export const useDesktop = create<DesktopState>((set, get) => ({
   ...loadInitial(),
   focusedId: null,
+  closing: {},
 
   open: ({ appId, title, w, h, serverId, arg }) => {
     const { nextZ, windows } = get();
@@ -116,15 +128,24 @@ export const useDesktop = create<DesktopState>((set, get) => ({
       ...(serverId ? { serverId } : {}),
       ...(arg ? { arg } : {}),
     };
+    freshIds.add(id);
     set({ windows: { ...windows, [id]: win }, nextZ: nextZ + 1, focusedId: id });
     return id;
+  },
+
+  requestClose: (id) => {
+    if (!get().windows[id] || get().closing[id]) return;
+    set({ closing: { ...get().closing, [id]: true } });
   },
 
   close: (id) => {
     const { [id]: _removed, ...rest } = get().windows;
     void _removed;
     restoreRects.delete(id);
-    set({ windows: rest, focusedId: topVisibleId(rest) });
+    freshIds.delete(id);
+    const { [id]: _c, ...closing } = get().closing;
+    void _c;
+    set({ windows: rest, closing, focusedId: topVisibleId(rest) });
   },
 
   setTitle: (id, title) => {
