@@ -1,5 +1,6 @@
 import type { MenuItem } from '../components/menu/menuItems';
 import type { AppDef } from '../apps/registry';
+import type { AppMenus } from './appMenus';
 import { WALLPAPERS } from './wallpapers';
 import type { WindowState } from './windowStore';
 
@@ -9,6 +10,10 @@ export interface MenuCtx {
   activeApp?: AppDef;
   activeWindow?: WindowState;
   windows: WindowState[];
+  /** What the focused app adds (read when the menu opens). */
+  app: AppMenus;
+  /** Text currently selected on the page (for the generic Copy). */
+  selectedText: string;
   theme: 'light' | 'dark';
   wallpaper: string;
   reduceTransparency: boolean;
@@ -17,6 +22,8 @@ export interface MenuCtx {
   launchable: AppDef[];
   act: {
     openApp: (app: AppDef) => void;
+    copyText: (text: string) => void;
+    missionControl: () => void;
     closeWindow: (id: string) => void;
     minimize: (id: string) => void;
     zoom: (id: string) => void;
@@ -31,7 +38,7 @@ export interface MenuCtx {
   };
 }
 
-export type MenuKey = 'gfv' | 'file' | 'view' | 'window' | 'help';
+export type MenuKey = 'gfv' | 'file' | 'edit' | 'view' | 'window' | 'help';
 
 /** Menus shown for the focused app. (Edit and per-app items arrive with the app contributions in M10b.) */
 export function buildMenus(c: MenuCtx): Record<MenuKey, MenuItem[]> {
@@ -63,7 +70,11 @@ export function buildMenus(c: MenuCtx): Record<MenuKey, MenuItem[]> {
 
   // "New Window" opens another window of the focused app (if it allows several), else a Terminal.
   const newTarget = c.activeApp && !c.activeApp.singleton ? c.activeApp : terminal;
-  const file: MenuItem[] = [
+  const SEP: MenuItem = { type: 'separator' };
+  const withApp = (own: MenuItem[] | undefined, shell: MenuItem[]): MenuItem[] =>
+    own?.length ? [...own, SEP, ...shell] : shell;
+
+  const fileShell: MenuItem[] = [
     {
       label: newTarget && newTarget === c.activeApp ? 'New Window' : 'New Terminal Window',
       disabled: !newTarget,
@@ -76,8 +87,20 @@ export function buildMenus(c: MenuCtx): Record<MenuKey, MenuItem[]> {
       onSelect: () => win && act.closeWindow(win.id),
     },
   ];
+  const file = withApp(c.app.file, fileShell);
 
-  const view: MenuItem[] = [
+  // Apps with their own Edit items (Terminal, Editor) replace this generic one.
+  const edit: MenuItem[] = c.app.edit?.length
+    ? c.app.edit
+    : [
+        {
+          label: 'Copy',
+          disabled: !c.selectedText,
+          onSelect: () => act.copyText(c.selectedText),
+        },
+      ];
+
+  const viewShell: MenuItem[] = [
     {
       label: 'Learn Mode Panel',
       checked: c.learnOpen,
@@ -89,7 +112,9 @@ export function buildMenus(c: MenuCtx): Record<MenuKey, MenuItem[]> {
       disabled: !win,
       onSelect: () => win && act.zoom(win.id),
     },
+    { label: 'Mission Control', onSelect: act.missionControl },
   ];
+  const view = withApp(c.app.view, viewShell);
 
   const sorted = [...c.windows].sort((a, b) => a.title.localeCompare(b.title));
   const windowMenu: MenuItem[] = [
@@ -117,5 +142,5 @@ export function buildMenus(c: MenuCtx): Record<MenuKey, MenuItem[]> {
 
   const help: MenuItem[] = [{ label: 'Take the Tour', onSelect: act.tour }];
 
-  return { gfv, file, view, window: windowMenu, help };
+  return { gfv, file, edit, view, window: windowMenu, help };
 }

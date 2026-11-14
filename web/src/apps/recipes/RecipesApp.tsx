@@ -103,7 +103,7 @@ export function RecipesApp() {
       <div className="w-56 shrink-0 overflow-auto border-r border-border">
         {list.length === 0 && (
           <p className="p-3 text-xs text-muted-foreground">
-            No recipes yet. Press ⏺ Record in the taskbar, do things in GFV, then press ■ Stop.
+            No recipes yet. Press ⏺ Record in the menu bar, do things in GFV, then press ■ Stop.
           </p>
         )}
         {list.map((r) => (

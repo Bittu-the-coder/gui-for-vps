@@ -26,7 +26,7 @@ export function ActionsApp({ windowId }: { windowId: string }) {
   if (!serverId) {
     return (
       <div className="grid h-full place-items-center p-4 text-center text-sm text-muted-foreground">
-        Pick a server in the taskbar, then open a new Actions window.
+        Pick a server in the menu bar, then open a new Actions window.
       </div>
     );
   }

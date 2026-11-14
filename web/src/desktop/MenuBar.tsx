@@ -1,15 +1,18 @@
-import { Circle, GraduationCap, Lock, Moon, Sun } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Circle, GraduationCap, Moon, Search, SlidersHorizontal, Sun } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { LAUNCHABLE, appById } from '../apps/registry';
-import { ChangePasswordDialog } from '../components/ChangePasswordDialog';
 import { Menu, type MenuItem } from '../components/menu/Menu';
 import { useAppearance } from '../stores/appearanceStore';
 import { useLearn } from '../stores/learnStore';
 import { useRecording } from '../stores/recordingStore';
 import { useServers } from '../stores/serverStore';
+import { toast } from '../stores/toastStore';
 import { useTour } from '../tour/tourStore';
+import { appMenusFor } from './appMenus';
+import { commands } from './commands';
 import { buildMenus, type MenuKey } from './menuModel';
 import { openApp } from './openApp';
+import { useOverlays } from './overlayStore';
 import { useDesktop } from './windowStore';
 
 const STATUS_DOT: Record<string, string> = {
@@ -39,7 +42,11 @@ function GfvMark() {
 const BAR_BTN =
   'flex h-[22px] items-center gap-1.5 rounded px-2 text-body hover:bg-foreground/10 aria-expanded:bg-foreground/15 focus-visible:outline-offset-0';
 
-/** A menu-bar button that opens a Menu under itself. `data-menu-trigger` lets the button toggle its own menu. */
+/**
+ * A menu-bar button that opens a Menu under itself. `data-menu-trigger` lets the button toggle its own menu.
+ * `items` may be a function: it is called only while the menu is open, so the items (and which are
+ * enabled) are always built from the state at that moment.
+ */
 function BarMenu({
   id,
   open,
@@ -55,7 +62,7 @@ function BarMenu({
   id: string;
   open: string | null;
   setOpen: (id: string | null) => void;
-  items: MenuItem[];
+  items: MenuItem[] | (() => MenuItem[]);
   children: ReactNode;
   className?: string;
   ariaLabel?: string;
@@ -85,7 +92,7 @@ function BarMenu({
       {isOpen && r && (
         <Menu
           label={ariaLabel ?? id}
-          items={items}
+          items={typeof items === 'function' ? items() : items}
           x={align === 'right' ? r.right - 220 : r.left}
           y={r.bottom + 2}
           onClose={() => {
@@ -103,18 +110,17 @@ export function MenuBar() {
   const windows = useDesktop((s) => s.windows);
   const focusedId = useDesktop((s) => s.focusedId);
   const theme = useDesktop((s) => s.theme);
-  const { setTheme, toggleTheme, focus, minimize, toggleMaximize, requestClose } =
-    useDesktop.getState();
   const appearance = useAppearance();
   const { open: learnOpen, toggle: toggleLearn } = useLearn();
   const startTour = useTour((s) => s.start);
-  const { servers, statuses, activeId, setActive, lock } = useServers();
-  const { active: recording, refresh, start: startRec, stop: stopRec } = useRecording();
+  const { servers, statuses, activeId, setActive } = useServers();
+  const recording = useRecording((s) => s.active);
+  const refreshRecording = useRecording((s) => s.refresh);
+  const controlCenterOpen = useOverlays((s) => s.controlCenter);
 
   const [open, setOpen] = useState<string | null>(null);
-  const [changePw, setChangePw] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  useEffect(() => void refresh(), [refresh]);
+  useEffect(() => void refreshRecording(), [refreshRecording]);
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 15_000);
     return () => clearInterval(t);
@@ -124,48 +130,55 @@ export function MenuBar() {
   const activeApp = activeWindow ? appById(activeWindow.appId) : undefined;
   const server = servers.find((s) => s.id === activeId);
 
-  const menus = useMemo(
-    () =>
-      buildMenus({
-        activeApp,
-        activeWindow,
-        windows: Object.values(windows),
-        theme,
-        wallpaper: appearance.wallpaper,
-        reduceTransparency: appearance.reduceTransparency,
-        learnOpen,
-        launchable: LAUNCHABLE,
-        act: {
-          openApp,
-          closeWindow: requestClose,
-          minimize,
-          zoom: toggleMaximize,
-          focus,
-          setTheme,
-          setWallpaper: appearance.setWallpaper,
-          setReduceTransparency: appearance.setReduceTransparency,
-          toggleLearn,
-          tour: startTour,
-          changePassword: () => setChangePw(true),
-          lock: () => void lock(),
+  /** Built when a menu opens (see BarMenu): the focused app's items and the current selection are fresh. */
+  const menus = () => {
+    const d = useDesktop.getState();
+    return buildMenus({
+      activeApp,
+      activeWindow,
+      windows: Object.values(windows),
+      app: appMenusFor(focusedId ?? undefined),
+      selectedText: window.getSelection()?.toString() ?? '',
+      theme,
+      wallpaper: appearance.wallpaper,
+      reduceTransparency: appearance.reduceTransparency,
+      learnOpen,
+      launchable: LAUNCHABLE,
+      act: {
+        openApp,
+        copyText: (text) => {
+          void navigator.clipboard?.writeText(text).then(() => toast({ title: 'Copied' }));
         },
-      }),
-    [activeApp, activeWindow, windows, theme, appearance, learnOpen],
-  );
+        missionControl: commands.missionControl,
+        closeWindow: d.requestClose,
+        minimize: d.minimize,
+        zoom: d.toggleMaximize,
+        focus: d.focus,
+        setTheme: d.setTheme,
+        setWallpaper: appearance.setWallpaper,
+        setReduceTransparency: appearance.setReduceTransparency,
+        toggleLearn,
+        tour: startTour,
+        changePassword: commands.changePassword,
+        lock: commands.lock,
+      },
+    });
+  };
 
-  const ORDER: MenuKey[] = ['file', 'view', 'window', 'help'];
+  const ORDER: MenuKey[] = ['file', 'edit', 'view', 'window', 'help'];
   const keys = ['gfv', ...ORDER] as MenuKey[];
   const step = (from: MenuKey) => (dir: 1 | -1) =>
     setOpen(`m:${keys[(keys.indexOf(from) + dir + keys.length) % keys.length]}`);
   const TITLES: Record<MenuKey, string> = {
     gfv: 'GFV',
     file: 'File',
+    edit: 'Edit',
     view: 'View',
     window: 'Window',
     help: 'Help',
   };
 
-  const serverItems: MenuItem[] = [
+  const serverItems = (): MenuItem[] => [
     ...servers.map<MenuItem>((s) => ({
       label: s.name,
       checked: s.id === activeId,
@@ -189,7 +202,7 @@ export function MenuBar() {
           id="m:gfv"
           open={open}
           setOpen={setOpen}
-          items={menus.gfv}
+          items={() => menus().gfv}
           ariaLabel="GFV menu"
           onNavigate={step('gfv')}
         >
@@ -202,7 +215,7 @@ export function MenuBar() {
             id={`m:${k}`}
             open={open}
             setOpen={setOpen}
-            items={menus[k]}
+            items={() => menus()[k]}
             ariaLabel={`${TITLES[k]} menu`}
             onNavigate={step(k)}
           >
@@ -212,6 +225,15 @@ export function MenuBar() {
       </nav>
 
       <div className="flex items-center gap-0.5">
+        <button
+          aria-label="Search"
+          title="Spotlight: search apps, windows, servers and commands (Ctrl+K)"
+          className={BAR_BTN}
+          onClick={commands.spotlight}
+        >
+          <Search size={14} />
+        </button>
+
         <span data-tour="server-switcher">
           <BarMenu
             id="server"
@@ -234,9 +256,7 @@ export function MenuBar() {
             aria-label="Stop recording"
             title={`Recording "${recording.name}" on ${servers.find((x) => x.id === recording.serverId)?.name ?? 'a server'}`}
             className={`${BAR_BTN} text-danger`}
-            onClick={() => {
-              void stopRec().then((id) => id && openApp(appById('recipes')!));
-            }}
+            onClick={() => void commands.toggleRecording()}
           >
             <Circle size={10} fill="currentColor" className="animate-pulse" />
             Stop ({recording.stepCount})
@@ -248,7 +268,7 @@ export function MenuBar() {
             title="Record the actions you run so you can export them as a bash script"
             disabled={!activeId}
             className={`${BAR_BTN} disabled:opacity-40`}
-            onClick={() => activeId && void startRec(activeId)}
+            onClick={() => void commands.toggleRecording()}
           >
             <Circle size={10} className="text-danger" fill="currentColor" />
             Record
@@ -266,22 +286,20 @@ export function MenuBar() {
           <GraduationCap size={15} />
           Learn
         </button>
+
         <button
-          aria-label="Lock vault"
-          title="Lock (disconnects all servers)"
+          data-menu-trigger
+          aria-label="Control Center"
+          aria-haspopup="dialog"
+          aria-expanded={controlCenterOpen}
+          title="Control Center: server, theme, wallpaper, Learn, Record, lock"
           className={BAR_BTN}
-          onClick={() => void lock()}
-        >
-          <Lock size={13} />
-        </button>
-        <button
-          aria-label="Toggle theme"
-          title="Light / dark"
-          className={BAR_BTN}
-          onClick={toggleTheme}
+          onClick={commands.controlCenter}
         >
           {theme === 'dark' ? <Moon size={13} /> : <Sun size={14} />}
+          <SlidersHorizontal size={14} />
         </button>
+
         <span className="px-2 text-body tabular-nums">
           {now.toLocaleString([], {
             weekday: 'short',
@@ -292,7 +310,6 @@ export function MenuBar() {
           })}
         </span>
       </div>
-      {changePw && <ChangePasswordDialog onClose={() => setChangePw(false)} />}
     </header>
   );
 }

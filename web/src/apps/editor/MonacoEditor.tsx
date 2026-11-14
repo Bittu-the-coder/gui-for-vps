@@ -1,4 +1,5 @@
 import Editor from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 import { useRef } from 'react';
 import './monacoSetup';
 
@@ -9,6 +10,8 @@ export interface MonacoEditorProps {
   dark: boolean;
   onChange: (value: string) => void;
   onSave: () => void;
+  /** The editor instance, for the menu bar's Edit items (Undo, Find...). */
+  onReady?: (editor: editor.IStandaloneCodeEditor) => void;
 }
 
 export default function MonacoEditor({
@@ -17,6 +20,7 @@ export default function MonacoEditor({
   dark,
   onChange,
   onSave,
+  onReady,
 }: MonacoEditorProps) {
   // onMount runs once; this ref always points at the latest save handler (per editor window).
   const saveRef = useRef(onSave);
@@ -30,6 +34,7 @@ export default function MonacoEditor({
       onMount={(editor, m) => {
         // The mount callback runs once, so keep the latest save handler reachable.
         editor.addCommand(m.KeyMod.CtrlCmd | m.KeyCode.KeyS, () => saveRef.current());
+        onReady?.(editor);
       }}
       options={{
         minimap: { enabled: false },

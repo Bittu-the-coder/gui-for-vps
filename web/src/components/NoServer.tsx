@@ -1,7 +1,7 @@
 export function NoServer({ app }: { app: string }) {
   return (
     <div className="grid h-full place-items-center p-4 text-center text-sm text-muted-foreground">
-      Pick a server in the taskbar, then open a new {app} window.
+      Pick a server in the menu bar, then open a new {app} window.
     </div>
   );
 }

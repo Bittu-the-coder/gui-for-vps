@@ -1,7 +1,10 @@
 import { useRef, useState } from 'react';
+import { Menu, type MenuItem } from '../../components/menu/Menu';
+import { useAppMenus } from '../../desktop/appMenus';
 import { useDesktop } from '../../desktop/windowStore';
 import { cn } from '../../lib/utils';
 import { useServers } from '../../stores/serverStore';
+import { terminalEditItems } from './terminalBus';
 import { TerminalView } from './TerminalView';
 
 interface Tab {
@@ -16,15 +19,17 @@ interface Tab {
 export function TerminalApp({ windowId }: { windowId: string }) {
   const serverId = useDesktop((s) => s.windows[windowId]?.serverId);
   const server = useServers((s) => s.servers.find((x) => x.id === serverId));
-  const closeWindow = useDesktop((s) => s.close);
+  const closeWindow = useDesktop((s) => s.requestClose);
   const counter = useRef(1);
   const [tabs, setTabs] = useState<Tab[]>([{ id: 1, title: 'Shell 1' }]);
   const [activeId, setActiveId] = useState(1);
+  const provide = useAppMenus(windowId);
+  const [ctx, setCtx] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
 
   if (!serverId || !server) {
     return (
       <div className="grid h-full place-items-center p-4 text-center text-sm text-muted-foreground">
-        This terminal needs a server. Add one in the Servers app, pick it in the taskbar, then open
+        This terminal needs a server. Add one in the Servers app, pick it in the menu bar, then open
         a new Terminal.
       </div>
     );
@@ -44,8 +49,24 @@ export function TerminalApp({ windowId }: { windowId: string }) {
     if (activeId === id) setActiveId(next[Math.max(0, idx - 1)]!.id);
   };
 
+  provide(() => ({
+    file: [
+      { label: 'New Tab', onSelect: add },
+      { label: 'Close Tab', onSelect: () => close(activeId) },
+    ],
+    edit: terminalEditItems(windowId),
+  }));
+
   return (
-    <div className="flex h-full flex-col bg-[#0b1020] text-slate-200">
+    <div
+      className="flex h-full flex-col bg-[#0b1020] text-slate-200"
+      onContextMenu={(e) => {
+        // The terminal gets its own small menu; a right-click on the tab strip keeps the browser's.
+        if (!(e.target as Element).closest('.xterm')) return;
+        e.preventDefault();
+        setCtx({ x: e.clientX, y: e.clientY, items: terminalEditItems(windowId) });
+      }}
+    >
       <div
         role="tablist"
         className="flex shrink-0 items-center gap-1 border-b border-slate-700 bg-slate-900 px-1 pt-1 text-xs"
@@ -82,6 +103,16 @@ export function TerminalApp({ windowId }: { windowId: string }) {
           </div>
         ))}
       </div>
+      {ctx && (
+        <Menu
+          label="Terminal"
+          items={ctx.items}
+          x={ctx.x}
+          y={ctx.y}
+          minWidth={190}
+          onClose={() => setCtx(null)}
+        />
+      )}
     </div>
   );
 }

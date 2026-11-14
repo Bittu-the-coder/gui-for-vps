@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { api } from '../lib/api';
 import { readJson, writeJson } from '../lib/storage';
 import { startStatusSocket } from '../lib/ws';
+import { toast } from './toastStore';
 
 const ACTIVE_KEY = 'gfv.activeServer.v1';
 
@@ -25,13 +26,37 @@ interface ServerState {
 
 let stopSocket: (() => void) | undefined;
 
+/** Tell the user when a server they were connected to drops, or comes back (never for the first status). */
+export function notifyChanges(
+  prev: Record<string, ConnStatus>,
+  next: Record<string, ConnStatus>,
+  servers: { id: string; name: string }[],
+): void {
+  for (const [id, status] of Object.entries(next)) {
+    const before = prev[id];
+    if (!before || before === status) continue;
+    const name = servers.find((s) => s.id === id)?.name ?? 'A server';
+    if (before === 'connected' && status === 'error')
+      toast({
+        kind: 'error',
+        title: `Lost connection to ${name}`,
+        body: 'GFV will try to reconnect.',
+      });
+    else if (before !== 'connected' && status === 'connected')
+      toast({ kind: 'success', title: `${name} connected` });
+  }
+}
+
 export const useServers = create<ServerState>((set, get) => {
   /** Called whenever the vault becomes unlocked: load data and open the live socket. */
   const onUnlocked = async () => {
     await Promise.all([get().refreshServers(), get().refreshStatuses()]);
     stopSocket?.();
     stopSocket = startStatusSocket(
-      (statuses) => set({ statuses }),
+      (statuses) => {
+        notifyChanges(get().statuses, statuses, get().servers);
+        set({ statuses });
+      },
       (live) => set({ live }),
     );
   };

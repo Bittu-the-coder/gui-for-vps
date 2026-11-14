@@ -1,8 +1,10 @@
 import type { FileEntry } from '@gfv/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Menu, type MenuItem } from '../../components/menu/Menu';
 import { PromptDialog, type PromptSpec } from '../../components/PromptDialog';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { useAppMenus } from '../../desktop/appMenus';
 import { useDesktop } from '../../desktop/windowStore';
 import { api, ApiError } from '../../lib/api';
 import { cn } from '../../lib/utils';
@@ -44,6 +46,8 @@ export function FilesApp({ windowId }: { windowId: string }) {
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const loadSeq = useRef(0);
+  const provide = useAppMenus(windowId);
+  const [ctx, setCtx] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
 
   const load = useCallback(
     async (target: string) => {
@@ -85,7 +89,7 @@ export function FilesApp({ windowId }: { windowId: string }) {
   if (!serverId) {
     return (
       <div className="grid h-full place-items-center p-4 text-center text-sm text-muted-foreground">
-        Pick a server in the taskbar, then open a new Files window.
+        Pick a server in the menu bar, then open a new Files window.
       </div>
     );
   }
@@ -181,6 +185,42 @@ export function FilesApp({ windowId }: { windowId: string }) {
     refresh();
   };
 
+  const download = (e: FileEntry) => {
+    const a = document.createElement('a');
+    a.href = api.fsDownloadUrl(serverId, e.path);
+    a.download = e.name;
+    a.click();
+  };
+
+  // The same items drive the File menu (for the selected row) and the right-click menus.
+  const entryItems = (e: FileEntry | undefined): MenuItem[] => [
+    { label: 'Open', disabled: !e, onSelect: () => e && open(e) },
+    { label: 'Rename…', disabled: !e, onSelect: () => e && rename(e) },
+    { label: 'Permissions…', disabled: !e, onSelect: () => e && chmod(e) },
+    { label: 'Download', disabled: !e || e.type === 'dir', onSelect: () => e && download(e) },
+    { type: 'separator' },
+    { label: 'Delete…', danger: true, disabled: !e, onSelect: () => e && remove(e) },
+  ];
+  const folderItems = (): MenuItem[] => [
+    { label: 'New Folder…', onSelect: newFolder },
+    { label: 'Upload…', onSelect: () => fileInput.current?.click() },
+  ];
+  provide(() => ({
+    file: [
+      ...folderItems(),
+      { type: 'separator' },
+      ...entryItems(sel),
+      { type: 'separator' },
+      { label: 'Refresh', onSelect: refresh },
+    ],
+    view: [
+      { label: 'Show Hidden Files', checked: showHidden, onSelect: () => setShowHidden((h) => !h) },
+      { type: 'separator' },
+      { label: 'Go to Parent Folder', onSelect: () => void load(parentPath(path)) },
+      { label: 'Go to Home Folder', onSelect: () => void load(home || '~') },
+    ],
+  }));
+
   const sortBy = (key: SortKey) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
   const arrow = (key: SortKey) => (sort.key === key ? (sort.dir === 1 ? ' ▲' : ' ▼') : '');
@@ -270,13 +310,7 @@ export function FilesApp({ windowId }: { windowId: string }) {
           variant="outline"
           className={tb}
           disabled={!sel || sel.type === 'dir'}
-          onClick={() => {
-            if (!sel) return;
-            const a = document.createElement('a');
-            a.href = api.fsDownloadUrl(serverId, sel.path);
-            a.download = sel.name;
-            a.click();
-          }}
+          onClick={() => sel && download(sel)}
         >
           Download
         </Button>
@@ -298,7 +332,23 @@ export function FilesApp({ windowId }: { windowId: string }) {
         </label>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div
+        className="min-h-0 flex-1 overflow-auto"
+        onContextMenu={(ev) => {
+          // Right-click on a row = that file's menu; on empty space = the folder's menu.
+          ev.preventDefault();
+          const row = (ev.target as Element).closest<HTMLElement>('[data-path-entry]');
+          const entry = row ? entries.find((x) => x.path === row.dataset.pathEntry) : undefined;
+          if (entry) setSelected(entry.path);
+          setCtx({
+            x: ev.clientX,
+            y: ev.clientY,
+            items: entry
+              ? entryItems(entry)
+              : [...folderItems(), { type: 'separator' }, { label: 'Refresh', onSelect: refresh }],
+          });
+        }}
+      >
         {error ? (
           <div className="grid h-full place-items-center p-4 text-center">
             <div className="flex flex-col items-center gap-2">
@@ -334,6 +384,7 @@ export function FilesApp({ windowId }: { windowId: string }) {
                 <tr
                   key={e.path}
                   data-testid="file-row"
+                  data-path-entry={e.path}
                   className={cn(
                     'cursor-default select-none hover:bg-accent',
                     selected === e.path && 'bg-sky-500/25',
@@ -371,6 +422,16 @@ export function FilesApp({ windowId }: { windowId: string }) {
         </div>
       )}
       {prompt && <PromptDialog spec={prompt} onClose={() => setPrompt(null)} />}
+      {ctx && (
+        <Menu
+          label="File actions"
+          items={ctx.items}
+          x={ctx.x}
+          y={ctx.y}
+          minWidth={190}
+          onClose={() => setCtx(null)}
+        />
+      )}
     </div>
   );
 }

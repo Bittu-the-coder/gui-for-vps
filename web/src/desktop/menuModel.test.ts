@@ -21,6 +21,8 @@ const win = (over: Partial<WindowState>): WindowState => ({
 function ctx(over: Partial<MenuCtx> = {}) {
   const act = {
     openApp: vi.fn(),
+    copyText: vi.fn(),
+    missionControl: vi.fn(),
     closeWindow: vi.fn(),
     minimize: vi.fn(),
     zoom: vi.fn(),
@@ -36,6 +38,8 @@ function ctx(over: Partial<MenuCtx> = {}) {
   const launchable = APPS.filter((a) => !a.hidden);
   const c: MenuCtx = {
     windows: [],
+    app: {},
+    selectedText: '',
     theme: 'light',
     wallpaper: 'aurora',
     reduceTransparency: false,
@@ -106,5 +110,39 @@ describe('buildMenus', () => {
     const v = buildMenus(c).view;
     expect(find(v, 'Exit Zoom')).toBeDefined();
     expect(find(v, 'Learn Mode Panel').checked).toBe(false);
+  });
+
+  it("the focused app's items come first in File and View, followed by the shell's own", () => {
+    const save = vi.fn();
+    const { c } = ctx({
+      app: {
+        file: [{ label: 'Save', onSelect: save }],
+        view: [{ label: 'Show Hidden', checked: true, onSelect: vi.fn() }],
+      },
+    });
+    const m = buildMenus(c);
+    expect(labelled(m.file).map((i) => i.label)).toEqual([
+      'Save',
+      'New Terminal Window',
+      'Close Window',
+    ]);
+    expect(m.file[1]).toEqual({ type: 'separator' });
+    find(m.file, 'Save').onSelect();
+    expect(save).toHaveBeenCalled();
+    expect(labelled(m.view).map((i) => i.label)).toContain('Show Hidden');
+    expect(labelled(m.view).map((i) => i.label)).toContain('Mission Control');
+  });
+
+  it('Edit: the app replaces the generic Copy; otherwise Copy needs a selection', () => {
+    const undo = vi.fn();
+    const own = buildMenus(ctx({ app: { edit: [{ label: 'Undo', onSelect: undo }] } }).c).edit;
+    expect(labelled(own).map((i) => i.label)).toEqual(['Undo']);
+
+    expect(find(buildMenus(ctx().c).edit, 'Copy').disabled).toBe(true);
+    const { c, act } = ctx({ selectedText: 'hello' });
+    const copy = find(buildMenus(c).edit, 'Copy');
+    expect(copy.disabled).toBe(false);
+    copy.onSelect();
+    expect(act.copyText).toHaveBeenCalledWith('hello');
   });
 });

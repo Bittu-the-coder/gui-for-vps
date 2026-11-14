@@ -219,3 +219,62 @@
 .dock-bounce {
   animation: dock-bounce 1.2s var(--ease-out) 1;
 }
+
+/* Toasts slide in from the right. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toast-in {
+  animation: toast-in var(--dur-slow) var(--ease-out) 1;
+}
+
+/* Spotlight drops in from slightly above. */
+@keyframes spotlight-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+.spotlight-in {
+  animation: spotlight-in var(--dur) var(--ease-out) 1;
+}
+
+/* Control Center drops down from the menu bar. */
+@keyframes cc-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    transform-origin: top right;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.cc-in {
+  animation: cc-in var(--dur) var(--ease-out) 1;
+}
+
+/* Mission Control's backdrop fades in. */
+@keyframes overview-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.overview-in {
+  animation: overview-in var(--dur-slow) var(--ease-out) 1;
+}

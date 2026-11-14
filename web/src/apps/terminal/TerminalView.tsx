@@ -64,6 +64,10 @@ export function TerminalView({
         term.paste(text);
         term.focus();
       },
+      getSelection: () => term.getSelection(),
+      selectAll: () => term.selectAll(),
+      clear: () => term.clear(),
+      focus: () => term.focus(),
     };
     const unregister = registerTerminal(handle);
     const doFit = () => {

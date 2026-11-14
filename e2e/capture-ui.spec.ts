@@ -109,6 +109,36 @@ for (const theme of ['light', 'dark'] as const) {
       await page.waitForTimeout(500);
     }
     await shot('multi-window', 4000);
+    // M10b surfaces (these hooks exist only after the redesign, so a "before" run skips them).
+    if (LABEL !== 'before') {
+      await page.keyboard.press('Control+k');
+      await page.getByRole('combobox').fill('t');
+      await shot('spotlight', 500);
+      await page.keyboard.press('Escape');
+
+      await page.mouse.click(300, 760); // empty desktop
+      await page.keyboard.press('Control+ArrowUp');
+      await shot('mission-control', 900);
+      await page.keyboard.press('Escape');
+
+      await page.getByRole('button', { name: 'Control Center' }).click();
+      await shot('control-center', 500);
+      await page.keyboard.press('Escape');
+
+      await page.getByRole('button', { name: 'Start recording' }).click();
+      await shot('toast', 700);
+      await page.getByRole('button', { name: 'Stop recording' }).click();
+
+      await page.getByRole('button', { name: 'Edit menu' }).click();
+      await shot('menu-edit', 300);
+      await page.keyboard.press('Escape');
+
+      await openApp(page, 'files');
+      await page.waitForTimeout(800);
+      await page.getByTestId('file-row').first().click({ button: 'right' });
+      await shot('context-menu-files', 300);
+      await page.keyboard.press('Escape');
+    }
     await ctx.close();
   });
 }

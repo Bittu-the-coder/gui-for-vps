@@ -1,4 +1,6 @@
+import type { MenuItem } from '../../components/menu/menuItems';
 import { useDesktop } from '../../desktop/windowStore';
+import { toast } from '../../stores/toastStore';
 
 /**
  * Lets other parts of the UI (Learn panel, run preview) put a command into a terminal
@@ -14,6 +16,11 @@ export interface TerminalHandle {
   /** Shell connected and accepting input. */
   live: boolean;
   paste: (text: string) => void;
+  /** The text selected in the terminal ('' if none). */
+  getSelection: () => string;
+  selectAll: () => void;
+  clear: () => void;
+  focus: () => void;
 }
 
 const handles = new Set<TerminalHandle>();
@@ -50,4 +57,48 @@ export function typeIntoTerminal(serverId: string, command: string): void {
   if (target) return deliver(target, text);
   pending = { serverId, text };
   useDesktop.getState().open({ appId: 'terminal', title: 'Terminal', w: 760, h: 460, serverId });
+}
+
+/** The visible tab's terminal in a window (what menus act on). */
+export function terminalFor(windowId: string): TerminalHandle | undefined {
+  return [...handles].find((h) => h.windowId === windowId && h.isActive());
+}
+
+/**
+ * Copy / Paste / Select All / Clear for a terminal window: used by the Edit menu and the right-click menu,
+ * so both always agree. Built when a menu opens, so "Copy" is disabled exactly when nothing is selected.
+ */
+export function terminalEditItems(windowId: string): MenuItem[] {
+  const h = terminalFor(windowId);
+  const selected = h?.getSelection() ?? '';
+  return [
+    {
+      label: 'Copy',
+      shortcut: 'Ctrl+Shift+C',
+      disabled: !selected,
+      onSelect: () => {
+        void navigator.clipboard?.writeText(selected).catch(() => {});
+        h?.focus();
+      },
+    },
+    {
+      label: 'Paste',
+      disabled: !h?.live,
+      onSelect: () => {
+        navigator.clipboard
+          ?.readText()
+          .then((text) => text && h?.paste(text))
+          .catch(() =>
+            toast({
+              kind: 'error',
+              title: 'Could not read the clipboard',
+              body: 'Try Ctrl+Shift+V.',
+            }),
+          );
+      },
+    },
+    { label: 'Select All', disabled: !h, onSelect: () => (h?.selectAll(), h?.focus()) },
+    { type: 'separator' },
+    { label: 'Clear Terminal', disabled: !h, onSelect: () => (h?.clear(), h?.focus()) },
+  ];
 }

@@ -1,9 +1,12 @@
 import { detectDanger, isCriticalConfigPath } from '@gfv/shared';
+import type { editor } from 'monaco-editor';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button';
+import { useAppMenus } from '../../desktop/appMenus';
 import { registerCloseGuard, useDesktop } from '../../desktop/windowStore';
 import { api, ApiError } from '../../lib/api';
 import { requestRun } from '../../runner/runStore';
+import { toast } from '../../stores/toastStore';
 
 // Monaco is big: it only downloads when the first editor window opens.
 const MonacoEditor = lazy(() => import('./MonacoEditor'));
@@ -44,6 +47,8 @@ export function EditorApp({ windowId }: { windowId: string }) {
   const latest = useRef({ value: '', saved: '' });
   latest.current = { value, saved };
   const dirty = value !== saved;
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const provide = useAppMenus(windowId);
 
   useEffect(() => {
     if (!serverId || !path) return;
@@ -175,6 +180,80 @@ export function EditorApp({ windowId }: { windowId: string }) {
     });
   };
 
+  // Edit menu: Monaco's own commands. The menu click moves focus, so each item focuses the editor first.
+  const run = (id: string) => () => {
+    const ed = editorRef.current;
+    ed?.focus();
+    void ed?.getAction(id)?.run();
+  };
+  provide(() => {
+    const ed = editorRef.current;
+    const hasSelection = !!ed && !ed.getSelection()?.isEmpty();
+    return {
+      file: [
+        {
+          label: 'Save',
+          shortcut: 'Ctrl+S',
+          disabled: !dirty || saving,
+          onSelect: () => void save(),
+        },
+        ...(sudoOffer ? [{ label: 'Save with sudo…', onSelect: () => void saveWithSudo() }] : []),
+      ],
+      edit: [
+        {
+          label: 'Undo',
+          shortcut: 'Ctrl+Z',
+          onSelect: () => (ed?.focus(), ed?.trigger('menu', 'undo', null)),
+        },
+        {
+          label: 'Redo',
+          shortcut: 'Ctrl+Y',
+          onSelect: () => (ed?.focus(), ed?.trigger('menu', 'redo', null)),
+        },
+        { type: 'separator' },
+        {
+          label: 'Cut',
+          disabled: !hasSelection,
+          onSelect: run('editor.action.clipboardCutAction'),
+        },
+        {
+          label: 'Copy',
+          disabled: !hasSelection,
+          onSelect: run('editor.action.clipboardCopyAction'),
+        },
+        {
+          label: 'Paste',
+          onSelect: () => {
+            ed?.focus();
+            navigator.clipboard
+              ?.readText()
+              .then((text) => {
+                const range = ed?.getSelection();
+                if (text && range)
+                  ed?.executeEdits('menu', [{ range, text, forceMoveMarkers: true }]);
+              })
+              .catch(() =>
+                toast({
+                  kind: 'error',
+                  title: 'Could not read the clipboard',
+                  body: 'Try Ctrl+V.',
+                }),
+              );
+          },
+        },
+        {
+          label: 'Select All',
+          shortcut: 'Ctrl+A',
+          onSelect: () => (ed?.focus(), ed?.trigger('menu', 'selectAll', null)),
+        },
+        { type: 'separator' },
+        { label: 'Find…', shortcut: 'Ctrl+F', onSelect: run('actions.find') },
+        { label: 'Replace…', shortcut: 'Ctrl+H', onSelect: run('editor.action.startFindReplace') },
+        { label: 'Go to Line…', shortcut: 'Ctrl+G', onSelect: run('editor.action.gotoLine') },
+      ],
+    };
+  });
+
   if (!serverId || !path) {
     return (
       <div className="grid h-full place-items-center p-4 text-center text-sm text-muted-foreground">
@@ -234,6 +313,9 @@ export function EditorApp({ windowId }: { windowId: string }) {
               setStatus(null);
             }}
             onSave={() => void save()}
+            onReady={(e) => {
+              editorRef.current = e;
+            }}
           />
         </Suspense>
       </div>

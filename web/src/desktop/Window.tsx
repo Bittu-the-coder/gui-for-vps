@@ -14,6 +14,8 @@ import {
   minimizeTarget,
 } from './windowAnim';
 import { DOCK_SAFE } from './layout';
+import { useOverlays } from './overlayStore';
+import type { Slot } from './overviewLayout';
 import { consumeFresh, tryClose, useDesktop, type WindowState } from './windowStore';
 
 // Tailwind only generates classes it can read literally, so every variant is spelled out in full.
@@ -71,9 +73,12 @@ function TrafficLights({ win, active }: { win: WindowState; active: boolean }) {
   );
 }
 
-export function Window({ win }: { win: WindowState }) {
+/** `slot` is where Mission Control wants this window (set only while the overview is open). */
+export function Window({ win, slot }: { win: WindowState; slot?: Slot }) {
   const { focus, toggleMaximize, move, resize, focusedId } = useDesktop();
   const closing = useDesktop((s) => !!s.closing[win.id]);
+  const setOverview = useOverlays((s) => s.setOverview);
+  const overview = !!slot;
   const server = useServers((s) => s.servers.find((x) => x.id === win.serverId));
   const app = appById(win.appId);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -165,8 +170,8 @@ export function Window({ win }: { win: WindowState }) {
       minHeight={120}
       bounds="parent"
       dragHandleClassName="win-titlebar"
-      disableDragging={win.maximized}
-      enableResizing={!win.maximized}
+      disableDragging={win.maximized || overview}
+      enableResizing={!win.maximized && !overview}
       onMouseDown={() => focus(win.id)}
       onDragStop={(_e, d) => move(win.id, d.x, d.y)}
       onResizeStop={(_e, _dir, ref, _delta, pos) =>
@@ -175,7 +180,9 @@ export function Window({ win }: { win: WindowState }) {
       style={{
         zIndex: win.z,
         display: hidden ? 'none' : undefined,
-        pointerEvents: closing ? 'none' : undefined,
+        // In Mission Control the wrapper still covers the window's original (unscaled) area: let pointer events
+        // fall through it, so only the shrunken card's own button receives clicks.
+        pointerEvents: closing || overview ? 'none' : undefined,
       }}
     >
       <div
@@ -186,8 +193,29 @@ export function Window({ win }: { win: WindowState }) {
         className={`flex h-full flex-col overflow-hidden text-foreground ${
           win.maximized ? '' : 'rounded-window'
         }`}
-        style={{ boxShadow: elevation + ring }}
+        data-overview={overview || undefined}
+        style={{
+          boxShadow: elevation + ring,
+          ...(slot
+            ? {
+                transform: `translate(${slot.dx}px, ${slot.dy}px) scale(${slot.scale})`,
+                transformOrigin: 'center',
+                transition: 'transform var(--dur-slow) var(--ease-out)',
+              }
+            : { transition: 'transform var(--dur-slow) var(--ease-out)' }),
+        }}
       >
+        {overview && (
+          <button
+            data-overview-item
+            aria-label={`Show ${win.title}`}
+            className="pointer-events-auto absolute inset-0 z-20 cursor-pointer rounded-window outline-offset-8"
+            onClick={() => {
+              focus(win.id);
+              setOverview(false);
+            }}
+          />
+        )}
         <div
           className="win-titlebar glass-chrome relative grid h-9 shrink-0 select-none grid-cols-[1fr_auto_1fr] items-center border-b border-separator px-3"
           onDoubleClick={() => toggleMaximize(win.id)}
@@ -218,6 +246,18 @@ export function Window({ win }: { win: WindowState }) {
           </ErrorBoundary>
         </div>
       </div>
+      {slot && (
+        <span
+          className="pointer-events-none absolute z-10 flex max-w-[260px] -translate-x-1/2 items-center gap-1.5 truncate text-body font-medium text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.6)]"
+          style={{
+            left: slot.target.x + slot.target.w / 2 - rect.x,
+            top: slot.target.y + slot.target.h + 8 - rect.y,
+          }}
+        >
+          <AppIcon app={app} size={16} />
+          <span className="truncate">{win.title}</span>
+        </span>
+      )}
     </Rnd>
   );
 }

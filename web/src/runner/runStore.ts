@@ -2,6 +2,7 @@ import { RunMsgSchema } from '@gfv/shared';
 import { create } from 'zustand';
 import { useLearn } from '../stores/learnStore';
 import { useRecording } from '../stores/recordingStore';
+import { toast } from '../stores/toastStore';
 
 export interface RunRequest {
   serverId: string;
@@ -65,6 +66,11 @@ export function watchRun(run: ActiveRun): void {
     finished = true;
     untrackRun(run.serverId, run.actionId);
     run.onDone?.(exitCode);
+    toast({
+      kind: exitCode === 0 ? 'success' : 'error',
+      title: exitCode === 0 ? 'A background task finished' : 'A background task failed',
+      body: run.actionId + (exitCode === null || exitCode === 0 ? '' : ` (exit code ${exitCode})`),
+    });
     void useLearn.getState().refresh();
     void useRecording.getState().refresh();
   };
