@@ -1,0 +1,130 @@
+/*
+ * GFV design tokens: the ONLY place colours, shadows and motion curves are defined.
+ * Light = :root, dark = .dark (the class on <html>, set in App.tsx).
+ *
+ * Rules of this file (a unit test, tokens.test.ts, relies on them):
+ *   - colours that carry text are opaque hex values, so their contrast can be checked;
+ *   - translucent "glass" colours are rgb(r g b / a) and are only ever used as BACKGROUNDS
+ *     behind opaque text that was checked against the -solid fallback;
+ *   - nothing but :root and .dark blocks lives here (layout and utilities are in index.css).
+ */
+
+:root {
+  color-scheme: light;
+
+  /* --- Surfaces ------------------------------------------------------- */
+  --background: #ffffff; /* window content */
+  --surface-sunken: #f5f5f7; /* sidebars, table heads, wells */
+  --surface-chrome: rgb(246 246 248 / 0.72); /* menu bar, dock, title bars (glass) */
+  --surface-chrome-solid: #f2f2f4; /* same, when transparency is reduced */
+  --surface-glass: rgb(255 255 255 / 0.8); /* menus, popovers, palette (glass) */
+  --surface-glass-solid: #ffffff;
+  --scrim: rgb(0 0 0 / 0.25);
+  --separator: rgb(60 60 67 / 0.18);
+
+  /* --- Text ----------------------------------------------------------- */
+  --foreground: #1d1d1f;
+  --muted-foreground: #515154; /* secondary text */
+  --faint-foreground: #6e6e73; /* tertiary text: hints, timestamps */
+
+  /* --- Accent and status ---------------------------------------------- */
+  --primary: #0066d6; /* buttons, selection */
+  --primary-foreground: #ffffff;
+  --link: #0066d6;
+  --ring: #0a84ff; /* focus ring */
+  --destructive: #d70015;
+  --destructive-foreground: #ffffff;
+  --danger: #d70015; /* red TEXT on a window */
+  --success: #1e7d34;
+  --warning: #a15c00;
+
+  /* --- shadcn names kept so existing components keep working ---------- */
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
+  --secondary: #f5f5f7;
+  --secondary-foreground: #1d1d1f;
+  --muted: #f5f5f7;
+  --accent: #ebebf0; /* hover background */
+  --accent-foreground: #1d1d1f;
+  --border: #d8d8dc;
+  --input: #c7c7cc;
+
+  /* --- Window controls ------------------------------------------------ */
+  --tl-close: #ff5f57;
+  --tl-minimize: #febc2e;
+  --tl-zoom: #28c840;
+  --tl-inactive: #d1d1d6;
+
+  /* --- Elevation (layered shadows: contact + ambient) ----------------- */
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.06), 0 0 0 0.5px rgb(0 0 0 / 0.08);
+  --elev-2: 0 3px 8px rgb(0 0 0 / 0.1), 0 1px 2px rgb(0 0 0 / 0.06), 0 0 0 0.5px rgb(0 0 0 / 0.1);
+  --elev-3:
+    0 12px 32px rgb(0 0 0 / 0.16), 0 3px 8px rgb(0 0 0 / 0.08), 0 0 0 0.5px rgb(0 0 0 / 0.14);
+  --elev-window:
+    0 28px 70px rgb(0 0 0 / 0.3), 0 10px 24px rgb(0 0 0 / 0.16), 0 2px 6px rgb(0 0 0 / 0.1),
+    0 0 0 0.5px rgb(0 0 0 / 0.22);
+  --elev-window-inactive:
+    0 12px 32px rgb(0 0 0 / 0.14), 0 3px 8px rgb(0 0 0 / 0.08), 0 0 0 0.5px rgb(0 0 0 / 0.14);
+
+  /* --- Glass ----------------------------------------------------------- */
+  --glass-blur: blur(24px) saturate(180%);
+
+  /* --- Motion ----------------------------------------------------------- */
+  --dur-fast: 120ms;
+  --dur: 220ms;
+  --dur-slow: 420ms;
+
+  /* --- Layout (radii and easings live in index.css @theme) ------------- */
+  --menubar-h: 28px;
+  --dock-safe: 88px; /* room kept below maximized windows for the Dock */
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #1e1e1e;
+  --surface-sunken: #252527;
+  --surface-chrome: rgb(44 44 46 / 0.72);
+  --surface-chrome-solid: #2a2a2c;
+  --surface-glass: rgb(50 50 52 / 0.8);
+  --surface-glass-solid: #2c2c2e;
+  --scrim: rgb(0 0 0 / 0.45);
+  --separator: rgb(255 255 255 / 0.12);
+
+  --foreground: #f5f5f7;
+  --muted-foreground: #a1a1a6;
+  --faint-foreground: #98989d;
+
+  --primary: #0a6ad6;
+  --primary-foreground: #ffffff;
+  --link: #4da3ff;
+  --ring: #409cff;
+  --destructive: #c4162a;
+  --destructive-foreground: #ffffff;
+  --danger: #ff6961;
+  --success: #32d74b;
+  --warning: #ffb340;
+
+  --popover: #2c2c2e;
+  --popover-foreground: #f5f5f7;
+  --secondary: #2c2c2e;
+  --secondary-foreground: #f5f5f7;
+  --muted: #2c2c2e;
+  --accent: #3a3a3c;
+  --accent-foreground: #f5f5f7;
+  --border: #3a3a3c;
+  --input: #48484a;
+
+  --tl-inactive: #48484a;
+
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 0 0 0.5px rgb(255 255 255 / 0.08);
+  --elev-2:
+    0 3px 8px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.3), 0 0 0 0.5px rgb(255 255 255 / 0.1);
+  --elev-3:
+    0 12px 32px rgb(0 0 0 / 0.55), 0 3px 8px rgb(0 0 0 / 0.35), 0 0 0 0.5px rgb(255 255 255 / 0.12);
+  --elev-window:
+    0 28px 70px rgb(0 0 0 / 0.65), 0 10px 24px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3),
+    0 0 0 0.5px rgb(255 255 255 / 0.16);
+  --elev-window-inactive:
+    0 12px 32px rgb(0 0 0 / 0.45), 0 3px 8px rgb(0 0 0 / 0.3), 0 0 0 0.5px rgb(255 255 255 / 0.1);
+}

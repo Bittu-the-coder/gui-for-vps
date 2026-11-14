@@ -1,3 +1,4 @@
+import { AppIcon } from '../components/icons/AppIcon';
 import { LAUNCHABLE } from '../apps/registry';
 import { useTour } from '../tour/tourStore';
 import { openApp } from './openApp';
@@ -23,7 +24,7 @@ export function StartMenu({
             onClose();
           }}
         >
-          <span>{a.icon}</span>
+          <AppIcon app={a} size={20} />
           {a.title}
         </button>
       ))}

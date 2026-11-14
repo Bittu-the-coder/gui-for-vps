@@ -1,5 +1,6 @@
 import { Rnd } from 'react-rnd';
 import { appById } from '../apps/registry';
+import { AppIcon } from '../components/icons/AppIcon';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useServers } from '../stores/serverStore';
 import { tryClose, useDesktop, type WindowState } from './windowStore';
@@ -52,9 +53,8 @@ export function Window({ win }: { win: WindowState }) {
           onDoubleClick={() => toggleMaximize(win.id)}
         >
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate">
-              {app.icon} {win.title}
-            </span>
+            <AppIcon app={app} size={16} />
+            <span className="truncate">{win.title}</span>
             {server && (
               <span
                 className="truncate rounded px-1.5 py-px text-[10px] font-medium text-white"

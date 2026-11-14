@@ -3,6 +3,7 @@ import { Button } from './components/ui/button';
 import { UnlockScreen } from './components/UnlockScreen';
 import { Desktop } from './desktop/Desktop';
 import { useDesktop } from './desktop/windowStore';
+import { useAppearance } from './stores/appearanceStore';
 import { useServers } from './stores/serverStore';
 
 export function App() {
@@ -14,6 +15,11 @@ export function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
+
+  const reduceTransparency = useAppearance((s) => s.reduceTransparency);
+  useEffect(() => {
+    document.documentElement.classList.toggle('reduce-transparency', reduceTransparency);
+  }, [reduceTransparency]);
 
   const [unreachable, setUnreachable] = useState(false);
   const load = useCallback(() => {

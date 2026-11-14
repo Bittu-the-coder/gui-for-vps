@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "e2e": "pnpm --filter @gfv/web build && playwright test --config e2e/playwright.config.ts",
-    "build:package": "node scripts/build-package.mjs"
+    "build:package": "node scripts/build-package.mjs",
+    "start": "pnpm --filter @gfv/web build && node --import tsx server/src/cli.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

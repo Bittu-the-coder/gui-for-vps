@@ -6,7 +6,9 @@ import { useServers } from '../stores/serverStore';
 import { LearnPanel } from '../learn/LearnPanel';
 import { RunDialogHost } from '../runner/RunDialog';
 import { useLearn } from '../stores/learnStore';
+import { AppIcon } from '../components/icons/AppIcon';
 import { openApp } from './openApp';
+import { Wallpaper } from './Wallpaper';
 import { Taskbar } from './Taskbar';
 import { Window } from './Window';
 import { useDesktop } from './windowStore';
@@ -34,13 +36,14 @@ export function Desktop() {
 
   return (
     <div
-      className="relative h-screen w-screen overflow-hidden bg-gradient-to-br from-sky-200 to-indigo-300 text-slate-900 dark:from-slate-900 dark:to-indigo-950 dark:text-slate-100"
+      className="relative h-screen w-screen overflow-hidden text-foreground"
       onContextMenu={(e) => {
         e.preventDefault();
         setCtx({ x: e.clientX, y: e.clientY });
       }}
       onMouseDown={() => setCtx(null)}
     >
+      <Wallpaper />
       {/* The workspace shrinks when the Learn panel is docked, so windows never hide under it. */}
       <div className="absolute bottom-0 left-0 top-0" style={{ right: learnOpen ? '20rem' : 0 }}>
         <div className="absolute left-3 top-3 flex flex-col gap-3">
@@ -51,7 +54,7 @@ export function Desktop() {
               className="flex w-20 flex-col items-center gap-1 rounded p-2 text-xs hover:bg-white/30"
               onDoubleClick={() => openApp(a)}
             >
-              <span className="text-3xl">{a.icon}</span>
+              <AppIcon app={a} size={44} />
               {a.title}
             </button>
           ))}

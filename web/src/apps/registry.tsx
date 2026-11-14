@@ -1,4 +1,18 @@
+import {
+  Activity,
+  Container,
+  FileCode2,
+  FolderOpen,
+  Hammer,
+  History,
+  ScrollText,
+  Server,
+  Settings2,
+  SquareTerminal,
+  Zap,
+} from 'lucide-react';
 import type { ComponentType } from 'react';
+import type { AppIconSpec } from '../components/icons/AppIcon';
 import { ServersApp } from './servers/ServersApp';
 import { TerminalApp } from './terminal/TerminalApp';
 import { RecipesApp } from './recipes/RecipesApp';
@@ -11,10 +25,9 @@ import { EditorApp } from './editor/EditorApp';
 import { FilesApp } from './files/FilesApp';
 import { ActionsApp } from './actions/ActionsApp';
 
-export interface AppDef {
+export interface AppDef extends AppIconSpec {
   id: string;
   title: string;
-  icon: string; // emoji for now; real icons come with the real apps
   component: ComponentType<{ windowId: string }>;
   defaultSize: { w: number; h: number };
   /** New windows get tied to the active server (coloured border + badge). */
@@ -30,7 +43,8 @@ export const APPS: AppDef[] = [
   {
     id: 'servers',
     title: 'Servers',
-    icon: '🖥️',
+    icon: Server,
+    tint: ['#7d8bff', '#3b46d6'],
     component: ServersApp,
     defaultSize: { w: 600, h: 440 },
     singleton: true,
@@ -38,7 +52,8 @@ export const APPS: AppDef[] = [
   {
     id: 'terminal',
     title: 'Terminal',
-    icon: '⌨️',
+    icon: SquareTerminal,
+    tint: ['#4a4a4f', '#141416'],
     component: TerminalApp,
     defaultSize: { w: 760, h: 460 },
     serverBound: true,
@@ -46,7 +61,8 @@ export const APPS: AppDef[] = [
   {
     id: 'files',
     title: 'Files',
-    icon: '📁',
+    icon: FolderOpen,
+    tint: ['#5ac8fa', '#0a6fe0'],
     component: FilesApp,
     defaultSize: { w: 760, h: 500 },
     serverBound: true,
@@ -54,7 +70,8 @@ export const APPS: AppDef[] = [
   {
     id: 'devhub',
     title: 'Dev Hub',
-    icon: '🧰',
+    icon: Hammer,
+    tint: ['#ffb340', '#f26a00'],
     component: DevHubApp,
     defaultSize: { w: 720, h: 560 },
     serverBound: true,
@@ -62,7 +79,8 @@ export const APPS: AppDef[] = [
   {
     id: 'monitor',
     title: 'Monitor',
-    icon: '📊',
+    icon: Activity,
+    tint: ['#4cd97b', '#12994a'],
     component: MonitorApp,
     defaultSize: { w: 820, h: 600 },
     serverBound: true,
@@ -70,7 +88,8 @@ export const APPS: AppDef[] = [
   {
     id: 'services',
     title: 'Services',
-    icon: '⚙️',
+    icon: Settings2,
+    tint: ['#a1a1a8', '#5a5a60'],
     component: ServicesApp,
     defaultSize: { w: 760, h: 520 },
     serverBound: true,
@@ -78,7 +97,8 @@ export const APPS: AppDef[] = [
   {
     id: 'docker',
     title: 'Docker',
-    icon: '🐳',
+    icon: Container,
+    tint: ['#3ec6e8', '#0b7fc4'],
     component: DockerApp,
     defaultSize: { w: 760, h: 520 },
     serverBound: true,
@@ -86,7 +106,8 @@ export const APPS: AppDef[] = [
   {
     id: 'snapshots',
     title: 'Snapshots',
-    icon: '🕰️',
+    icon: History,
+    tint: ['#c77dff', '#7d3fb0'],
     component: SnapshotsApp,
     defaultSize: { w: 900, h: 560 },
     serverBound: true,
@@ -94,7 +115,8 @@ export const APPS: AppDef[] = [
   {
     id: 'recipes',
     title: 'Recipes',
-    icon: '📜',
+    icon: ScrollText,
+    tint: ['#ff7a98', '#d02f63'],
     component: RecipesApp,
     defaultSize: { w: 820, h: 540 },
     singleton: true,
@@ -102,7 +124,8 @@ export const APPS: AppDef[] = [
   {
     id: 'editor',
     title: 'Editor',
-    icon: '📝',
+    icon: FileCode2,
+    tint: ['#ffd60a', '#f59e0b'],
     component: EditorApp,
     defaultSize: { w: 820, h: 560 },
     serverBound: true,
@@ -111,7 +134,8 @@ export const APPS: AppDef[] = [
   {
     id: 'actions',
     title: 'Actions',
-    icon: '⚡',
+    icon: Zap,
+    tint: ['#8b8bff', '#4b3fd1'],
     component: ActionsApp,
     defaultSize: { w: 560, h: 480 },
     serverBound: true,

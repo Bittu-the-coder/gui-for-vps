@@ -23,8 +23,11 @@ GFV only listens on 127.0.0.1 (this computer). Your data (servers, encrypted
 credentials, history) lives in ~/.gfv, or in $GFV_HOME if set.`;
 
 function version(): string {
+  // dist-pkg/package.json when published, the repo's root package.json when run from source.
   for (const p of [resolve(HERE, '../package.json'), resolve(HERE, '../../package.json')]) {
-    if (existsSync(p)) return (JSON.parse(readFileSync(p, 'utf8')) as { version: string }).version;
+    if (!existsSync(p)) continue;
+    const pkg = JSON.parse(readFileSync(p, 'utf8')) as { name?: string; version: string };
+    if (pkg.name === 'gfv') return pkg.version;
   }
   return '0.0.0';
 }
@@ -67,7 +70,7 @@ function openBrowser(url: string): void {
 
 async function main() {
   process.env.GFV_LOG_LEVEL ??= 'warn'; // quiet terminal: just the address and real problems
-  const args = process.argv.slice(2);
+  const args = process.argv.slice(2).filter((a) => a !== '--'); // `pnpm start -- --port 5000` passes a bare --
   if (args.includes('--help') || args.includes('-h')) return console.log(HELP);
   if (args.includes('--version') || args.includes('-v')) return console.log(version());
 

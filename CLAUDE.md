@@ -2,7 +2,7 @@
 
 A browser-based desktop (Puter-style) for managing real VPS servers over SSH. It **teaches** (Learn Mode), **protects** (Safety Net), and **clones setups** (Recipes).
 
-**Read `PLAN.md` first.** It is the source of truth for features, architecture, milestones, and v2 scope. If a decision changes, update `PLAN.md` in the same change.
+**Read `PLAN.md` first.** It is the source of truth for features, architecture, milestones, and v2 scope. If a decision changes, update `PLAN.md` in the same change. `docs/HOW_IT_WORKS.md` explains how everything is wired and how the code is written: update it when you change architecture (new route, table, service, protocol, convention).
 
 ## Status
 
