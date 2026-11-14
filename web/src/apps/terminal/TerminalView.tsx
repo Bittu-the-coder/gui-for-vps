@@ -1,3 +1,4 @@
+import { AlertTriangle, ShieldAlert } from 'lucide-react';
 import { TermServerMsgSchema, type DangerMatch } from '@gfv/shared';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
@@ -48,7 +49,12 @@ export function TerminalView({
       fontSize: 13,
       cursorBlink: true,
       scrollback: 5000,
-      theme: { background: '#0b1020', foreground: '#e2e8f0' },
+      theme: {
+        background: getComputedStyle(document.documentElement).getPropertyValue('--code-bg').trim(),
+        foreground: getComputedStyle(document.documentElement)
+          .getPropertyValue('--code-foreground')
+          .trim(),
+      },
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
@@ -202,24 +208,27 @@ export function TerminalView({
         : null;
 
   return (
-    <div className="relative h-full w-full bg-[#0b1020] p-2">
+    <div className="relative h-full w-full bg-code p-2">
       <div ref={host} className="h-full w-full" />
 
       {danger && (
         <div
           role="alertdialog"
           aria-label="Dangerous command"
-          className={`absolute inset-x-2 top-2 z-10 rounded-md border p-3 text-sm shadow-lg ${
-            level === 'danger'
-              ? 'border-red-500 bg-red-950/95 text-red-50'
-              : 'border-amber-500 bg-amber-950/95 text-amber-50'
+          className={`absolute inset-x-2 top-2 z-10 rounded-xl border-2 bg-code/95 p-3 text-body text-code-foreground shadow-elev-3 ${
+            level === 'danger' ? 'border-danger' : 'border-warning'
           }`}
           onKeyDown={(e) => e.key === 'Escape' && decide('cancel')}
         >
-          <p className="font-semibold">
+          <p className="flex items-center gap-1.5 font-semibold">
+            {level === 'danger' ? (
+              <ShieldAlert size={16} className="text-code-danger" />
+            ) : (
+              <AlertTriangle size={16} className="text-warning" />
+            )}
             {level === 'danger'
-              ? '⛔ This command can seriously damage the server'
-              : '⚠️ Double-check this command'}
+              ? 'This command can seriously damage the server'
+              : 'Double-check this command'}
           </p>
           <code className="my-2 block max-h-16 overflow-auto whitespace-pre-wrap break-all rounded bg-black/40 p-2 text-xs">
             {danger.command}
@@ -245,13 +254,13 @@ export function TerminalView({
       )}
 
       {overlay && (
-        <div className="absolute inset-0 z-20 grid place-items-center bg-black/70 text-slate-100">
+        <div className="absolute inset-0 z-20 grid place-items-center bg-black/70 text-code-foreground">
           <div className="flex max-w-xs flex-col items-center gap-3 text-center text-sm">
             <p>{overlay.text}</p>
             <Button size="sm" onClick={overlay.run}>
               {overlay.action}
             </Button>
-            {reconnectNote && <p className="text-xs text-slate-300">{reconnectNote}</p>}
+            {reconnectNote && <p className="text-xs text-code-muted">{reconnectNote}</p>}
           </div>
         </div>
       )}

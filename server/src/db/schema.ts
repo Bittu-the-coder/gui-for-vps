@@ -77,6 +77,8 @@ export const recipes = sqliteTable('recipes', {
   serverId: text('server_id').references(() => servers.id, { onDelete: 'set null' }),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
+  /** Parameters ({{name}} placeholders in steps) the recipe asks for when replayed. */
+  params: text('params', { mode: 'json' }).$type<unknown[]>().notNull().default([]),
 });
 
 export const recipeSteps = sqliteTable('recipe_steps', {
@@ -100,4 +102,19 @@ export const recording = sqliteTable('recording', {
   serverId: text('server_id')
     .notNull()
     .references(() => servers.id, { onDelete: 'cascade' }),
+});
+
+/**
+ * Finished jobs (replays and broadcasts), for the Jobs app. Holds no parameter VALUES (they can be secrets):
+ * only what ran where and how it went.
+ */
+export const jobs = sqliteTable('jobs', {
+  id: text('id').primaryKey(),
+  kind: text('kind', { enum: ['replay', 'broadcast'] }).notNull(),
+  name: text('name').notNull(),
+  status: text('status', { enum: ['running', 'done', 'failed', 'cancelled'] }).notNull(),
+  /** The JobSnapshot at the end (targets, step results). */
+  snapshot: text('snapshot', { mode: 'json' }).$type<unknown>().notNull(),
+  startedAt: integer('started_at').notNull(),
+  finishedAt: integer('finished_at'),
 });

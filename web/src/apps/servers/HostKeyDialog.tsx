@@ -35,7 +35,7 @@ export function HostKeyDialog({
           <>
             <DialogHeader>
               <DialogTitle className={changed ? 'text-destructive' : undefined}>
-                {changed ? '⚠️ Host key has CHANGED' : 'New server — verify its identity'}
+                {changed ? 'Host key has CHANGED' : 'New server — verify its identity'}
               </DialogTitle>
               <DialogDescription>
                 {changed ? (

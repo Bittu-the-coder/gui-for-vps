@@ -12,7 +12,11 @@ import { requestRun } from '../../runner/runStore';
 
 type Filter = 'all' | 'running' | 'failed' | 'inactive';
 const dot = (s: ServiceInfo) =>
-  s.active === 'failed' ? 'bg-red-500' : s.active === 'active' ? 'bg-emerald-500' : 'bg-slate-400';
+  s.active === 'failed'
+    ? 'bg-danger'
+    : s.active === 'active'
+      ? 'bg-success'
+      : 'bg-faint-foreground';
 
 export function ServicesApp({ windowId }: { windowId: string }) {
   const win = useDesktop((s) => s.windows[windowId]);
@@ -82,7 +86,7 @@ export function ServicesApp({ windowId }: { windowId: string }) {
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
         {error && (
-          <p role="alert" className="p-3 text-red-600 dark:text-red-400">
+          <p role="alert" className="p-3 text-danger">
             {error}
           </p>
         )}

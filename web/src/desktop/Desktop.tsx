@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { appById } from '../apps/registry';
 import { ChangePasswordDialog } from '../components/ChangePasswordDialog';
+import { ConfirmHost } from '../components/ConfirmHost';
 import { Menu, type MenuItem } from '../components/menu/Menu';
 import { ToastHost } from '../components/toast/ToastHost';
 import { LearnPanel } from '../learn/LearnPanel';
@@ -205,6 +206,7 @@ export function Desktop() {
       <Spotlight />
       <ControlCenter />
       <ToastHost />
+      <ConfirmHost />
       {passwordDialog && (
         <ChangePasswordDialog onClose={() => useOverlays.getState().setPasswordDialog(false)} />
       )}
@@ -213,7 +215,7 @@ export function Desktop() {
       {!live && (
         <div
           role="alert"
-          className="absolute inset-x-0 z-[250000] bg-red-600 px-3 py-1.5 text-center text-sm text-white"
+          className="absolute inset-x-0 z-[250000] bg-destructive px-3 py-1.5 text-center text-body text-destructive-foreground"
           style={{ top: 'var(--menubar-h)' }}
         >
           Lost the connection to GFV. Trying to reconnect… (is it still running?)

@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { api, ApiError } from '../lib/api';
 import { Button } from './ui/button';
@@ -53,8 +54,9 @@ export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
         </DialogHeader>
         {done ? (
           <>
-            <p role="status" className="text-sm text-emerald-600 dark:text-emerald-400">
-              ✓ Master password changed.
+            <p role="status" className="text-sm text-success">
+              <Check size={14} className="mr-1 inline -mt-0.5" />
+              Master password changed.
             </p>
             <DialogFooter>
               <Button onClick={onClose}>Close</Button>

@@ -190,7 +190,7 @@ export class Runner {
     serverId: string,
     actionId: string,
     params: unknown,
-    opts: { confirmed?: boolean; record?: boolean } = {},
+    opts: { confirmed?: boolean; record?: boolean; recordStep?: boolean } = {},
   ): Promise<StartResult> {
     const runId = randomUUID();
     const ctx = await this.ctxFor(serverId);
@@ -207,7 +207,9 @@ export class Runner {
 
     const run = new Run(runId);
     this.runs.set(run.id, run);
-    void this.execute(run, client, serverId, preview, p.params, ctx, opts.record ?? true).finally(
+    const record = opts.record ?? true;
+    const recordStep = record && (opts.recordStep ?? true);
+    void this.execute(run, client, serverId, preview, p.params, ctx, record, recordStep).finally(
       () => {
         setTimeout(() => this.runs.delete(run.id), KEEP_FINISHED_MS).unref();
       },
@@ -223,6 +225,7 @@ export class Runner {
     params: unknown,
     ctx: ActionCtx,
     record: boolean,
+    recordStep: boolean,
   ): Promise<void> {
     const startedAt = Date.now();
     const action = actionById(preview.actionId)!;
@@ -272,7 +275,7 @@ export class Runner {
       clearTimeout(timer);
     }
 
-    if (exitCode === 0 && !run.cancelReason && record) {
+    if (exitCode === 0 && !run.cancelReason && recordStep) {
       for (const fn of this.successListeners) fn({ serverId, actionId: preview.actionId, params });
     }
 

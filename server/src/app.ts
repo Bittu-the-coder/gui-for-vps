@@ -5,6 +5,7 @@ import { registerAuth } from './auth.js';
 import type { AppContext } from './context.js';
 import { connectionRoutes } from './routes/connections.js';
 import { fileRoutes } from './routes/files.js';
+import { jobRoutes } from './routes/jobs.js';
 import { recipeRoutes } from './routes/recipes.js';
 import { runRoutes } from './routes/runs.js';
 import { serverRoutes } from './routes/servers.js';
@@ -51,6 +52,7 @@ export async function buildApp(token: string, ctx: AppContext) {
   runRoutes(app, ctx);
   fileRoutes(app, ctx);
   recipeRoutes(app, ctx);
+  jobRoutes(app, ctx);
 
   return app;
 }

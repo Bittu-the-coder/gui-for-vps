@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { Button } from './components/ui/button';
 import { UnlockScreen } from './components/UnlockScreen';
 import { Desktop } from './desktop/Desktop';
@@ -12,7 +12,9 @@ export function App() {
 
   // Tailwind's `dark:` variant keys off this class on <html>. Lives here (not in Desktop)
   // so the unlock screen is themed too.
-  useEffect(() => {
+  // A LAYOUT effect: it must run before children's effects, which read the theme's CSS variables
+  // (the charts draw on a canvas and pick their colours from the tokens when the theme changes).
+  useLayoutEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
 
@@ -33,7 +35,7 @@ export function App() {
       <main className="grid h-screen place-items-center p-4 text-center">
         <div className="flex max-w-sm flex-col items-center gap-3">
           <p className="text-lg font-semibold">Can’t reach the GFV server</p>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-sm text-muted-foreground">
             GFV may have stopped, or this page is from an old session. Start it again with{' '}
             <code>npx gfv</code> and open the address it prints.
           </p>
@@ -41,7 +43,9 @@ export function App() {
         </div>
       </main>
     ) : (
-      <main className="grid h-screen place-items-center text-sm text-slate-500">Loading…</main>
+      <main className="grid h-screen place-items-center text-sm text-muted-foreground">
+        Loading…
+      </main>
     );
   if (!vault.unlocked) return <UnlockScreen initialized={vault.initialized} />;
   return <Desktop />;

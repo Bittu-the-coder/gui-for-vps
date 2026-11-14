@@ -32,6 +32,12 @@
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-code: var(--code-bg);
+  --color-code-foreground: var(--code-foreground);
+  --color-code-muted: var(--code-muted);
+  --color-code-accent: var(--code-accent);
+  --color-code-danger: var(--code-danger);
+  --color-code-border: var(--code-border);
   --color-tl-close: var(--tl-close);
   --color-tl-minimize: var(--tl-minimize);
   --color-tl-zoom: var(--tl-zoom);
@@ -114,6 +120,21 @@
   }
   ::selection {
     background: color-mix(in srgb, var(--ring) 35%, transparent);
+  }
+
+  /* Native controls follow the design tokens (checkboxes, radio buttons, <select>). */
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: var(--primary);
+  }
+  select {
+    height: 1.75rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--input);
+    background: var(--background);
+    color: var(--foreground);
+    padding: 0 0.5rem;
+    font-size: var(--text-body);
   }
 
   /* Thin, theme-aware scrollbars (overlay-style). */
@@ -277,4 +298,19 @@
 }
 .overview-in {
   animation: overview-in var(--dur-slow) var(--ease-out) 1;
+}
+
+/* Dialogs scale in from just below their final size. (Radix positions them with translate, so only opacity+scale here.) */
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+.dialog-in {
+  animation: dialog-in var(--dur) var(--ease-out) 1;
 }

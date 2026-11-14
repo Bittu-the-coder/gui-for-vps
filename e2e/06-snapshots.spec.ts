@@ -70,10 +70,13 @@ test('a refused save can be redone with sudo, shows up in the timeline, and can 
   await expect(page.getByText('Before a restore').first()).toBeVisible(); // the restore itself is undoable
 
   // Deleting a backup removes it from the timeline.
-  page.once('dialog', (d) => void d.accept());
   const rows = page.getByTestId('snapshot-row');
   const before = await rows.count();
   await rows.first().click();
   await page.getByRole('button', { name: 'Delete backup' }).click();
+  // A styled confirmation (not the browser's native one): Cancel has the focus, so Delete is a deliberate click.
+  const sure = page.getByRole('alertdialog', { name: 'Delete this backup?' });
+  await expect(sure.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await sure.getByRole('button', { name: 'Delete' }).click();
   await expect(rows).toHaveCount(before - 1);
 });

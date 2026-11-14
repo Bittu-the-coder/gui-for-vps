@@ -215,7 +215,7 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
         <p className="text-sm text-muted-foreground">Loading preview…</p>
       )}
       {phase.kind === 'error' && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="text-sm text-danger">
           {phase.message}
         </p>
       )}
@@ -240,14 +240,12 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
             <section
               className={`rounded border p-3 text-sm ${
                 preview.risk === 'danger'
-                  ? 'border-red-500 bg-red-500/10'
-                  : 'border-amber-500 bg-amber-500/10'
+                  ? 'border-danger bg-danger/10'
+                  : 'border-warning bg-warning/10'
               }`}
             >
               <p className="mb-1 font-semibold">
-                {preview.risk === 'danger'
-                  ? '⛔ This can seriously damage the server'
-                  : '⚠️ Be careful'}
+                {preview.risk === 'danger' ? 'This can seriously damage the server' : 'Be careful'}
               </p>
               <ul className="list-disc pl-5">
                 {preview.reasons.map((r) => (
@@ -278,15 +276,15 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
         <div
           ref={outRef}
           aria-label="Output"
-          className="max-h-64 overflow-auto rounded bg-slate-950 p-3 font-mono text-xs text-slate-100"
+          className="max-h-64 overflow-auto rounded bg-code p-3 font-mono text-xs text-code-foreground"
         >
           {blocks.map((b, i) => (
             <div key={i} className="mb-2">
-              <div className="text-sky-300">$ {b.command}</div>
+              <div className="text-code-accent">$ {b.command}</div>
               {b.chunks.map((c, j) => (
                 <span
                   key={j}
-                  className={`whitespace-pre-wrap break-all ${c.stream === 'stderr' ? 'text-red-300' : ''}`}
+                  className={`whitespace-pre-wrap break-all ${c.stream === 'stderr' ? 'text-code-danger' : ''}`}
                 >
                   {c.text}
                 </span>
@@ -314,7 +312,7 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
       {phase.kind === 'finished' && (
         <p
           role="status"
-          className={`text-sm font-medium ${phase.exitCode === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}
+          className={`text-sm font-medium ${phase.exitCode === 0 ? 'text-success' : 'text-danger'}`}
         >
           {phase.error
             ? phase.error

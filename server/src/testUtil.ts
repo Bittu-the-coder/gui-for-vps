@@ -2,6 +2,7 @@ import type { AppContext } from './context.js';
 import { Vault } from './crypto/vault.js';
 import { openDb } from './db/index.js';
 import { dbVaultStore } from './db/vaultStore.js';
+import { JobService } from './services/jobs/jobs.js';
 import { RecipeService } from './services/recipes/recipes.js';
 import { SftpService } from './services/sftp/sftp.js';
 import { Runner } from './services/runner/runner.js';
@@ -16,6 +17,7 @@ export function testCtx(): AppContext {
   const runner = new Runner(db, pool);
   const recipes = new RecipeService(db);
   runner.onSuccess(recipes.recordRun);
+  const jobs = new JobService(db, runner, recipes, (id) => pool.status(id) === 'connected');
   const sftp = new SftpService(pool, db);
   runner.onSnapshot((e) => void sftp.prune(e.serverId, e.path).catch(() => {}));
   return {
@@ -25,6 +27,7 @@ export function testCtx(): AppContext {
     runner,
     sftp,
     recipes,
+    jobs,
     allowedOrigins: ['http://localhost:5173'],
   };
 }

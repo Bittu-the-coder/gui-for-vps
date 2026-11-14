@@ -1,3 +1,4 @@
+import { HardDrive } from 'lucide-react';
 import {
   cpuPercent,
   netRate,
@@ -129,7 +130,7 @@ export function MonitorApp({ windowId }: { windowId: string }) {
     <div className="flex h-full flex-col text-sm">
       <div className="min-h-0 flex-1 overflow-auto p-2">
         {error && (
-          <p role="alert" className="mb-2 text-red-600 dark:text-red-400">
+          <p role="alert" className="mb-2 text-danger">
             {error}
           </p>
         )}
@@ -162,7 +163,7 @@ export function MonitorApp({ windowId }: { windowId: string }) {
                   dark={dark}
                   yMax={100}
                   format={(v) => `${v}%`}
-                  series={[{ label: 'CPU', stroke: '#38bdf8' }]}
+                  series={[{ label: 'CPU', stroke: 'var(--chart-1)' }]}
                 />
               </ChartBox>
               <ChartBox title="Memory used %">
@@ -171,7 +172,7 @@ export function MonitorApp({ windowId }: { windowId: string }) {
                   dark={dark}
                   yMax={100}
                   format={(v) => `${v}%`}
-                  series={[{ label: 'Memory', stroke: '#a78bfa' }]}
+                  series={[{ label: 'Memory', stroke: 'var(--chart-2)' }]}
                 />
               </ChartBox>
               <ChartBox title="Network (↓ blue, ↑ green) per second">
@@ -180,8 +181,8 @@ export function MonitorApp({ windowId }: { windowId: string }) {
                   dark={dark}
                   format={bytes}
                   series={[
-                    { label: 'Down', stroke: '#38bdf8' },
-                    { label: 'Up', stroke: '#34d399' },
+                    { label: 'Down', stroke: 'var(--chart-1)' },
+                    { label: 'Up', stroke: 'var(--chart-3)' },
                   ]}
                 />
               </ChartBox>
@@ -194,7 +195,11 @@ export function MonitorApp({ windowId }: { windowId: string }) {
                   <div key={d.fs + d.mount} className="text-xs">
                     <div className="flex justify-between">
                       <span className="truncate">
-                        💽 {d.mount} <span className="text-muted-foreground">({d.fs})</span>
+                        <HardDrive
+                          size={13}
+                          className="mr-1 inline -mt-0.5 text-muted-foreground"
+                        />
+                        {d.mount} <span className="text-muted-foreground">({d.fs})</span>
                       </span>
                       <span className="tabular-nums">
                         {bytes(d.used)} / {bytes(d.total)} · {pct}%
@@ -204,10 +209,10 @@ export function MonitorApp({ windowId }: { windowId: string }) {
                       <div
                         className={
                           pct > 90
-                            ? 'h-full bg-red-500'
+                            ? 'h-full bg-danger'
                             : pct > 75
-                              ? 'h-full bg-amber-500'
-                              : 'h-full bg-sky-500'
+                              ? 'h-full bg-warning'
+                              : 'h-full bg-primary'
                         }
                         style={{ width: `${pct}%` }}
                       />
@@ -273,7 +278,7 @@ export function MonitorApp({ windowId }: { windowId: string }) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 px-1.5 text-red-500"
+                    className="h-6 px-1.5 text-danger"
                     onClick={() => kill(p, true)}
                   >
                     Kill

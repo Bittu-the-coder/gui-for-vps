@@ -2,6 +2,7 @@ import { Maximize2, Minus, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { Rnd } from 'react-rnd';
 import { appById } from '../apps/registry';
+import { readableOn } from '../lib/color';
 import { AppIcon } from '../components/icons/AppIcon';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useServers } from '../stores/serverStore';
@@ -230,8 +231,8 @@ export function Window({ win, slot }: { win: WindowState; slot?: Slot }) {
             <span className="truncate">{win.title}</span>
             {server && (
               <span
-                className="truncate rounded-full px-2 py-px text-caption font-medium text-white"
-                style={{ background: server.color }}
+                className="truncate rounded-full px-2 py-px text-caption font-medium"
+                style={{ background: server.color, color: readableOn(server.color) }}
                 title={`${server.username}@${server.host}`}
               >
                 {server.name}

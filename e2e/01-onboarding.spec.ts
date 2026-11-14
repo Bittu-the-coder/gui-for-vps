@@ -40,7 +40,7 @@ test('a new user goes from the address to a connected server in under 3 minutes'
 
   await page.getByRole('button', { name: 'Connect', exact: true }).click();
   await page.getByRole('button', { name: 'Trust and connect' }).click(); // first connection: verify the host key
-  await expect(page.getByText('Connected ✔')).toBeVisible();
+  await expect(page.getByText('Connected', { exact: true })).toBeVisible();
 
   const seconds = (Date.now() - started) / 1000;
   console.log(`first server connected after ${seconds.toFixed(1)} s`);

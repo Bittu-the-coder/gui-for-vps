@@ -7,6 +7,7 @@ import { sessionCookie, tokenMatches } from './auth.js';
 import { Vault } from './crypto/vault.js';
 import { openDb } from './db/index.js';
 import { dbVaultStore } from './db/vaultStore.js';
+import { JobService } from './services/jobs/jobs.js';
 import { RecipeService } from './services/recipes/recipes.js';
 import { Runner } from './services/runner/runner.js';
 import { SftpService } from './services/sftp/sftp.js';
@@ -42,6 +43,9 @@ export async function startServer(opts: StartOptions): Promise<RunningServer> {
   const recipes = new RecipeService(db);
   runner.onSuccess(recipes.recordRun); // successful recordable runs become recipe steps while recording
 
+  // Replays and broadcasts: the same Command Runner, run across servers (a step never touches SSH directly).
+  const jobs = new JobService(db, runner, recipes, (id) => pool.status(id) === 'connected');
+
   const sftp = new SftpService(pool, db);
   runner.onSnapshot((e) => void sftp.prune(e.serverId, e.path).catch(() => {}));
 
@@ -55,6 +59,7 @@ export async function startServer(opts: StartOptions): Promise<RunningServer> {
     runner,
     sftp,
     recipes,
+    jobs,
     allowedOrigins,
   });
 

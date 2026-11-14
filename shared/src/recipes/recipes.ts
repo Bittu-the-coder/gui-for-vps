@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { RecipeParamSchema } from './params.js';
 
 /** Recipes: recorded sequences of successful, recordable actions. */
 
@@ -10,6 +11,8 @@ export const RecipeSchema = z.object({
   createdAt: z.number(),
   updatedAt: z.number(),
   stepCount: z.number().int(),
+  /** Values asked for when the recipe is replayed or exported. */
+  params: z.array(RecipeParamSchema),
 });
 export type Recipe = z.infer<typeof RecipeSchema>;
 
@@ -42,4 +45,6 @@ export const StartRecordingBodySchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
 });
 export const RenameRecipeBodySchema = z.object({ name: z.string().trim().min(1).max(100) });
+export const SetRecipeParamsBodySchema = z.object({ params: z.array(RecipeParamSchema).max(30) });
+export const UpdateStepBodySchema = z.object({ params: z.unknown() });
 export const ReorderStepsBodySchema = z.object({ order: z.array(z.string()).max(1000) });

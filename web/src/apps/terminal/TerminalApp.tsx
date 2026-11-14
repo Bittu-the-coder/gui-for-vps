@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Menu, type MenuItem } from '../../components/menu/Menu';
 import { useAppMenus } from '../../desktop/appMenus';
@@ -59,7 +60,7 @@ export function TerminalApp({ windowId }: { windowId: string }) {
 
   return (
     <div
-      className="flex h-full flex-col bg-[#0b1020] text-slate-200"
+      className="flex h-full flex-col bg-code text-code-foreground"
       onContextMenu={(e) => {
         // The terminal gets its own small menu; a right-click on the tab strip keeps the browser's.
         if (!(e.target as Element).closest('.xterm')) return;
@@ -69,14 +70,14 @@ export function TerminalApp({ windowId }: { windowId: string }) {
     >
       <div
         role="tablist"
-        className="flex shrink-0 items-center gap-1 border-b border-slate-700 bg-slate-900 px-1 pt-1 text-xs"
+        className="flex shrink-0 items-center gap-1 border-b border-code-border bg-white/5 px-1 pt-1 text-xs"
       >
         {tabs.map((t) => (
           <div
             key={t.id}
             className={cn(
               'flex items-center gap-1 rounded-t px-3 py-1',
-              t.id === activeId ? 'bg-[#0b1020]' : 'text-slate-400 hover:bg-slate-800',
+              t.id === activeId ? 'bg-code' : 'text-code-muted hover:bg-white/10',
             )}
           >
             <button role="tab" aria-selected={t.id === activeId} onClick={() => setActiveId(t.id)}>
@@ -87,11 +88,11 @@ export function TerminalApp({ windowId }: { windowId: string }) {
               className="px-1 opacity-60 hover:opacity-100"
               onClick={() => close(t.id)}
             >
-              ✕
+              <X size={12} />
             </button>
           </div>
         ))}
-        <button aria-label="New tab" className="rounded px-2 py-1 hover:bg-slate-800" onClick={add}>
+        <button aria-label="New tab" className="rounded px-2 py-1 hover:bg-white/10" onClick={add}>
           +
         </button>
       </div>

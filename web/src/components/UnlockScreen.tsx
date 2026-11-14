@@ -1,3 +1,6 @@
+import { GfvMark } from './icons/GfvMark';
+import { Wallpaper } from '../desktop/Wallpaper';
+import { AlertTriangle } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError } from '../lib/api';
 import { useServers } from '../stores/serverStore';
@@ -51,14 +54,20 @@ export function UnlockScreen({ initialized }: { initialized: boolean }) {
   };
 
   return (
-    <main className="grid h-screen w-screen place-items-center bg-gradient-to-br from-sky-200 to-indigo-300 p-4 dark:from-slate-900 dark:to-indigo-950">
+    <main className="relative grid h-screen w-screen place-items-center overflow-hidden p-4">
+      <Wallpaper />
       <form
         onSubmit={submit}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-border bg-background p-6 text-foreground shadow-xl"
+        className="glass-popover dialog-in relative flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-separator p-6 text-foreground shadow-elev-3"
       >
         <div>
-          <h1 className="text-xl font-semibold">{initialized ? 'Unlock GFV' : 'Welcome to GFV'}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <span className="mb-3 grid h-11 w-11 place-items-center rounded-[12px] bg-gradient-to-b from-[#4a4a4f] to-[#141416] text-white shadow-elev-2">
+            <GfvMark size={24} />
+          </span>
+          <h1 className="text-large font-semibold">
+            {initialized ? 'Unlock GFV' : 'Welcome to GFV'}
+          </h1>
+          <p className="mt-1 text-body text-muted-foreground">
             {initialized
               ? 'Enter your master password to unlock your saved servers.'
               : 'Choose a master password. It encrypts your SSH keys and passwords on this computer.'}
@@ -90,15 +99,16 @@ export function UnlockScreen({ initialized }: { initialized: boolean }) {
               />
               <p className="text-xs text-muted-foreground">At least 8 characters.</p>
             </div>
-            <p className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">
-              ⚠️ There is no password recovery. If you forget it, you will have to add your servers
+            <p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-xs">
+              <AlertTriangle size={14} className="mr-1 inline -mt-0.5 text-warning" />
+              There is no password recovery. If you forget it, you will have to add your servers
               again.
             </p>
           </>
         )}
 
         {error && (
-          <p role="alert" className="text-sm text-danger">
+          <p role="alert" className="text-body text-danger">
             {error}
           </p>
         )}

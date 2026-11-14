@@ -6,7 +6,7 @@
 
 ## 1. Vision
 
-GFV gives you a desktop in the browser, similar to Puter, but it is connected to your real VPS servers. You get windows, a taskbar, a terminal, a file manager, a system monitor, and a Dev Hub that installs dev tools with one click.
+GFV gives you a desktop in the browser, similar to Puter, but it is connected to your real VPS servers. You get windows, a menu bar and a Dock, a terminal, a file manager, a system monitor, and a Dev Hub that installs dev tools with one click.
 
 **What makes it different from Cockpit, 1Panel, GMSSH, and EveryOS:**
 
@@ -97,7 +97,7 @@ Raw terminal commands are also checked by the **danger-pattern detector**. In th
 
 - Desktop with app icons, wallpaper, and a right-click menu
 - Windows that can be dragged, resized, minimized, maximized, and closed, with focus and z-order
-- Taskbar with open windows, a start menu, a clock, and a **server switcher**
+- Menu bar (app menus, clock, **server picker**) and a Dock (running apps, minimized windows). Taskbar and Start menu were replaced by these in M10
 - Each window is tied to a server, shown by a colored border and server-name badge
 - Layout saved to localStorage, wrapped in try/catch
 - Light and dark themes
@@ -130,7 +130,7 @@ Each item is a Command Runner action with an explanation, so the user sees exact
 
 ### 4.5 Learn Mode (Idea B)
 
-- A toggle in the taskbar, **on by default** for new users
+- A toggle in the menu bar, **on by default** for new users
 - Every action shows a "what this does" panel with the commands it runs, line by line
 - "Try it yourself" button: copies the command into the Terminal without running it
 - A **command journal** listing every command GFV ran, with explanations
@@ -146,7 +146,7 @@ Each item is a Command Runner action with an explanation, so the user sees exact
 
 ### 4.7 Recipes — basic (Idea A, part 1)
 
-- Record and stop buttons in the taskbar
+- Record and stop buttons in the menu bar
 - Every successful recordable action while recording becomes a step
 - View the recipe's steps, reorder or delete them, and rename it
 - **Export as a bash script** with comments taken from the action explanations, idempotent where possible
@@ -171,7 +171,7 @@ gfv/
 │     └─ routes/             # REST + websocket handlers
 ├─ web/
 │  └─ src/
-│     ├─ desktop/            # shell: Desktop, Window, Taskbar, StartMenu, windowStore
+│     ├─ desktop/            # shell: Desktop, Window, MenuBar, Dock, Spotlight, windowStore
 │     ├─ apps/               # terminal, files, editor, monitor, services, docker, devhub, snapshots, recipes, settings
 │     ├─ components/         # LearnPanel, DangerDialog, ServerBadge, ...
 │     └─ lib/                # api client, ws client
@@ -182,18 +182,19 @@ gfv/
 
 ## 6. Build Order (Milestones)
 
-| #   | Milestone                                                                                  | Done when                                                                   | Est.     |
-| --- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- | -------- |
-| M0  | Repo setup: workspaces, TS, lint, Vite, Fastify, test `sshd` container                     | `pnpm dev` shows a blank page and the API health check passes               | 1–2 days |
-| M1  | **Desktop shell**: windows, taskbar, start menu, window store                              | You can open, drag, resize, and close dummy apps                            | 3–4 days |
-| M2  | **Server Manager** + encryption + SSH pool + host-key check                                | You can add the test container and see "connected"                          | 3–4 days |
-| M3  | **Terminal** app (PTY over WebSocket)                                                      | Running `htop` works inside the browser                                     | 2–3 days |
-| M4  | **Command Runner** + Learn panel + danger detector + history                               | Running a sample action shows the preview, explanation, and streamed output | 4–5 days |
-| M5  | **File Manager** + **Editor** (SFTP)                                                       | You can edit a file and save it, and the snapshot is taken for `/etc` files | 5–7 days |
-| M6  | **System Monitor** + process kill, **Services**, **Docker**                                | Live charts update and you can restart nginx                                | 5–6 days |
-| M7  | **Dev Hub** (6 tools) on Ubuntu                                                            | Node and Postgres install on a clean Ubuntu container                       | 4–5 days |
-| M8  | **Snapshots timeline** + **Recipes** (record and export bash)                              | Exporting a recipe produces a script that works on a fresh container        | 4–5 days |
-| M9  | ✅ Polish: onboarding tour, themes, error states, `npx gfv` packaging, README, and a demo GIF | A new user can go from install to their first server in under 3 minutes     | 4–5 days |
+| #   | Milestone                                                                                                                                              | Done when                                                                                      | Est.     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | -------- |
+| M0  | Repo setup: workspaces, TS, lint, Vite, Fastify, test `sshd` container                                                                                 | `pnpm dev` shows a blank page and the API health check passes                                  | 1–2 days |
+| M1  | **Desktop shell**: windows, taskbar, start menu, window store                                                                                          | You can open, drag, resize, and close dummy apps                                               | 3–4 days |
+| M2  | **Server Manager** + encryption + SSH pool + host-key check                                                                                            | You can add the test container and see "connected"                                             | 3–4 days |
+| M3  | **Terminal** app (PTY over WebSocket)                                                                                                                  | Running `htop` works inside the browser                                                        | 2–3 days |
+| M4  | **Command Runner** + Learn panel + danger detector + history                                                                                           | Running a sample action shows the preview, explanation, and streamed output                    | 4–5 days |
+| M5  | **File Manager** + **Editor** (SFTP)                                                                                                                   | You can edit a file and save it, and the snapshot is taken for `/etc` files                    | 5–7 days |
+| M6  | **System Monitor** + process kill, **Services**, **Docker**                                                                                            | Live charts update and you can restart nginx                                                   | 5–6 days |
+| M7  | **Dev Hub** (6 tools) on Ubuntu                                                                                                                        | Node and Postgres install on a clean Ubuntu container                                          | 4–5 days |
+| M8  | **Snapshots timeline** + **Recipes** (record and export bash)                                                                                          | Exporting a recipe produces a script that works on a fresh container                           | 4–5 days |
+| M9  | ✅ Polish: onboarding tour, themes, error states, `npx gfv` packaging, README, and a demo GIF                                                          | A new user can go from install to their first server in under 3 minutes                        | 4–5 days |
+| M10 | ✅ macOS-style redesign: tokens, menu bar, Dock, glass windows, Spotlight, Mission Control, Control Center, toasts, per-app menus, accessibility audit | `pnpm e2e` passes incl. the contrast/focus audit; before/after screenshots in `docs/redesign/` | done     |
 
 **Total: about 6–8 weeks part-time.** Each milestone is a usable step, so we commit and demo after every one.
 --
@@ -263,3 +264,34 @@ gfv/
 - **More distros**: Fedora/RHEL, Alpine, Arch
 - **Desktop app**: wrap the web UI with Tauri for a native download
 - **Mobile layout**: a basic monitor and terminal on phones
+
+---
+
+## 10. Roadmap after v1 (agreed order)
+
+Sizes are part-time days. "Needs" lists dependencies between milestones. Each milestone: short plan, build, verify
+(`typecheck && lint && test`, real-browser check, `pnpm e2e`), update README, CLAUDE.md, PLAN.md and
+`docs/HOW_IT_WORKS.md`. New dependencies and downloads over ~20 MB are confirmed with the user first.
+
+| #   | Milestone                                                                                                                                                                                      | Size  | Needs        |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ------------ |
+| M11 | ✅ **Job engine**: replay a recipe on another server (progress, retry/skip/abort on failure), recipe parameters, multi-server broadcast. (Recording of file edits moved to a later milestone.) | done  | none         |
+| M12 | ✅ Recipe exports (Dockerfile, compose, Ansible), "Clone this server" (Dev Hub tools), recipe files + bundled starter library (no backend: a "community library" is a Git repo of files)       | done  | M11          |
+| M13 | **Distros**: package/service-manager abstraction, Fedora/RHEL first (Alpine, Arch as a Dev Hub subset), systemd-capable test containers                                                        | 7–10  | none         |
+| M14 | Firewall app, **lockout protection** (server-side auto-revert), undo timeline                                                                                                                  | 7–9   | M13          |
+| M15 | Security checkup app, scheduled backups                                                                                                                                                        | 6–8   | M14          |
+| M16 | Learn Mode advanced: lessons, quizzes, skill levels                                                                                                                                            | 7–9   | M10          |
+| M17 | Ports & Domains (nginx vhosts, certbot HTTPS)                                                                                                                                                  | 5–6   | M13          |
+| M18 | Projects (GitHub deploy, env vars, pm2/systemd, auto-redeploy)                                                                                                                                 | 6–8   | M17          |
+| M19 | Server Map                                                                                                                                                                                     | 6–8   | M17, M18     |
+| M20 | App Store (Docker apps)                                                                                                                                                                        | 4–5   | M13          |
+| M21 | Database GUI (SSH tunnel, `pg` first)                                                                                                                                                          | 7–9   | none         |
+| M22 | Cross-server drag and drop                                                                                                                                                                     | 3–4   | M11          |
+| M23 | AI assistant + AI explain (own key or local model; nothing sent without a per-send preview; only proposes Actions)                                                                             | 8–10  | most Actions |
+| M24 | Hosted mode (TLS via a front proxy, login + 2FA, audit log, multi-user)                                                                                                                        | 15–20 | everything   |
+| M25 | Mobile layout                                                                                                                                                                                  | 5–7   | M10          |
+| M26 | Desktop wrapper (PWA first; Tauri only if the toolchain download is acceptable)                                                                                                                | 2–3   | M25          |
+
+Decisions: AI provider interface with the Anthropic API (user's key, in the vault) and any OpenAI-compatible
+endpoint (Ollama = nothing leaves the machine); one `aiGateway` module is the only outbound LLM path. Hosted mode
+stages: single admin first, multi-user second, SQLite throughout. Tauri is last and optional.

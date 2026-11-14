@@ -1,3 +1,4 @@
+import { confirmDialog } from '../../components/confirmStore';
 import { detectDanger, isCriticalConfigPath } from '@gfv/shared';
 import type { editor } from 'monaco-editor';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
@@ -115,9 +116,12 @@ export function EditorApp({ windowId }: { windowId: string }) {
     if (text === was) return;
     if (isCriticalConfigPath(path)) {
       const why = detectDanger(`nano ${path}`)[0];
-      const ok = window.confirm(
-        `${why?.reason ?? 'A mistake in this file can lock you out.'}\n\n${why?.safer ?? ''}\n\nSave anyway?`,
-      );
+      const ok = await confirmDialog({
+        title: 'Save a critical system file?',
+        body: `${why?.reason ?? 'A mistake in this file can lock you out.'}\n\n${why?.safer ?? ''}`.trim(),
+        confirmLabel: 'Save anyway',
+        danger: true,
+      });
       if (!ok) return;
     }
     setSaving(true);
@@ -280,14 +284,7 @@ export function EditorApp({ windowId }: { windowId: string }) {
           {path}
         </span>
         {status && (
-          <span
-            role="status"
-            className={
-              status.kind === 'ok'
-                ? 'text-emerald-600 dark:text-emerald-400'
-                : 'text-red-600 dark:text-red-400'
-            }
-          >
+          <span role="status" className={status.kind === 'ok' ? 'text-success' : 'text-danger'}>
             {status.text}
           </span>
         )}

@@ -5,6 +5,7 @@ import {
   FolderOpen,
   Hammer,
   History,
+  ListChecks,
   ScrollText,
   Server,
   Settings2,
@@ -24,6 +25,7 @@ import { ServicesApp } from './services/ServicesApp';
 import { EditorApp } from './editor/EditorApp';
 import { FilesApp } from './files/FilesApp';
 import { ActionsApp } from './actions/ActionsApp';
+import { JobsApp } from './jobs/JobsApp';
 
 export interface AppDef extends AppIconSpec {
   id: string;
@@ -119,6 +121,15 @@ export const APPS: AppDef[] = [
     tint: ['#ff7a98', '#d02f63'],
     component: RecipesApp,
     defaultSize: { w: 820, h: 540 },
+    singleton: true,
+  },
+  {
+    id: 'jobs',
+    title: 'Jobs',
+    icon: ListChecks,
+    tint: ['#2dd4bf', '#0f8f84'],
+    component: JobsApp,
+    defaultSize: { w: 880, h: 580 },
     singleton: true,
   },
   {

@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { usePolling } from '../hooks/usePolling';
 import { api } from '../lib/api';
@@ -65,18 +66,18 @@ export function LogPanel({
           aria-label="Close logs"
           onClick={onClose}
         >
-          ✕
+          <X size={14} />
         </Button>
       </div>
       {error ? (
-        <p role="alert" className="px-2 text-xs text-red-600 dark:text-red-400">
+        <p role="alert" className="px-2 text-xs text-danger">
           {error}
         </p>
       ) : (
         <pre
           ref={box}
           data-testid="log-output"
-          className="min-h-0 flex-1 overflow-auto bg-slate-950 p-2 font-mono text-[11px] text-slate-200"
+          className="min-h-0 flex-1 overflow-auto bg-code p-2 font-mono text-[11px] text-code-foreground"
         >
           {text || 'No log lines.'}
         </pre>

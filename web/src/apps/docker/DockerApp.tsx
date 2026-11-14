@@ -70,7 +70,7 @@ export function DockerApp({ windowId }: { windowId: string }) {
       <div className="min-h-0 flex-1 overflow-auto">
         {error && (
           <div className="p-4 text-center">
-            <p role="alert" className="text-red-600 dark:text-red-400">
+            <p role="alert" className="text-danger">
               {error}
             </p>
             {/not installed/.test(error) && (
@@ -95,7 +95,7 @@ export function DockerApp({ windowId }: { windowId: string }) {
                 >
                   <td className="w-5 px-2">
                     <span
-                      className={`inline-block h-2 w-2 rounded-full ${c.state === 'running' ? 'bg-emerald-500' : 'bg-slate-400'}`}
+                      className={`inline-block h-2 w-2 rounded-full ${c.state === 'running' ? 'bg-success' : 'bg-faint-foreground'}`}
                       title={c.state}
                     />
                   </td>
@@ -121,7 +121,7 @@ export function DockerApp({ windowId }: { windowId: string }) {
                     </Button>{' '}
                     <Button
                       variant="outline"
-                      className={cn(b, 'text-red-500')}
+                      className={cn(b, 'text-danger')}
                       disabled={c.state === 'running'}
                       title={c.state === 'running' ? 'Stop it first' : undefined}
                       onClick={() => act('rm', c.name)}
@@ -157,7 +157,7 @@ export function DockerApp({ windowId }: { windowId: string }) {
                   <td className="w-24 px-1 text-right">
                     <Button
                       variant="outline"
-                      className={cn(b, 'text-red-500')}
+                      className={cn(b, 'text-danger')}
                       onClick={() => act('rmi', i.id)}
                     >
                       Remove

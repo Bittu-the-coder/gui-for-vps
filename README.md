@@ -1,7 +1,7 @@
 # GFV: a desktop in your browser for your VPS
 
 GFV (a working name) gives you a desktop in the browser that is connected to your **real servers over SSH**:
-windows, a taskbar, a terminal, a file manager, an editor, a system monitor, services, Docker and one-click
+windows, a menu bar and a Dock, a terminal, a file manager, an editor, a system monitor, services, Docker and one-click
 installs for the usual dev tools.
 
 ![GFV demo](docs/demo.gif)
@@ -84,9 +84,9 @@ containers, so the Services and Docker apps show canned data there.)
 
 1. **Choose a master password** (at least 8 characters). It encrypts your SSH keys and passwords on this
    computer. There is no recovery if you forget it.
-2. A short **tour** shows the desktop. Skip it or click through; you can replay it from the Start menu
-   ("Take the tour").
-3. Double-click **Servers** (or press "Add a server"), then **+ Add server** and fill in:
+2. A short **tour** shows the desktop. Skip it or click through; you can replay it from the Help menu
+   ("Take the Tour").
+3. Click **Servers** in the Dock (or press "Add a server"), then **+ Add server** and fill in:
    - **Name** (anything), **Host** (IP or domain), **Port** (usually 22), **Username**;
    - **Authentication**: paste your **private key** (the `-----BEGIN OPENSSH PRIVATE KEY-----` text) or choose
      the key file, with its passphrase if it has one; or pick **Password**.
@@ -95,7 +95,7 @@ containers, so the Services and Docker apps show canned data there.)
    (on the server: `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`), then **Trust and connect**. If the
    fingerprint ever changes later, GFV refuses to connect and tells you: that can mean someone is
    intercepting the connection, or that the server was reinstalled.
-6. The status turns green: **Connected**. The server now appears in the taskbar's server switcher.
+6. The status turns green: **Connected**. The server now appears in the menu bar's server picker.
 
 **About `sudo`:** if you log in as `root`, everything works. If you log in as a normal user, actions that need
 administrator rights (installing tools, restarting services, saving system files) run `sudo -n`, which needs
@@ -104,11 +104,27 @@ Without it those actions fail with "a password is required"; everything else sti
 
 ## 4. Using GFV
 
-**The desktop.** Double-click an icon, or use the Start menu or a right-click on the desktop, to open an app.
-Windows can be dragged, resized, minimized, maximized (double-click the title bar) and closed. Every window
-that talks to a server shows that server's **colour and name**, so you always know which machine it controls.
-Pick the active server for new windows in the taskbar. The taskbar also has: ⏺ Record, 🎓 Learn, 🔒 Lock, and
-the light/dark switch.
+**The desktop** looks and works like a macOS desktop.
+
+- **Dock** (bottom): click an app to open it (or bring it to the front). Icons grow as the pointer nears them;
+  a dot marks a running app; right-click an icon for its windows and _New Window_. Minimized windows wait after
+  the separator.
+- **Menu bar** (top): the **GFV menu** (light/dark, wallpaper, _Reduce Transparency_, master password, lock), then
+  the focused app's **File / Edit / View / Window / Help** menus (the Terminal, Editor and Files add their own
+  items), and on the right: search, the **active server** picker, **Record**, **Learn**, **Control Center** and
+  the clock.
+- **Windows** have traffic lights (close, minimize, zoom; double-click the title bar to zoom). Every window that
+  talks to a server shows that server's **colour ring and name**, so you always know which machine it controls.
+- **Spotlight** (**Ctrl+K**, or the magnifier): type to open an app, jump to a window, switch server, change a
+  setting or run a safe action. Inside the Terminal and the Editor Ctrl+K belongs to bash/Monaco, so use **Cmd+K**
+  there or the magnifier.
+- **Mission Control** (**Ctrl+Up**, View menu, or Spotlight): all windows side by side; click one to bring it
+  forward, Esc to leave.
+- **Control Center** (the sliders icon): server, light/dark, wallpaper, Learn, Record, lock.
+- Right-click the bare desktop for a small menu, a file row for file actions, or the terminal for Copy/Paste.
+
+Everything is keyboard-reachable and respects your system's _reduce motion_ setting; _Reduce Transparency_ (GFV
+menu) swaps the frosted glass for solid colours.
 
 | App           | How to use it                                                                                                                                                                                                                                                                               |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -128,15 +144,15 @@ shows **what it does** in plain English, the **exact commands**, and the **risk*
 Caution and danger actions need you to tick _I understand the risk_. Press **Run** and the output streams in
 live. Nothing runs before you confirm.
 
-**Learn Mode (🎓 Learn in the taskbar).** The panel on the right keeps a **journal** of every command GFV ran
+**Learn Mode (_Learn_ in the menu bar).** The panel on the right keeps a **journal** of every command GFV ran
 for you, with its explanation, and counts how many different commands you have seen. Press **Try it yourself**
 next to any command to type it into a terminal **without running it**.
 
 **Recipes: clone a setup.**
 
-1. Press **⏺ Record** in the taskbar (it records on the active server).
+1. Press **Record** in the menu bar (it records on the active server).
 2. Do things in GFV: create folders, install tools, restart services, change permissions…
-3. Press **■ Stop**. The Recipes app opens with your steps. Rename the recipe, reorder or delete steps.
+3. Press **Stop**. The Recipes app opens with your steps. Rename the recipe, reorder or delete steps.
 4. Open the **Script** tab: **Copy** it or **Download** the `.sh` file.
 5. On another server (as root, or as a user with sudo): `bash my-recipe.sh`. The script explains each step in
    comments and is written to be safe to run twice where possible.
@@ -144,8 +160,37 @@ next to any command to type it into a terminal **without running it**.
 Only _actions_ are recorded. File edits, uploads and killed processes are not, so a recipe rebuilds the setup,
 not your file contents.
 
-**Other things in the Start menu:** _Take the tour_ and _Change master password…_. The 🔒 button locks GFV:
-every connection is closed and you need the master password again.
+**Run a recipe on other servers (Jobs).** In Recipes press **Run on…**, tick the servers, and press **Preview**: you
+see the exact commands that will run on each server and their risk. Confirm once (if anything is risky) and press
+**Start**. The **Jobs** app shows progress per server. Every server runs the steps in order, all servers at the
+same time. **If a step fails, that server pauses** and asks: _Retry step_, _Skip step_, or _Stop this server_; the
+others carry on, and nothing after the failed step has run. _Cancel job_ stops everything (Ctrl-C to running steps).
+
+**Parameters.** A recipe can ask for values when it runs (a domain name, a database password). On the recipe's
+**Parameters** tab add one (for example `site`, default `main`), then on the **Steps** tab edit a step and write
+`{{site}}` inside a text value, such as `/var/www/{{site}}`. A _secret_ parameter is never stored or logged and
+always has to be typed. In an exported script each parameter is an environment variable
+(`GFV_SITE=blue bash recipe.sh`); a required one that is missing stops the script before it does anything.
+
+**Broadcast.** In Jobs press **New broadcast…** to run one action on several servers at once.
+
+**Other formats.** On a recipe's **Script** tab pick the format: **Bash script**, **Dockerfile**, **Docker Compose**
+(compose file + Dockerfile) or **Ansible playbook**. Steps that cannot be expressed in a format (a service restart
+inside a Docker image, an action with no Ansible module) are left out or turned into a shell task, and a note above
+the file says so. Review the result before using it: GFV generates it, but it has not run it for you.
+
+**Library and sharing.** **Library…** (top of the recipe list) has **starter recipes** that ship with GFV, and
+**From a file** to import a recipe someone sent you. You see every command and its risk before importing, and a file
+that uses an unknown action or invalid values is refused with the reasons. **Share** saves a recipe as a readable
+`.gfv-recipe.json` file (no secret values), which you can send to someone or keep in a Git repository. Nothing is
+downloaded from the internet by GFV itself.
+
+**Clone setup.** On the **Servers** app press **Clone setup** on a connected server to make a recipe of the Dev Hub
+tools (Node, Python, Docker, PostgreSQL, nginx, Git) installed on it. It reproduces the tools, not your files or
+settings.
+
+**Other things:** _Take the Tour_ (Help menu) and _Change Master Password…_ (GFV menu). _Lock Vault_ (GFV menu or
+Control Center) closes every connection, and you need the master password again.
 
 ## 5. Your data, security and the master password
 

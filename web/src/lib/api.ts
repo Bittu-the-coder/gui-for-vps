@@ -1,5 +1,13 @@
 import {
   ConnectResultSchema,
+  JobSnapshotSchema,
+  PlanSchema,
+  type JobCreateBody,
+  type JobDecision,
+  type JobPlanBody,
+  type JobSnapshot,
+  type Plan,
+  type RecipeParam,
   RecipeDetailSchema,
   RecipeSchema,
   RecordingStateSchema,
@@ -16,6 +24,9 @@ import {
   PreviewSchema,
   RunStartedSchema,
   type ActionInfo,
+  type ExportFormat,
+  type DescribedStep,
+  type RecipeFile,
   type HistoryResponse,
   ConnStatusSchema,
   ServerSchema,
@@ -44,6 +55,23 @@ const SnapshotSchema = z.object({
 });
 export type SnapshotRow = z.infer<typeof SnapshotSchema>;
 export type RunPreview = z.infer<typeof PreviewSchema>;
+const RecipeExportSchema = z.object({
+  script: z.string(),
+  filename: z.string(),
+  files: z.array(z.object({ name: z.string(), content: z.string() })),
+  notes: z.array(z.string()),
+});
+export type RecipeExport = z.infer<typeof RecipeExportSchema>;
+const LibraryEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  author: z.string(),
+  risk: z.enum(['safe', 'caution', 'danger']),
+  steps: z.array(z.custom<DescribedStep>()),
+});
+export type LibraryEntry = z.infer<typeof LibraryEntrySchema>;
 
 export class ApiError extends Error {
   constructor(
@@ -174,10 +202,37 @@ export const api = {
     void (await request('POST', `/api/recipes/${id}/steps/reorder`, { order })),
   deleteStep: async (id: string, stepId: string) =>
     void (await request('DELETE', `/api/recipes/${id}/steps/${stepId}`)),
-  exportRecipe: async (id: string): Promise<{ script: string; filename: string }> =>
+  exportRecipe: async (id: string, format: ExportFormat = 'bash'): Promise<RecipeExport> =>
+    RecipeExportSchema.parse(await request('GET', `/api/recipes/${id}/export?format=${format}`)),
+  library: async (): Promise<LibraryEntry[]> =>
+    z.array(LibraryEntrySchema).parse(await request('GET', '/api/library')),
+  importLibraryRecipe: async (id: string): Promise<{ recipeId: string }> =>
+    z.object({ recipeId: z.string() }).parse(await request('POST', `/api/library/${id}/import`)),
+  importRecipeFile: async (file: unknown): Promise<{ recipeId: string }> =>
     z
-      .object({ script: z.string(), filename: z.string() })
-      .parse(await request('GET', `/api/recipes/${id}/export`)),
+      .object({ recipeId: z.string() })
+      .parse(await request('POST', '/api/recipes/import', { file })),
+  recipeFile: async (id: string): Promise<RecipeFile> =>
+    (await request('GET', `/api/recipes/${id}/file`)) as RecipeFile,
+  cloneServer: async (serverId: string): Promise<{ recipeId: string; tools: string[] }> =>
+    z
+      .object({ recipeId: z.string(), tools: z.array(z.string()) })
+      .parse(await request('POST', `/api/servers/${serverId}/clone-recipe`)),
+  setRecipeParams: async (id: string, params: RecipeParam[]) =>
+    void (await request('PUT', `/api/recipes/${id}/params`, { params })),
+  updateStep: async (id: string, stepId: string, params: unknown) =>
+    void (await request('PATCH', `/api/recipes/${id}/steps/${stepId}`, { params })),
+
+  jobPlan: async (body: JobPlanBody): Promise<Plan> =>
+    PlanSchema.parse(await request('POST', '/api/jobs/plan', body)),
+  createJob: async (body: JobCreateBody): Promise<JobSnapshot> =>
+    JobSnapshotSchema.parse(await request('POST', '/api/jobs', body)),
+  jobs: async (): Promise<JobSnapshot[]> =>
+    z.array(JobSnapshotSchema).parse(await request('GET', '/api/jobs')),
+  cancelJob: async (id: string) => void (await request('POST', `/api/jobs/${id}/cancel`)),
+  decideJob: async (id: string, serverId: string, decision: JobDecision) =>
+    void (await request('POST', `/api/jobs/${id}/targets/${serverId}/decision`, { decision })),
+  deleteJob: async (id: string) => void (await request('DELETE', `/api/jobs/${id}`)),
   recording: async (): Promise<RecordingState> =>
     RecordingStateSchema.parse(await request('GET', '/api/recording')),
   startRecording: async (serverId: string) =>

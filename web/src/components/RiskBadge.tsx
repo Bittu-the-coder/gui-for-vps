@@ -1,15 +1,21 @@
 import type { Risk } from '@gfv/shared';
 import { cn } from '../lib/utils';
 
+// Text colours are the contrast-checked status tokens; the fill is the same colour, faint.
 const STYLE: Record<Risk, string> = {
-  safe: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-  caution: 'bg-amber-500/20 text-amber-800 dark:text-amber-300',
-  danger: 'bg-red-500/20 text-red-700 dark:text-red-300',
+  safe: 'bg-success/10 text-success',
+  caution: 'bg-warning/10 text-warning',
+  danger: 'bg-danger/10 text-danger',
 };
 
 export function RiskBadge({ risk }: { risk: Risk }) {
   return (
-    <span className={cn('rounded px-1.5 py-px text-[10px] font-semibold uppercase', STYLE[risk])}>
+    <span
+      className={cn(
+        'rounded-full px-2 py-px text-caption font-semibold uppercase tracking-wide',
+        STYLE[risk],
+      )}
+    >
       {risk}
     </span>
   );

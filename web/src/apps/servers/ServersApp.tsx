@@ -1,22 +1,27 @@
 import type { ConnectResult, ConnStatus, Server } from '@gfv/shared';
 import { useState } from 'react';
+import { confirmDialog } from '../../components/confirmStore';
 import { Button } from '../../components/ui/button';
+import { openApp } from '../../desktop/openApp';
 import { api, ApiError } from '../../lib/api';
+import { useRecording } from '../../stores/recordingStore';
 import { useServers } from '../../stores/serverStore';
+import { toast } from '../../stores/toastStore';
+import { appById } from '../registry';
 import { HostKeyDialog, type HostKeyPrompt } from './HostKeyDialog';
 import { ServerForm } from './ServerForm';
 
 const STATUS_STYLE: Record<ConnStatus, { dot: string; label: string }> = {
-  connected: { dot: 'bg-green-500', label: 'Connected' },
-  connecting: { dot: 'bg-amber-400 animate-pulse', label: 'Connecting…' },
-  error: { dot: 'bg-red-500', label: 'Error' },
-  disconnected: { dot: 'bg-slate-400', label: 'Disconnected' },
+  connected: { dot: 'bg-success', label: 'Connected' },
+  connecting: { dot: 'bg-warning animate-pulse', label: 'Connecting…' },
+  error: { dot: 'bg-danger', label: 'Error' },
+  disconnected: { dot: 'bg-faint-foreground', label: 'Disconnected' },
 };
 
 function describe(r: ConnectResult): string {
   switch (r.status) {
     case 'connected':
-      return 'Connected ✔';
+      return 'Connected';
     case 'auth_failed':
       return 'Authentication failed — check the username and credentials.';
     case 'error':
@@ -66,12 +71,48 @@ export function ServersApp() {
       note(s.id, '');
     });
   const remove = (s: Server) => {
-    if (!confirm(`Delete "${s.name}"? Its saved credentials will be removed.`)) return;
-    void guarded(s.id, async () => {
-      await api.deleteServer(s.id);
-      await refreshServers();
+    void confirmDialog({
+      title: `Delete "${s.name}"?`,
+      body: 'Its saved credentials will be removed from GFV. The server itself is not touched.',
+      confirmLabel: 'Delete',
+      danger: true,
+    }).then((ok) => {
+      if (!ok) return;
+      return guarded(s.id, async () => {
+        await api.deleteServer(s.id);
+        await refreshServers();
+      });
     });
   };
+
+  /** A recipe from what is installed on this server now (Dev Hub tools). */
+  const clone = (s: Server) =>
+    guarded(s.id, async () => {
+      try {
+        const r = await api.cloneServer(s.id);
+        useRecording.setState({ justStopped: r.recipeId }); // the Recipes app opens it
+        openApp(appById('recipes')!);
+        toast({
+          kind: 'success',
+          title: `Created a recipe from ${s.name}`,
+          body: `${r.tools.length} tool${r.tools.length === 1 ? '' : 's'}: ${r.tools.join(', ')}. Replay it on another server from Recipes.`,
+        });
+      } catch (e) {
+        const code = e instanceof ApiError ? (e.body as { error?: string }).error : '';
+        toast({
+          kind: 'error',
+          title: 'Could not clone this server',
+          body:
+            code === 'nothing_to_clone'
+              ? 'No Dev Hub tools (Node, Python, Docker, PostgreSQL, nginx, Git) are installed on it.'
+              : code === 'unsupported_os'
+                ? 'Only Ubuntu and Debian servers can be cloned for now.'
+                : code === 'not_connected'
+                  ? 'Connect it first.'
+                  : 'Something went wrong.',
+        });
+      }
+    });
 
   const trust = (p: HostKeyPrompt) => {
     setPrompt(null);
@@ -121,7 +162,7 @@ export function ServersApp() {
                       />
                       <span className="truncate">{s.name}</span>
                       {activeId === s.id && (
-                        <span className="rounded bg-primary/15 px-1.5 text-[10px] text-primary">
+                        <span className="rounded bg-primary/10 px-1.5 text-[10px] text-link">
                           active
                         </span>
                       )}
@@ -157,6 +198,15 @@ export function ServersApp() {
                       onClick={() => test(s)}
                     >
                       Test
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === s.id || statuses[s.id] !== 'connected'}
+                      title="Create a recipe from the tools installed on this server"
+                      onClick={() => void clone(s)}
+                    >
+                      Clone setup
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setEditing(s)}>
                       Edit

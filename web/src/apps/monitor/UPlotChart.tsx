@@ -7,6 +7,17 @@ export interface ChartSeries {
   stroke: string;
 }
 
+/** `var(--chart-1)` -> the token's value (uPlot draws on a canvas, which cannot read CSS variables). */
+function tokenColor(value: string): string {
+  const name = value.startsWith('var(')
+    ? value.slice(4, -1)
+    : value.startsWith('--')
+      ? value
+      : null;
+  if (!name) return value;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || value;
+}
+
 /** Thin wrapper around uPlot: created once, then only fed new data / new sizes. */
 export function UPlotChart({
   data,
@@ -29,8 +40,8 @@ export function UPlotChart({
 
   useEffect(() => {
     const el = host.current!;
-    const axisStroke = dark ? '#94a3b8' : '#475569';
-    const grid = { stroke: dark ? '#1e293b' : '#e2e8f0', width: 1 };
+    const axisStroke = tokenColor('--muted-foreground');
+    const grid = { stroke: tokenColor('--separator'), width: 1 };
     const u = new uPlot(
       {
         width: Math.max(el.clientWidth, 100),
@@ -55,9 +66,9 @@ export function UPlotChart({
           {},
           ...series.map((s) => ({
             label: s.label,
-            stroke: s.stroke,
+            stroke: tokenColor(s.stroke),
             width: 2,
-            fill: `${s.stroke}22`,
+            fill: `${tokenColor(s.stroke)}22`,
             points: { show: false },
           })),
         ],

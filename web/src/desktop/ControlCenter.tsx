@@ -98,7 +98,7 @@ export function ControlCenter() {
       style={{ top: 'calc(var(--menubar-h) + 6px)', right: 8 }}
     >
       <section aria-label="Servers" className="rounded-xl bg-foreground/[0.06] p-2">
-        <p className="px-1 pb-1 text-caption font-medium text-faint-foreground">Server</p>
+        <p className="px-1 pb-1 text-caption font-medium text-muted-foreground">Server</p>
         {servers.length === 0 && (
           <button
             className="w-full rounded-lg px-2 py-1.5 text-left text-link hover:bg-foreground/10"
@@ -175,7 +175,7 @@ export function ControlCenter() {
       </div>
 
       <section aria-label="Wallpaper" className="mt-2 rounded-xl bg-foreground/[0.06] p-2">
-        <p className="px-1 pb-1.5 text-caption font-medium text-faint-foreground">Wallpaper</p>
+        <p className="px-1 pb-1.5 text-caption font-medium text-muted-foreground">Wallpaper</p>
         <div className="grid grid-cols-4 gap-2">
           {WALLPAPERS.map((w) => (
             <button

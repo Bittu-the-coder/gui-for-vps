@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { z } from 'zod';
+import { confirmDialog } from '../components/confirmStore';
 import { readJson, writeJson } from '../lib/storage';
 
 export const WindowStateSchema = z.object({
@@ -101,7 +102,15 @@ export function registerCloseGuard(windowId: string, isDirty: () => boolean): ()
 
 /** What the close button calls: asks before discarding unsaved changes, then closes with an animation. */
 export function tryClose(windowId: string): void {
-  if (closeGuards.get(windowId)?.() && !window.confirm('Discard your unsaved changes?')) return;
+  if (closeGuards.get(windowId)?.()) {
+    void confirmDialog({
+      title: 'Discard your unsaved changes?',
+      body: 'This window has changes that were not saved.',
+      confirmLabel: 'Discard',
+      danger: true,
+    }).then((ok) => ok && useDesktop.getState().requestClose(windowId));
+    return;
+  }
   useDesktop.getState().requestClose(windowId);
 }
 

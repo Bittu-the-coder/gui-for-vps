@@ -128,7 +128,7 @@ gfv/
 ├─ web/               @gfv/web  React 19 + Vite + Tailwind v4 + Zustand
 │  └─ src/
 │     ├─ main.tsx, App.tsx          entry and the unlock gate
-│     ├─ desktop/                   window manager: Desktop, Window, Taskbar, StartMenu, windowStore
+│     ├─ desktop/                   window manager and shell: Desktop, Window, MenuBar, Dock, Spotlight, windowStore
 │     ├─ apps/                      one folder per app (terminal, files, editor, monitor, services, ...)
 │     ├─ runner/                    RunDialog + runStore: the UI for the Command Runner
 │     ├─ learn/                     LearnPanel (journal)
@@ -940,8 +940,80 @@ Docker behaviour is not. Check on a real VPS before relying on it.
   `if [ -e FROM ] && [ ! -e TO ]; then mv -nT …; else echo Skipped …; fi`.
 - **Milestone test:** `server/src/ssh/recipes.int.test.ts` records on `vps-a`, exports, checks `bash -n`, **runs the
   script on the clean `vps-b`**, verifies the result, and runs it a second time.
-- **UI:** taskbar ⏺ Record / ■ Stop (n), `RecipesApp.tsx` (steps with explanations and commands, rename, reorder,
+- **UI:** menu-bar Record / Stop (n), `RecipesApp.tsx` (steps with explanations and commands, rename, reorder,
   delete, Script tab with Copy/Download). Not recorded by design: file edits, uploads, killed processes.
+
+---
+
+### 16.3 Parameters, jobs and replay (M11)
+
+**Parameters** (`shared/src/recipes/params.ts`). A step's params may contain `{{name}}` inside strings; the recipe
+declares `params: [{ name, label, default?, secret? }]` (column `recipes.params`). Substitution (`substitute`) happens
+on the PARAMS, before the action's Zod schema and before `shellQuote`, so a value can never become shell syntax.
+`resolveValues` applies defaults (a `secret` is never defaulted); `paramProblems` finds undeclared placeholders.
+`RecipeService.setParams/updateStep` validate every step with stand-in values, so a recipe cannot be saved in a
+state that would fail when replayed.
+
+**Export** turns each parameter into an environment variable `GFV_<NAME>` (the prefix avoids clashes with HOME or
+PATH). Steps are built with a sentinel (`__GFVPARAM_NAME__`) so the action still validates, then `injectVars`
+replaces the sentinel with `"${GFV_NAME}"`, closing and reopening single quotes where `shellQuote` put it inside
+them. `server/src/services/recipes/export.run.test.ts` RUNS generated scripts in real bash, including with a hostile
+value (`x'; touch PWNED; echo '`), to prove the value stays inert.
+
+**Jobs** (`server/src/services/jobs/jobs.ts`, `shared/src/jobs.ts`, `routes/jobs.ts`). A job is the same steps run on
+one or more servers: a _replay_ (a recipe) or a _broadcast_ (one action). Each target runs its steps **in order**,
+targets run **in parallel**, and every step goes through `Runner.start` (so history, snapshots and the Safety Net
+apply). Rules:
+
+- **Plan, then confirm once.** `POST /api/jobs/plan` returns the exact commands per server (they differ: root vs
+  sudo) and the highest risk. `POST /api/jobs` refuses a caution/danger plan unless `confirmed` (checked SERVER-side),
+  refuses disconnected targets (naming them) and invalid steps, and runs nothing in those cases.
+- **Pause on failure.** A failing step pauses only that target (`status: paused`) and waits for a decision
+  (`POST /api/jobs/:id/targets/:serverId/decision`: `retry`, `skip`, `abort`); the other targets carry on.
+  Nothing after the failed step has run. Cancel sends Ctrl-C to running steps and abandons paused targets.
+- **Not recorded.** Job steps use `recordStep: false` (a new Runner option), so replaying while a recording is active
+  does not add the replay to the recording. With secret parameters `record: false` as well: values could otherwise
+  appear in history.
+- **State.** `Job.snapshot()` is the whole state; the WebSocket `/api/jobs/:id/stream` sends output lines and a fresh
+  snapshot after every change, replayed to late viewers (like runs). Live jobs are in memory; a finished job is saved
+  to `jobs` (migration 0004) as a snapshot WITHOUT parameter values. A job that is still running when GFV restarts
+  is lost (its steps already ran, and are in history).
+- `JobService` takes a `JobRunner` (`preview/start/cancel`), so `jobs.test.ts` drives the state machine with a scripted
+  fake runner (forced failures, retry, skip, abort, cancel, late subscribers) and `ssh/jobs.int.test.ts` does it for
+  real on vps-a and vps-b.
+
+UI: `apps/jobs/JobsApp.tsx` (progress per server, step list, output, the decision buttons), `PlanDialog.tsx` (pick
+servers, parameter values or an action, preview the plan, confirm, start), `stores/jobStore.ts` (watches a job's
+stream and toasts when a server needs a decision or the job ends), and in Recipes a **Parameters** tab, a per-step
+parameter editor and **Run on…**.
+
+### 16.4 Other export formats, sharing and cloning (M12)
+
+**Formats** (`shared/src/recipes/formats.ts`, `exportAs(format, input)`; route `GET /api/recipes/:id/export?format=`
+returns `{ files, notes }`, and for bash still `script`/`filename`). All of them start from the same steps and the same
+sentinel mechanism as the bash export, so the "a value never becomes syntax" property carries over:
+
+- **Dockerfile:** `FROM ubuntu:24.04`, parameters as `ARG GFV_NAME`, each command as `RUN` (sudo dropped: a build is
+  root). Steps that only make sense on a running machine (`systemctl`, `ufw`, `docker`...) are left out and listed in
+  `notes`. A secret parameter has no default and a warning (build args are stored in the image history).
+- **Docker Compose:** `docker-compose.yml` (build args, required ones as `${VAR:?...}`) plus the Dockerfile.
+- **Ansible:** real modules where there is a clean match (`files.mkdir/chmod/delete-path` to `ansible.builtin.file`,
+  `service.*` to `ansible.builtin.systemd`); everything else is an `ansible.builtin.shell` task. Parameters reach shell
+  tasks through `environment:` (`GFV_NAME: "{{ name }}"`), never pasted into the command text. Defaults are `vars:`,
+  secret or required ones `vars_prompt:`. YAML is emitted by a tiny emitter that quotes every scalar with
+  `JSON.stringify` (valid YAML).
+
+**Recipe files** (`shared/src/recipes/share.ts`): `{ format: 1, name, description?, tags?, author?, params, steps }`,
+no secret values. A file is UNTRUSTED input. `inspectRecipeFile` validates it from scratch (known actions, valid
+params, no undeclared placeholders, only `recordable` actions without `secretParams`, the same rule recording uses)
+and describes every step as it would run; `POST /api/recipes/import` repeats that on the server, so nothing the
+browser claims is believed. The bundled starter library (`library.ts`, served by `GET /api/library`) is made of the
+same files and goes through the same checks. There is no backend: a community library is "post the file in a Git
+repository"; GFV never fetches anything by itself.
+
+**Clone this server** (`POST /api/servers/:id/clone-recipe`): runs the quiet `devhub.detect` query and makes a recipe
+of `devhub.install.<tool>` steps for what is installed (Ubuntu/Debian only). It reproduces tools, not files or
+configuration.
 
 ---
 
@@ -983,14 +1055,21 @@ components read with a selector (`useServers((s) => s.servers)`).
   Everything read back is validated with Zod; all localStorage access is wrapped in try/catch (`lib/storage.ts`).
   `registerCloseGuard`/`tryClose` let an app (the Editor) veto closing its window.
 - `Window.tsx`: a `react-rnd` box (draggable by the `.win-titlebar`, resizable, `bounds="parent"`). Maximized is a
-  CSS-level override (`100%` × `100% − taskbar`), so the stored rectangle is untouched. A window tied to a server
-  gets that server's **colour as border and a name badge**. The app component sits inside an `ErrorBoundary`, so
-  one crashing app does not blank the desktop.
-- `Desktop.tsx`: the wallpaper, icons (`LAUNCHABLE` from the registry), windows, the right-click menu, the
-  **workspace container that shrinks when the Learn panel is docked** (so windows never hide under it), the
-  first-run "Add your first server" card, the connection-lost banner, and mounts `RunDialogHost` and `Tour`
-  **once**. It also closes saved windows whose app no longer exists.
-- `Taskbar.tsx`: Start menu, server switcher, window buttons, Record/Stop, Learn, Lock, theme, clock.
+  CSS-level override (`100%` × `100% − DOCK_SAFE`), so the stored rectangle is untouched. A window tied to a server
+  gets that server's **colour as a ring and a name pill** (text colour from `readableOn`). The app component sits
+  inside an `ErrorBoundary`, so one crashing app does not blank the desktop. Traffic lights, a glass title bar and
+  the open/close/minimize/restore animations (Web Animations API, `windowAnim.ts`) are described in
+  `docs/DESIGN_SYSTEM.md`. `closing` (transient) lets a window play its close animation before `close` removes it.
+- `Desktop.tsx`: the wallpaper, `MenuBar`, the **workspace container** (under the menu bar, shrinks when the Learn
+  panel is docked, so windows never hide under either; it is the drag boundary and what Mission Control lays out
+  in), the windows, the `Dock`, the desktop right-click menu, the first-run card, the connection-lost banner, and
+  mounts **once**: `RunDialogHost`, `Tour`, `Spotlight`, `ControlCenter`, `ToastHost`, `ConfirmHost`,
+  `ChangePasswordDialog`. It also owns the global shortcuts (`hotkeys.ts`) and closes saved windows whose app no
+  longer exists.
+- `MenuBar.tsx` + `menuModel.ts` (pure) + `appMenus.ts`: the menus; apps contribute with `useAppMenus`.
+  `Dock.tsx` + `dockMath.ts` (pure): the Dock. `Spotlight.tsx` + `spotlightModel.ts` (pure fuzzy search).
+  `overviewLayout.ts` (pure): Mission Control. `commands.ts`: actions reachable from several places.
+  `overlayStore.ts`: which overlay is open. `appearanceStore.ts` (in `stores/`): wallpaper and Reduce Transparency.
 - `openApp.ts`: the one way to open an app: handles `singleton` apps and ties `serverBound` apps to the active
   server.
 - **The registry** (`apps/registry.tsx`) is the single list of apps: `{ id, title, icon, component, defaultSize,
@@ -1033,8 +1112,8 @@ follows the system theme. Class names are merged with `cn()` (`clsx` + `tailwind
   "Try it yourself". It refreshes whenever a run finishes.
 - `tour/Tour.tsx`: a dependency-free coach-mark: finds the target by `[data-tour="…"]`, rings it with a huge box
   shadow, and positions a card next to it. The same `data-tour` attributes are what the Playwright specs use to
-  find desktop icons.
-- Recording: the taskbar button calls `recordingStore`, which mirrors the server-side state.
+  find Dock icons.
+- Recording: the menu-bar button calls `recordingStore`, which mirrors the server-side state.
 
 ---
 
@@ -1116,10 +1195,12 @@ changed" flow is tested).
 - The slow real-install tests (Node and PostgreSQL on a clean container) only run with `GFV_SLOW_TESTS=1`.
 - `pnpm e2e` builds the web app, starts the app with `e2e/serve.ts` (production mode, port 4399, temp
   `GFV_HOME`), and runs the specs **in order on one worker**: spec 01 adds the server the rest use. The specs find
-  desktop icons with `data-tour="app-<id>"` (visible text did not match). `GFV_E2E_SERVER_CMD` runs the same specs
+  desktop icons with `data-tour="app-<id>"` on the Dock icons (visible text did not match). `openApp` parks the pointer off the
+  Dock first, because magnification moves icons. `GFV_E2E_SERVER_CMD` runs the same specs
   against a packed install.
 
-Numbers at the time of writing: 31 test files, 274 passing tests (+3 opt-in), 9 Playwright specs.
+Numbers at the time of writing: 54 test files, 480 passing tests (+3 opt-in), 46 Playwright specs (+ on-demand
+capture specs). Contrast, accessible names, focus and reduced motion are measured by `e2e/10-accessibility.spec.ts`.
 
 ---
 

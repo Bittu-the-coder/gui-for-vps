@@ -53,29 +53,39 @@ export function Tour() {
     <div className="fixed inset-0 z-[300000]" role="dialog" aria-label="Tour">
       {box ? (
         <div
-          className="pointer-events-none absolute rounded-lg ring-2 ring-sky-400"
+          className="pointer-events-none absolute rounded-xl ring-2 ring-ring"
           style={{
             left: box.x - pad,
             top: box.y - pad,
             width: box.w + pad * 2,
             height: box.h + pad * 2,
-            boxShadow: '0 0 0 9999px rgba(2,6,23,0.65)',
+            boxShadow: '0 0 0 9999px rgb(0 0 0 / 0.55)',
           }}
         />
       ) : (
-        <div className="absolute inset-0 bg-slate-950/65" />
+        <div className="absolute inset-0 bg-black/55" />
       )}
       <div
-        className="absolute rounded-lg border border-border bg-background p-4 text-foreground shadow-2xl"
+        className="glass-popover dialog-in absolute rounded-2xl border border-separator p-4 text-foreground shadow-elev-3"
         style={{ ...style, width: cardW }}
       >
-        <p className="text-xs text-muted-foreground">
-          Step {step + 1} of {TOUR_STEPS.length}
+        <p className="flex items-center gap-1.5 text-footnote text-muted-foreground">
+          <span>
+            Step {step + 1} of {TOUR_STEPS.length}
+          </span>
+          <span aria-hidden className="ml-auto flex gap-1">
+            {TOUR_STEPS.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 w-1.5 rounded-full ${i === step ? 'bg-primary' : 'bg-foreground/20'}`}
+              />
+            ))}
+          </span>
         </p>
-        <h2 className="mt-1 font-semibold">{s.title}</h2>
-        <p className="mt-1 text-sm">{s.body}</p>
+        <h2 className="mt-1.5 text-title font-semibold">{s.title}</h2>
+        <p className="mt-1 text-body">{s.body}</p>
         <div className="mt-3 flex items-center justify-between">
-          <button className="text-xs text-muted-foreground underline" onClick={finish}>
+          <button className="text-footnote text-muted-foreground underline" onClick={finish}>
             Skip tour
           </button>
           <div className="flex gap-2">

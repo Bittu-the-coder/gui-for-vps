@@ -12,7 +12,7 @@ export function CommandLine({
 }) {
   return (
     <div className="flex items-start gap-2">
-      <code className="min-w-0 flex-1 whitespace-pre-wrap break-all rounded bg-slate-900 px-2 py-1 text-xs text-slate-100">
+      <code className="min-w-0 flex-1 whitespace-pre-wrap break-all rounded bg-code px-2 py-1 text-xs text-code-foreground">
         $ {command}
       </code>
       <button

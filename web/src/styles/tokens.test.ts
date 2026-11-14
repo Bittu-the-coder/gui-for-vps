@@ -53,6 +53,10 @@ const PAIRS: [string, string][] = [
   ['accent-foreground', 'accent'],
   ['secondary-foreground', 'secondary'],
   ['popover-foreground', 'popover'],
+  ['code-foreground', 'code-bg'],
+  ['code-muted', 'code-bg'],
+  ['code-accent', 'code-bg'],
+  ['code-danger', 'code-bg'],
 ];
 
 describe.each([
@@ -72,3 +76,11 @@ it('focus ring is visible (3:1) against the window background in both themes', (
   expect(contrast(light.ring!, light.background!)).toBeGreaterThanOrEqual(3);
   expect(contrast(dark.ring!, dark.background!)).toBeGreaterThanOrEqual(3);
 });
+
+it.each(['chart-1', 'chart-2', 'chart-3'])(
+  '%s is visible (3:1) on the window background, both themes',
+  (c) => {
+    expect(contrast(light[c]!, light.background!)).toBeGreaterThanOrEqual(3);
+    expect(contrast(dark[c]!, dark.background!)).toBeGreaterThanOrEqual(3);
+  },
+);

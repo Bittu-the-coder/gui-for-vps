@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 
 export const Dialog = DialogPrimitive.Root;
 
-// z-index sits above window z-orders (which only grow) and the taskbar.
+// z-index sits above window z-orders (which only grow) and the Dock.
 export function DialogContent({
   className,
   children,
@@ -12,10 +12,10 @@ export function DialogContent({
 }: ComponentProps<typeof DialogPrimitive.Content>) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-[200000] bg-black/60" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-[200000] bg-[var(--scrim)] backdrop-blur-[2px]" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed left-1/2 top-1/2 z-[200001] flex max-h-[90vh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-background p-6 text-foreground shadow-xl',
+          'fixed left-1/2 top-1/2 z-[200001] dialog-in flex max-h-[90vh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto glass-popover rounded-2xl border border-separator p-5 text-foreground shadow-elev-3',
           className,
         )}
         {...props}
@@ -33,7 +33,7 @@ export function DialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElem
   return <div className={cn('flex justify-end gap-2', className)} {...props} />;
 }
 export function DialogTitle({ className, ...props }: ComponentProps<typeof DialogPrimitive.Title>) {
-  return <DialogPrimitive.Title className={cn('text-lg font-semibold', className)} {...props} />;
+  return <DialogPrimitive.Title className={cn('text-title font-semibold', className)} {...props} />;
 }
 export function DialogDescription({
   className,
@@ -41,7 +41,7 @@ export function DialogDescription({
 }: ComponentProps<typeof DialogPrimitive.Description>) {
   return (
     <DialogPrimitive.Description
-      className={cn('text-sm text-muted-foreground', className)}
+      className={cn('text-body text-muted-foreground', className)}
       {...props}
     />
   );

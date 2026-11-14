@@ -1,3 +1,5 @@
+import { confirmDialog } from '../../components/confirmStore';
+import { RefreshCw } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { NoServer } from '../../components/NoServer';
 import { Button } from '../../components/ui/button';
@@ -123,11 +125,11 @@ export function SnapshotsApp({ windowId }: { windowId: string }) {
             onClick={() => void load()}
             aria-label="Refresh"
           >
-            ⟳
+            <RefreshCw size={13} />
           </button>
         </div>
         {error && (
-          <p role="alert" className="px-2 text-red-600 dark:text-red-400">
+          <p role="alert" className="px-2 text-danger">
             {error}
           </p>
         )}
@@ -148,7 +150,7 @@ export function SnapshotsApp({ windowId }: { windowId: string }) {
                 data-testid="snapshot-row"
                 className={cn(
                   'block w-full px-3 py-1 text-left text-xs hover:bg-accent',
-                  selectedId === s.id && 'bg-sky-500/25',
+                  selectedId === s.id && 'bg-primary/15',
                 )}
                 onClick={() => {
                   setSelectedId(s.id);
@@ -190,12 +192,19 @@ export function SnapshotsApp({ windowId }: { windowId: string }) {
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-red-500"
+                className="text-danger"
                 onClick={() => {
-                  if (!window.confirm('Delete this backup? This cannot be undone.')) return;
-                  void api.deleteSnapshot(serverId, selected.id).then(() => {
-                    setSelectedId(null);
-                    return load();
+                  void confirmDialog({
+                    title: 'Delete this backup?',
+                    body: 'This cannot be undone.',
+                    confirmLabel: 'Delete',
+                    danger: true,
+                  }).then((ok) => {
+                    if (!ok) return;
+                    return api.deleteSnapshot(serverId, selected.id).then(() => {
+                      setSelectedId(null);
+                      return load();
+                    });
                   });
                 }}
               >

@@ -1,3 +1,13 @@
+import {
+  ArrowUp,
+  ChevronDown,
+  ChevronUp,
+  File,
+  Folder,
+  House,
+  Link2,
+  RefreshCw,
+} from 'lucide-react';
 import type { FileEntry } from '@gfv/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Menu, type MenuItem } from '../../components/menu/Menu';
@@ -14,7 +24,12 @@ import { formatSize, joinPath, nameError, parentPath } from './paths';
 
 type SortKey = 'name' | 'size' | 'mtime';
 
-const ICON = { dir: '📁', file: '📄', symlink: '🔗', other: '▫️' } as const;
+function EntryIcon({ type }: { type: FileEntry['type'] }) {
+  const cls = 'mr-1.5 inline shrink-0 -mt-0.5';
+  if (type === 'dir') return <Folder size={14} className={`${cls} text-link`} />;
+  if (type === 'symlink') return <Link2 size={14} className={`${cls} text-muted-foreground`} />;
+  return <File size={14} className={`${cls} text-muted-foreground`} />;
+}
 
 function describe(e: unknown): string {
   if (e instanceof ApiError) {
@@ -223,13 +238,20 @@ export function FilesApp({ windowId }: { windowId: string }) {
 
   const sortBy = (key: SortKey) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
-  const arrow = (key: SortKey) => (sort.key === key ? (sort.dir === 1 ? ' ▲' : ' ▼') : '');
+  const arrow = (key: SortKey) =>
+    sort.key === key ? (
+      sort.dir === 1 ? (
+        <ChevronUp size={12} className="ml-0.5 inline" />
+      ) : (
+        <ChevronDown size={12} className="ml-0.5 inline" />
+      )
+    ) : null;
   const tb = 'h-7 px-2 text-xs';
 
   return (
     <div
       data-path={path}
-      className={cn('relative flex h-full flex-col text-sm', dragging && 'bg-sky-500/10')}
+      className={cn('relative flex h-full flex-col text-sm', dragging && 'bg-primary/10')}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes('Files')) {
           e.preventDefault();
@@ -252,7 +274,7 @@ export function FilesApp({ windowId }: { windowId: string }) {
           aria-label="Up"
           onClick={() => void load(parentPath(path))}
         >
-          ↑
+          <ArrowUp size={14} />
         </Button>
         <Button
           variant="ghost"
@@ -260,10 +282,10 @@ export function FilesApp({ windowId }: { windowId: string }) {
           aria-label="Home"
           onClick={() => void load(home || '~')}
         >
-          🏠
+          <House size={14} />
         </Button>
         <Button variant="ghost" className={tb} aria-label="Refresh" onClick={refresh}>
-          ⟳
+          <RefreshCw size={13} />
         </Button>
         <form
           className="min-w-0 flex-1"
@@ -352,7 +374,7 @@ export function FilesApp({ windowId }: { windowId: string }) {
         {error ? (
           <div className="grid h-full place-items-center p-4 text-center">
             <div className="flex flex-col items-center gap-2">
-              <p role="alert" className="text-red-600 dark:text-red-400">
+              <p role="alert" className="text-danger">
                 {error}
               </p>
               <Button size="sm" onClick={refresh}>
@@ -387,13 +409,14 @@ export function FilesApp({ windowId }: { windowId: string }) {
                   data-path-entry={e.path}
                   className={cn(
                     'cursor-default select-none hover:bg-accent',
-                    selected === e.path && 'bg-sky-500/25',
+                    selected === e.path && 'bg-primary/15',
                   )}
                   onClick={() => setSelected(e.path)}
                   onDoubleClick={() => open(e)}
                 >
                   <td className="truncate px-2 py-1">
-                    {ICON[e.type]} {e.name}
+                    <EntryIcon type={e.type} />
+                    {e.name}
                   </td>
                   <td className="px-2 py-1 text-right tabular-nums">
                     {e.type === 'dir' ? '' : formatSize(e.size)}
@@ -417,7 +440,7 @@ export function FilesApp({ windowId }: { windowId: string }) {
       </div>
 
       {dragging && (
-        <div className="pointer-events-none absolute inset-0 grid place-items-center border-2 border-dashed border-sky-500 text-sm font-medium">
+        <div className="pointer-events-none absolute inset-0 grid place-items-center border-2 border-dashed border-primary text-sm font-medium">
           Drop to upload to {path}
         </div>
       )}

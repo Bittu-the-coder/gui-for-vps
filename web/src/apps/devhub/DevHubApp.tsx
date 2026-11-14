@@ -1,3 +1,4 @@
+import { Braces, Container, Database, GitBranch, Globe, Hexagon, Package } from 'lucide-react';
 import { parseDetect, TOOLS, type DevHubStatus, type ToolDef } from '@gfv/shared';
 import { useState } from 'react';
 import { CommandsDisclosure } from '../../components/CommandsDisclosure';
@@ -7,6 +8,26 @@ import { useDesktop } from '../../desktop/windowStore';
 import { usePolling } from '../../hooks/usePolling';
 import { api } from '../../lib/api';
 import { activeKey, requestRun, useRunDialog } from '../../runner/runStore';
+
+const TOOL_ICON: Record<string, [typeof Package, string]> = {
+  node: [Hexagon, 'from-[#5fd35f] to-[#2e8b2e]'],
+  python: [Braces, 'from-[#4b8bf5] to-[#f5c542]'],
+  docker: [Container, 'from-[#3ec6e8] to-[#0b7fc4]'],
+  postgresql: [Database, 'from-[#5b8bd6] to-[#2c4f94]'],
+  nginx: [Globe, 'from-[#4cd97b] to-[#12994a]'],
+  git: [GitBranch, 'from-[#ff8a4c] to-[#d9420f]'],
+};
+function ToolIcon({ id }: { id: string }) {
+  const [Icon, tint] = TOOL_ICON[id] ?? [Package, 'from-[#a1a1a8] to-[#5a5a60]'];
+  return (
+    <span
+      aria-hidden
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-gradient-to-b ${tint} text-white shadow-elev-1`}
+    >
+      <Icon size={19} />
+    </span>
+  );
+}
 
 export function DevHubApp({ windowId }: { windowId: string }) {
   const win = useDesktop((s) => s.windows[windowId]);
@@ -49,7 +70,7 @@ export function DevHubApp({ windowId }: { windowId: string }) {
         className="flex flex-col gap-2 rounded border border-border p-3"
       >
         <div className="flex items-center gap-2">
-          <span className="text-2xl">{t.icon}</span>
+          <ToolIcon id={t.id} />
           <div className="min-w-0 flex-1">
             <div className="font-semibold">{t.name}</div>
             <div className="text-xs text-muted-foreground" data-testid={`status-${t.id}`}>
@@ -96,7 +117,7 @@ export function DevHubApp({ windowId }: { windowId: string }) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-red-500"
+                  className="text-danger"
                   onClick={() => go('devhub.purge.postgresql')}
                 >
                   Uninstall + delete databases…
@@ -121,15 +142,12 @@ export function DevHubApp({ windowId }: { windowId: string }) {
     <div className="flex h-full flex-col text-sm">
       <div className="min-h-0 flex-1 overflow-auto p-3">
         {error && (
-          <p role="alert" className="mb-2 text-red-600 dark:text-red-400">
+          <p role="alert" className="mb-2 text-danger">
             {error}
           </p>
         )}
         {status && !status.os.supported && (
-          <p
-            role="alert"
-            className="mb-3 rounded border border-amber-500 bg-amber-500/10 p-2 text-xs"
-          >
+          <p role="alert" className="mb-3 rounded border border-warning bg-warning/10 p-2 text-xs">
             This server runs {status.os.pretty}. The Dev Hub can only install tools on Ubuntu and
             Debian for now, so installs are turned off. You can still see what is installed.
           </p>

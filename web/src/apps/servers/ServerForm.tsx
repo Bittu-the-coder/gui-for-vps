@@ -14,7 +14,7 @@ import { Label } from '../../components/ui/label';
 import { api, ApiError } from '../../lib/api';
 import { cn } from '../../lib/utils';
 
-const COLORS = ['#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899'];
+const COLORS = ['#0ea5e9', '#22c55e', '#f59e0b', '#dc2626', '#9333ea', '#ec4899'];
 
 type Auth = 'key' | 'password';
 

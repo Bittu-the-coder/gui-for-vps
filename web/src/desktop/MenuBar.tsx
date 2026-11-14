@@ -1,6 +1,7 @@
 import { Circle, GraduationCap, Moon, Search, SlidersHorizontal, Sun } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { LAUNCHABLE, appById } from '../apps/registry';
+import { GfvMark } from '../components/icons/GfvMark';
 import { Menu, type MenuItem } from '../components/menu/Menu';
 import { useAppearance } from '../stores/appearanceStore';
 import { useLearn } from '../stores/learnStore';
@@ -21,23 +22,6 @@ const STATUS_DOT: Record<string, string> = {
   error: 'bg-danger',
   disconnected: 'bg-faint-foreground',
 };
-
-/** A small neutral mark (a shell prompt in a rounded square). Not anyone's trademark. */
-function GfvMark() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <rect x="1" y="1" width="14" height="14" rx="4" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="M4.5 6l2.5 2-2.5 2"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M8.5 10.5h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 const BAR_BTN =
   'flex h-[22px] items-center gap-1.5 rounded px-2 text-body hover:bg-foreground/10 aria-expanded:bg-foreground/15 focus-visible:outline-offset-0';
