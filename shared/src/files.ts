@@ -58,3 +58,21 @@ export type FsErrorCode = z.infer<typeof FsErrorCodeSchema>;
 /** Limits. */
 export const EDITOR_MAX_BYTES = 5 * 1024 * 1024;
 export const UPLOAD_MAX_BYTES = 100 * 1024 * 1024;
+
+/** Copy one file from a server to a server (or to another place on the same one). Folders are not supported yet. */
+export const TransferBodySchema = z.object({
+  from: z.object({ serverId: z.string().min(1), path: z.string().min(1) }),
+  /** The full destination path (folder + file name). It must not exist: nothing is ever overwritten. */
+  to: z.object({ serverId: z.string().min(1), path: z.string().min(1) }),
+});
+export type TransferBody = z.infer<typeof TransferBodySchema>;
+
+/** What a dragged file row carries (`dataTransfer`, type TRANSFER_MIME) from one Files window to another. */
+export const TRANSFER_MIME = 'application/x-gfv-file';
+export const TransferPayloadSchema = z.object({
+  serverId: z.string().min(1),
+  path: z.string().min(1),
+  name: z.string().min(1),
+  type: z.enum(['file', 'dir', 'symlink', 'other']),
+});
+export type TransferPayload = z.infer<typeof TransferPayloadSchema>;

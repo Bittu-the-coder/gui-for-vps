@@ -3,6 +3,7 @@ import type { Readable } from 'node:stream';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import {
   EDITOR_MAX_BYTES,
+  TransferBodySchema,
   UPLOAD_MAX_BYTES,
   type ListResponse,
   type ReadResponse,
@@ -11,6 +12,7 @@ import {
 import type { AppContext } from '../context.js';
 import { normalizePath } from '../services/sftp/paths.js';
 import { SftpError } from '../services/sftp/sftp.js';
+import { parseBody } from './util.js';
 
 const STATUS = {
   not_connected: 409,
@@ -27,6 +29,8 @@ const STATUS = {
 export function fileRoutes(app: FastifyInstance, { sftp, vault }: AppContext): void {
   app.addHook('preHandler', async (req, reply) => {
     if (req.url.includes('/fs/') && !vault.unlocked)
+      return reply.code(423).send({ error: 'locked' });
+    if (req.url.startsWith('/api/transfer') && !vault.unlocked)
       return reply.code(423).send({ error: 'locked' });
   });
 
@@ -117,4 +121,37 @@ export function fileRoutes(app: FastifyInstance, { sftp, vault }: AppContext): v
       }
     },
   );
+
+  /**
+   * Copy a file between servers (or within one): the bytes stream from the source's SFTP straight into the
+   * destination's, through GFV, never touching disk. It refuses to overwrite and refuses folders.
+   */
+  app.post('/api/transfer', async (req, reply) => {
+    const body = parseBody(TransferBodySchema, req.body, reply);
+    if (!body) return;
+    const from = normalizePath(body.from.path);
+    const to = normalizePath(body.to.path);
+    if (!from || !to || from === '/' || to === '/') return badPath(reply);
+    if (body.from.serverId === body.to.serverId && from === to)
+      return reply
+        .code(400)
+        .send({ error: 'same_file', message: 'The source and the destination are the same file.' });
+    let source: Readable | undefined;
+    try {
+      const r = await sftp.createReadStream(body.from.serverId, from);
+      if (r.size > UPLOAD_MAX_BYTES) {
+        r.stream.destroy();
+        throw new SftpError('too_large');
+      }
+      source = r.stream;
+      const out = await sftp.write(body.to.serverId, to, source, {
+        createOnly: true,
+        maxBytes: UPLOAD_MAX_BYTES,
+      });
+      return { size: out.size };
+    } catch (e) {
+      source?.destroy();
+      return fail(reply, e);
+    }
+  });
 }

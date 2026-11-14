@@ -155,8 +155,7 @@ export const api = {
     RunStartedSchema.parse(
       await request('POST', '/api/runs', { serverId, actionId, params, confirmed }),
     ).runId,
-  history: async (): Promise<HistoryResponse> =>
-    HistoryResponseSchema.parse(await request('GET', '/api/history')),
+  history: async (): Promise<HistoryResponse> =>    HistoryResponseSchema.parse(await request('GET', '/api/history')),
 
   fsList: async (serverId: string, path: string): Promise<ListResponse> =>
     ListResponseSchema.parse(
@@ -177,6 +176,11 @@ export const api = {
         file,
       ),
     ),
+  /** Copy a file between servers (streamed through GFV). Never overwrites. */
+  transfer: async (
+    from: { serverId: string; path: string },
+    to: { serverId: string; path: string },
+  ) => z.object({ size: z.number() }).parse(await request('POST', '/api/transfer', { from, to })),
   fsDownloadUrl: (serverId: string, path: string) =>
     `/api/servers/${serverId}/fs/download?path=${encodeURIComponent(path)}`,
 

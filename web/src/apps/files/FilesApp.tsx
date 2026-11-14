@@ -8,7 +8,7 @@ import {
   Link2,
   RefreshCw,
 } from 'lucide-react';
-import type { FileEntry } from '@gfv/shared';
+import { TRANSFER_MIME, TransferPayloadSchema, type FileEntry } from '@gfv/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Menu, type MenuItem } from '../../components/menu/Menu';
 import { PromptDialog, type PromptSpec } from '../../components/PromptDialog';
@@ -19,6 +19,7 @@ import { useDesktop } from '../../desktop/windowStore';
 import { api, ApiError } from '../../lib/api';
 import { cn } from '../../lib/utils';
 import { requestRun } from '../../runner/runStore';
+import { toast } from '../../stores/toastStore';
 import { openEditor } from '../editor/openEditor';
 import { formatSize, joinPath, nameError, parentPath } from './paths';
 
@@ -29,6 +30,14 @@ function EntryIcon({ type }: { type: FileEntry['type'] }) {
   if (type === 'dir') return <Folder size={14} className={`${cls} text-link`} />;
   if (type === 'symlink') return <Link2 size={14} className={`${cls} text-muted-foreground`} />;
   return <File size={14} className={`${cls} text-muted-foreground`} />;
+}
+
+function safeJson(s: string): unknown {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return undefined;
+  }
 }
 
 function describe(e: unknown): string {
@@ -236,6 +245,31 @@ export function FilesApp({ windowId }: { windowId: string }) {
     ],
   }));
 
+  /** A file dragged in from another Files window (any server): copy it into `dir`. */
+  const copyHere = async (raw: string, dir: string) => {
+    const parsed = TransferPayloadSchema.safeParse(safeJson(raw));
+    if (!parsed.success) return;
+    const f = parsed.data;
+    if (f.type === 'dir')
+      return toast({
+        kind: 'error',
+        title: 'Folders cannot be copied yet',
+        body: 'Drag files, or copy a folder with the Terminal (scp, rsync).',
+      });
+    const dest = joinPath(dir, f.name);
+    const label = `${f.name} → ${dir}`;
+    setNote(`Copying ${label}…`);
+    try {
+      await api.transfer({ serverId: f.serverId, path: f.path }, { serverId, path: dest });
+      toast({ kind: 'success', title: `Copied ${f.name}`, body: `to ${dir}` });
+      setNote('');
+      refresh();
+    } catch (e) {
+      setNote('');
+      toast({ kind: 'error', title: `Could not copy ${f.name}`, body: describe(e) });
+    }
+  };
+
   const sortBy = (key: SortKey) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
   const arrow = (key: SortKey) =>
@@ -253,7 +287,10 @@ export function FilesApp({ windowId }: { windowId: string }) {
       data-path={path}
       className={cn('relative flex h-full flex-col text-sm', dragging && 'bg-primary/10')}
       onDragOver={(e) => {
-        if (e.dataTransfer.types.includes('Files')) {
+        if (e.dataTransfer.types.includes(TRANSFER_MIME)) {
+          e.preventDefault();
+          setDragging(true);
+        } else if (e.dataTransfer.types.includes('Files')) {
           e.preventDefault();
           setDragging(true);
         }
@@ -264,6 +301,8 @@ export function FilesApp({ windowId }: { windowId: string }) {
       onDrop={(e) => {
         e.preventDefault();
         setDragging(false);
+        const dragged = e.dataTransfer.getData(TRANSFER_MIME);
+        if (dragged) return void copyHere(dragged, path);
         void upload([...e.dataTransfer.files].filter((f) => f.size > 0 || f.type !== ''));
       }}
     >
@@ -407,6 +446,30 @@ export function FilesApp({ windowId }: { windowId: string }) {
                   key={e.path}
                   data-testid="file-row"
                   data-path-entry={e.path}
+                  draggable
+                  onDragStart={(ev) => {
+                    ev.dataTransfer.effectAllowed = 'copy';
+                    ev.dataTransfer.setData(
+                      TRANSFER_MIME,
+                      JSON.stringify({ serverId, path: e.path, name: e.name, type: e.type }),
+                    );
+                  }}
+                  onDragOver={(ev) => {
+                    // Dropping a file ON a folder row copies it into that folder.
+                    if (
+                      (e.type === 'dir' || e.targetIsDir) &&
+                      ev.dataTransfer.types.includes(TRANSFER_MIME)
+                    )
+                      ev.preventDefault();
+                  }}
+                  onDrop={(ev) => {
+                    const dragged = ev.dataTransfer.getData(TRANSFER_MIME);
+                    if (!dragged || !(e.type === 'dir' || e.targetIsDir)) return;
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    setDragging(false);
+                    void copyHere(dragged, e.path);
+                  }}
                   className={cn(
                     'cursor-default select-none hover:bg-accent',
                     selected === e.path && 'bg-primary/15',
@@ -441,7 +504,7 @@ export function FilesApp({ windowId }: { windowId: string }) {
 
       {dragging && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center border-2 border-dashed border-primary text-sm font-medium">
-          Drop to upload to {path}
+          Drop to copy to {path}
         </div>
       )}
       {prompt && <PromptDialog spec={prompt} onClose={() => setPrompt(null)} />}

@@ -810,6 +810,8 @@ commands stay in the Runner: `files.mkdir`, `files.rename`, `files.chmod`, `file
 
 ---
 
+**Cross-server copy (M22).** `POST /api/transfer` reads a file with `sftp.createReadStream` on the source server and writes it with `sftp.write(..., { createOnly: true, maxBytes })` on the destination, so bytes flow server to server through GFV without touching disk, and an existing destination is never overwritten. The source stream is destroyed on any failure. The browser side is plain HTML drag and drop: a Files row carries `{serverId, path, name, type}` under `TRANSFER_MIME`, and the receiving Files window (or a folder row) calls the route.
+
 ## 13. Snapshots (backups before changes)
 
 There are **two** mechanisms that write to the same `snapshots` table and the same place on the server

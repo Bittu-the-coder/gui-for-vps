@@ -173,6 +173,8 @@ others carry on, and nothing after the failed step has run. _Cancel job_ stops e
 always has to be typed. In an exported script each parameter is an environment variable
 (`GFV_SITE=blue bash recipe.sh`); a required one that is missing stops the script before it does anything.
 
+**Copy between servers.** Open two Files windows on different servers and drag a file from one onto the other (or onto a folder row). It is streamed through GFV, never overwrites an existing file, and works for files only (not folders yet).
+
 **Broadcast.** In Jobs press **New broadcast…** to run one action on several servers at once.
 
 **Other formats.** On a recipe's **Script** tab pick the format: **Bash script**, **Dockerfile**, **Docker Compose**
