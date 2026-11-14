@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
 import { resolve } from 'node:path';
@@ -74,6 +75,21 @@ describe.skipIf(!up)('Dev Hub on Fedora (dnf)', () => {
       const un = await run(`devhub.uninstall.${tool}`);
       expect(un.exitCode, un.outputTail).toBe(0);
     }
+  });
+
+  it('installs Python and PostgreSQL (with its first-run initdb) for real, then purges the databases', async () => {
+    const py = await run('devhub.install.python');
+    expect(py.exitCode, py.outputTail).toBe(0);
+    const pg = await run('devhub.install.postgresql');
+    expect(pg.exitCode, pg.outputTail).toBe(0);
+    // The package alone has no cluster on Fedora: the install must have created it.
+    const inBox = (cmd: string) =>
+      execSync(`docker exec gfv-vps-fedora sh -c ${JSON.stringify(cmd)}`, { encoding: 'utf8' });
+    expect(inBox('cat /var/lib/pgsql/data/PG_VERSION')).toMatch(/^\d+/);
+    const purge = await run('devhub.purge.postgresql');
+    expect(purge.exitCode, purge.outputTail).toBe(0);
+    expect(inBox('ls /var/lib/pgsql/data 2>/dev/null | wc -l').trim()).toBe('0');
+    expect((await run('devhub.uninstall.python')).exitCode).toBe(0);
   });
 
   it('refuses Docker on dnf with a clear message and installs nothing', async () => {

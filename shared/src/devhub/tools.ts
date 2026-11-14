@@ -40,7 +40,7 @@ const ANY_GUARD =
   `*) ${UNSUPPORTED()} ;; esac`;
 
 /** apt without questions, waiting (up to 2 min) for another package manager to finish. */
-const apt = (ctx: ActionCtx, args: string) =>
+export const apt = (ctx: ActionCtx, args: string) =>
   `${ctx.sudo}env DEBIAN_FRONTEND=noninteractive apt-get -y -q -o DPkg::Lock::Timeout=120 ${args}`;
 /**
  * `apt-get update` takes a different lock (the package lists) that DPkg::Lock::Timeout does NOT cover: while another
@@ -201,9 +201,10 @@ export const TOOLS: ToolDef[] = [
       pkgInstall(ctx, {
         apt: 'postgresql postgresql-contrib',
         dnf: 'postgresql-server postgresql-contrib',
-        // Fedora/RHEL do not create the database cluster for you: initialise it, then start the service.
+        // Fedora/RHEL do not create the database cluster for you: initialise it (once, and a failure
+        // stops the install instead of hiding until the service refuses to start), then start the service.
         dnfAfter: [
-          '$SUDO postgresql-setup --initdb || true',
+          '[ -s /var/lib/pgsql/data/PG_VERSION ] || $SUDO postgresql-setup --initdb',
           '$SUDO systemctl enable --now postgresql',
         ],
         check: 'psql --version',

@@ -24,5 +24,14 @@ OUT
   start|stop|restart|reload|enable|disable|daemon-reload)
     echo "shim: systemctl $1 $2 (ok)"
     ;;
+  show)
+    # postgresql-setup asks systemd where the data directory is.
+    case "$*" in
+      *EnvironmentFiles*) : ;; # none
+      *NeedDaemonReload*) echo "NeedDaemonReload=no" ;;
+      *Environment*) echo "Environment=PGDATA=/var/lib/pgsql/data" ;;
+      *) echo "shim: unsupported systemctl $*" >&2; exit 1 ;;
+    esac
+    ;;
   *) echo "shim: unsupported systemctl $*" >&2; exit 1 ;;
 esac
