@@ -47,6 +47,7 @@ describe('M6 actions', () => {
       'monitor.sample',
       'nginx.sites.list',
       'ports.list',
+      'projects.list',
       'services.list',
       'services.logs',
     ]);

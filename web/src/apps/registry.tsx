@@ -4,6 +4,7 @@ import {
   FileCode2,
   FolderOpen,
   GraduationCap,
+  FolderGit2,
   Hammer,
   Network,
   History,
@@ -30,6 +31,7 @@ import { ActionsApp } from './actions/ActionsApp';
 import { JobsApp } from './jobs/JobsApp';
 import { LessonsApp } from './lessons/LessonsApp';
 import { NetworkApp } from './network/NetworkApp';
+import { ProjectsApp } from './projects/ProjectsApp';
 
 export interface AppDef extends AppIconSpec {
   id: string;
@@ -135,6 +137,15 @@ export const APPS: AppDef[] = [
     component: JobsApp,
     defaultSize: { w: 880, h: 580 },
     singleton: true,
+  },
+  {
+    id: 'projects',
+    title: 'Projects',
+    icon: FolderGit2,
+    tint: ['#fb923c', '#dc2626'],
+    component: ProjectsApp,
+    defaultSize: { w: 820, h: 560 },
+    serverBound: true,
   },
   {
     id: 'network',

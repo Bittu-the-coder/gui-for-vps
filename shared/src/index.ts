@@ -27,3 +27,5 @@ export * from './lessons/engine.js';
 export * from './lessons/content.js';
 export * from './nginx/site.js';
 export * from './actions/network.js';
+export * from './projects/project.js';
+export * from './actions/projects.js';

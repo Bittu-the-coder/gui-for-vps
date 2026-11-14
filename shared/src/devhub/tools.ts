@@ -42,6 +42,13 @@ const ANY_GUARD =
 /** apt without questions, waiting (up to 2 min) for another package manager to finish. */
 const apt = (ctx: ActionCtx, args: string) =>
   `${ctx.sudo}env DEBIAN_FRONTEND=noninteractive apt-get -y -q -o DPkg::Lock::Timeout=120 ${args}`;
+/**
+ * `apt-get update` takes a different lock (the package lists) that DPkg::Lock::Timeout does NOT cover: while another
+ * apt (unattended-upgrades, a second install) holds it, update fails at once with "Could not get lock". So retry for
+ * about two minutes, telling the person why it is waiting.
+ */
+export const aptUpdate = (ctx: ActionCtx) =>
+  `n=0; until ${apt(ctx, 'update')}; do n=$((n+1)); [ $n -ge 12 ] && exit 1; echo "The package system is busy; trying again in 10 seconds..." >&2; sleep 10; done`;
 const dnf = (ctx: ActionCtx, args: string) => `${ctx.sudo}dnf -y -q ${args}`;
 
 /** The package manager a command list should be written for. */
@@ -75,7 +82,7 @@ interface PkgSpec {
 }
 
 function pkgInstall(ctx: ActionCtx, spec: PkgSpec): string[] {
-  const aptCmds = [apt(ctx, 'update'), apt(ctx, `install ${spec.apt}`)];
+  const aptCmds = [aptUpdate(ctx), apt(ctx, `install ${spec.apt}`)];
   const dnfCmds = spec.dnf
     ? [
         dnf(ctx, `install ${spec.dnf}`),
@@ -134,11 +141,11 @@ export const TOOLS: ToolDef[] = [
           ? [
               ANY_GUARD,
               ...either(
-                [apt(ctx, 'update'), apt(ctx, 'install curl ca-certificates')],
+                [aptUpdate(ctx), apt(ctx, 'install curl ca-certificates')],
                 [dnf(ctx, 'install curl ca-certificates tar gzip')],
               ),
             ]
-          : [DISTRO_GUARD, apt(ctx, 'update'), apt(ctx, 'install curl ca-certificates')]),
+          : [DISTRO_GUARD, aptUpdate(ctx), apt(ctx, 'install curl ca-certificates')]),
       `curl -fsSL -o /tmp/gfv-nvm-install.sh ${NVM_URL}`,
       `echo "${NVM_SHA256}  /tmp/gfv-nvm-install.sh" | sha256sum -c -`,
       'bash /tmp/gfv-nvm-install.sh',

@@ -66,6 +66,7 @@ describe.skipIf(!reachable)('monitor, services, docker (vps-a)', () => {
       sudo: 'sudo -n ',
       home: '/home/gfv',
       pkg: 'apt',
+      user: 'gfv',
     });
     const r = await call('POST', '/api/runs/preview', {
       serverId: id,

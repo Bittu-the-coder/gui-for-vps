@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { domainSchema, renderSite, sitePaths, siteSchema } from '../nginx/site.js';
+import { aptUpdate } from '../devhub/tools.js';
 import { shellQuote } from '../shell.js';
 import { defineAction } from './define.js';
 
@@ -105,7 +106,7 @@ export const installCertbot = defineAction({
     ctx.pkg === 'dnf'
       ? [`${ctx.sudo}dnf -y -q install certbot python3-certbot-nginx`, 'certbot --version']
       : [
-          `${ctx.sudo}env DEBIAN_FRONTEND=noninteractive apt-get -y -q -o DPkg::Lock::Timeout=120 update`,
+          aptUpdate(ctx),
           `${ctx.sudo}env DEBIAN_FRONTEND=noninteractive apt-get -y -q -o DPkg::Lock::Timeout=120 install certbot python3-certbot-nginx`,
           'certbot --version',
         ],

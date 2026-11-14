@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DISTRO_GUARD, DNF_GUARD, toolById } from '@gfv/shared';
+import { aptUpdate, DISTRO_GUARD, DNF_GUARD, toolById } from '@gfv/shared';
 
 const dir = mkdtempSync(join(tmpdir(), 'gfv-guard-'));
 /** Run a guard in sh against a fake /etc/os-release. */
@@ -43,5 +43,43 @@ describe('exported install steps (pkg: auto), run in sh', () => {
     });
     expect(r.status).toBe(1);
     expect(r.stderr).toContain('GFV can only install tools');
+  });
+});
+
+describe('apt update retries while the package lists are locked (run in sh with a fake apt-get)', () => {
+  /** A fake apt-get that fails with the real lock message `failures` times, then succeeds. */
+  const run = (failures: number) => {
+    const d = mkdtempSync(join(tmpdir(), 'gfv-apt-'));
+    const counter = join(d, 'count');
+    writeFileSync(counter, '0');
+    writeFileSync(
+      join(d, 'apt-get'),
+      `#!/bin/sh\nn=$(cat ${counter}); n=$((n+1)); echo $n > ${counter}\nif [ $n -le ${failures} ]; then echo "E: Could not get lock /var/lib/apt/lists/lock" >&2; exit 100; fi\necho updated\n`,
+    );
+    chmodSync(join(d, 'apt-get'), 0o755);
+    // The real command waits 10 s between tries: make that instant for the test.
+    const cmd = aptUpdate({ sudo: '' }).replace('sleep 10', 'sleep 0');
+    const r = spawnSync('/bin/sh', ['-c', cmd], {
+      env: { PATH: `${d}:/usr/bin:/bin` },
+      encoding: 'utf8',
+    });
+    return { ...r, tries: Number(spawnSync('cat', [counter], { encoding: 'utf8' }).stdout) };
+  };
+  it('keeps trying, says why it waits, and succeeds once the lock is free', () => {
+    const r = run(2);
+    expect(r.status).toBe(0);
+    expect(r.tries).toBe(3);
+    expect(r.stderr).toContain('The package system is busy');
+    expect(r.stdout).toContain('updated');
+  });
+  it('gives up after 12 tries instead of waiting forever', () => {
+    const r = run(1000);
+    expect(r.status).toBe(1);
+    expect(r.tries).toBe(12);
+  });
+  it('does not retry when it works the first time', () => {
+    const r = run(0);
+    expect(r.tries).toBe(1);
+    expect(r.stderr).not.toContain('busy');
   });
 });

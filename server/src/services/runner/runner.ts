@@ -136,16 +136,17 @@ export class Runner {
       // uid, home, and the distro family (os-release ID + ID_LIKE) so actions can choose apt or dnf.
       await execStep(
         client,
-        'id -u; echo "$HOME"; (. /etc/os-release 2>/dev/null && echo "$ID $ID_LIKE") || echo unknown',
+        'id -u; echo "$HOME"; (. /etc/os-release 2>/dev/null && echo "$ID $ID_LIKE") || echo unknown; id -un',
         (m) => m.type === 'output' && (out += m.text),
         { timeoutMs: 5000 },
       );
-      const [uid, home, family] = out.trim().split('\n');
+      const [uid, home, family, user] = out.trim().split('\n');
       const pkg = pkgManagerFor(family ?? '');
       return {
         sudo: uid?.trim() === '0' ? '' : 'sudo -n ',
         ...(home?.trim() ? { home: home.trim() } : {}),
         ...(pkg ? { pkg } : {}),
+        ...(user?.trim() ? { user: user.trim() } : {}),
       };
     } catch {
       return DEFAULT_CTX;

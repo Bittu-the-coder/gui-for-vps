@@ -75,9 +75,14 @@ describe.skipIf(!reachable)('ports and nginx sites (vps-b)', () => {
     const first = (await call('POST', `/api/servers/${id}/connect`)).json();
     await call('POST', `/api/servers/${id}/trust-host-key`, { fingerprint: first.fingerprint });
     expect((await call('POST', `/api/servers/${id}/connect`)).json().status).toBe('connected');
-    const ss = await remote(
-      'command -v ss >/dev/null || (sudo apt-get update -q && sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -q -o DPkg::Lock::Timeout=120 iproute2) >/dev/null 2>&1; command -v ss',
-    );
+    // Other integration tests install packages on this container too: retry while apt is busy.
+    let ss = { out: '' };
+    for (let i = 0; i < 12 && !ss.out.includes('/ss'); i++) {
+      ss = await remote(
+        'command -v ss || (sudo apt-get update -q && sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -q -o DPkg::Lock::Timeout=120 iproute2) >/dev/null 2>&1; command -v ss',
+      );
+      if (!ss.out.includes('/ss')) await new Promise((r) => setTimeout(r, 10_000));
+    }
     expect(ss.out).toContain('/ss');
     const nginx = await run('devhub.install.nginx');
     expect(nginx.exitCode, nginx.outputTail).toBe(0);

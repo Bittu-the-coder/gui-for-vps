@@ -21,12 +21,14 @@ describe('install commands', () => {
   });
   it('apt runs non-interactively and waits for the lock, with sudo only when needed', () => {
     const sudo = preview('devhub.install.git').commands;
-    expect(sudo[1]).toBe(
-      'sudo -n env DEBIAN_FRONTEND=noninteractive apt-get -y -q -o DPkg::Lock::Timeout=120 update',
+    // `update` takes a different lock than install, so it is wrapped in a retry loop (see aptUpdate).
+    expect(sudo[1]).toContain(
+      'until sudo -n env DEBIAN_FRONTEND=noninteractive apt-get -y -q -o DPkg::Lock::Timeout=120 update; do',
     );
+    expect(sudo[1]).toContain('The package system is busy');
     expect(sudo[2]).toContain('apt-get -y -q -o DPkg::Lock::Timeout=120 install git');
     const root = preview('devhub.install.git', '').commands;
-    expect(root[1]).toMatch(/^env DEBIAN_FRONTEND=noninteractive apt-get/);
+    expect(root[1]).toContain('until env DEBIAN_FRONTEND=noninteractive apt-get');
     expect(root.join('\n')).not.toContain('sudo');
   });
   it('node: pinned download, checksum verified BEFORE running, nothing piped to a shell', () => {

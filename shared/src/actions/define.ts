@@ -15,6 +15,8 @@ export interface ActionCtx {
    * scripts: they pick apt or dnf when they RUN, on whatever machine they land on.
    */
   pkg?: 'apt' | 'dnf' | 'auto';
+  /** The account GFV connects as (services run as this user, never as root by default). */
+  user?: string;
 }
 
 /** A text field the (temporary) Actions app renders for a param. */

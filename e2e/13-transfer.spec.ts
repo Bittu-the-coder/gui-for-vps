@@ -87,13 +87,20 @@ test('drag a file from a vps-a window into a vps-b window, and a second drag is 
   await win2.getByLabel('Path').fill(dir);
   await win2.getByLabel('Path').press('Enter');
   await expect(win2.locator(`[data-path="${dir}"]`)).toBeVisible();
-  // Move window 2 to the right so both are visible.
-  const bar = win2.locator('.win-titlebar');
-  const box = (await bar.boundingBox())!;
-  await page.mouse.move(box.x + 200, box.y + 10);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 650, box.y + 60, { steps: 8 });
-  await page.mouse.up();
+  // Move window 2 to the right so both are visible. Wait for its open animation first (a drag during it can be lost),
+  // and check that it really moved.
+  await expect.poll(() => win2.evaluate((el) => el.getAnimations().length)).toBe(0);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const bar = win2.locator('.win-titlebar');
+    const box = (await bar.boundingBox())!;
+    if (box.x > 250) break;
+    await page.mouse.move(box.x + 200, box.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 650, box.y + 60, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+  }
+  expect((await win2.locator('.win-titlebar').boundingBox())!.x).toBeGreaterThan(250);
 
   const win1 = wins.nth(0);
   const row = win1.getByTestId('file-row').filter({ hasText: 'hello.txt' });
