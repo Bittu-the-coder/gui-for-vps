@@ -47,7 +47,7 @@ You can also build an installable package and install it as a command:
 ```bash
 pnpm build:package
 (cd dist-pkg && pnpm pack)
-npm install -g ./dist-pkg/gfv-0.1.0.tgz
+npm install -g ./dist-pkg/gui-for-vps-0.1.0.tgz
 gfv
 ```
 

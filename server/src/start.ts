@@ -40,7 +40,7 @@ export interface RunningServer {
   close: () => Promise<void>;
 }
 
-/** Wires everything together and starts listening. Used by `pnpm dev` (index.ts) and `npx gfv` (cli.ts). */
+/** Wires everything together and starts listening. Used by `pnpm dev` (index.ts) and `npx gui-for-vps` (cli.ts). */
 export async function startServer(opts: StartOptions): Promise<RunningServer> {
   // Everything GFV writes (database, WAL files) is private to the current user.
   process.umask(0o077);

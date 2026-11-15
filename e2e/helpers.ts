@@ -16,7 +16,7 @@ export const vpsUp = (port = 2201) =>
     s.on('error', () => ok(false));
   });
 
-/** Sign in the way a user does: open the address `npx gfv` prints (the token becomes a cookie). */
+/** Sign in the way a user does: open the address `npx gui-for-vps` prints (the token becomes a cookie). */
 export async function openGfv(page: Page): Promise<void> {
   await page.goto(`/?token=${TOKEN}`);
   await expect(page).toHaveURL(/\/$/); // the token is gone from the address bar

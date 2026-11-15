@@ -53,7 +53,7 @@ export function App() {
           <p className="text-lg font-semibold">Can’t reach the GFV server</p>
           <p className="text-sm text-muted-foreground">
             GFV may have stopped, or this page is from an old session. Start it again with{' '}
-            <code>npx gfv</code> and open the address it prints.
+            <code>npx gui-for-vps</code> and open the address it prints.
           </p>
           <Button onClick={load}>Try again</Button>
         </div>

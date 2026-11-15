@@ -37,7 +37,7 @@ can.
 
 ```bash
 # on the server, as a normal user (not root)
-npx gfv --hosted --public-url https://gfv.example.com --port 4310
+npx gui-for-vps --hosted --public-url https://gfv.example.com --port 4310
 ```
 
 It prints a **setup token** once. Keep it for step 3. (`GFV_SETUP_TOKEN=...` sets your own.) By default it listens on
@@ -55,7 +55,7 @@ After=network-online.target
 User=gfv
 Environment=GFV_HOME=/var/lib/gfv
 Environment=GFV_SETUP_TOKEN=put-a-long-random-string-here
-ExecStart=/usr/bin/npx gfv --hosted --public-url https://gfv.example.com --port 4310
+ExecStart=/usr/bin/npx gui-for-vps --hosted --public-url https://gfv.example.com --port 4310
 Restart=on-failure
 NoNewPrivileges=true
 PrivateTmp=true

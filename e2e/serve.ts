@@ -1,4 +1,4 @@
-// Starts GFV the way `npx gfv` does (built web app, cookie sign-in) on a fixed port, with an empty
+// Starts GFV the way `npx gui-for-vps` does (built web app, cookie sign-in) on a fixed port, with an empty
 // temporary data directory, for the Playwright specs.
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';

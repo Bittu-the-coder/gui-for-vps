@@ -1208,11 +1208,11 @@ browser fetches the manifest before any sign-in); `sw.js` comes with `max-age=0`
 
 The service worker is deliberately tiny and **never stores anything from `/api`**: it caches only the
 content-hashed `/assets/*` files (cache-first, trimmed to 150 entries) and the offline page, and answers a failed
-page load with `offline.html` ("GFV is not running, start it with `npx gfv`"). Everything else, including the
+page load with `offline.html` ("GFV is not running, start it with `npx gui-for-vps`"). Everything else, including the
 WebSockets, goes straight to the network. `e2e/19-pwa.spec.ts` looks inside every cache after real API calls and
 fails if any entry is not `/assets/…` or the offline page.
 
-Limits worth knowing: the session cookie is a browser-session cookie and the token is random per `npx gfv`
+Limits worth knowing: the session cookie is a browser-session cookie and the token is random per `npx gui-for-vps`
 run, so an installed app opened after a restart shows the "old session" screen until you open the new address
 once (a persisted login is a hosted-mode (M24) topic, not changed here). Offline, the app cannot do anything
 useful (it only talks to a live server), so there is no offline mode beyond the explanation page.

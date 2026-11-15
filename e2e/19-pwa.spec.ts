@@ -93,7 +93,7 @@ test('with GFV stopped, the installed app shows a clear page instead of a browse
   await context.setOffline(true);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'GFV is not running' })).toBeVisible();
-  await expect(page.getByText('npx gfv')).toBeVisible();
+  await expect(page.getByText('npx gui-for-vps')).toBeVisible();
   await context.setOffline(false);
   await page.goto('/');
   await expect(page.locator('[data-tour="server-switcher"]')).toBeVisible();

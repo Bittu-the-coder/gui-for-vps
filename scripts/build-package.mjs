@@ -3,7 +3,7 @@
 //   web/          the built web app
 //   drizzle/      database migrations
 //   package.json  generated: only the runtime dependencies
-// Then `cd dist-pkg && pnpm pack` makes the tarball that `npx gfv` would download.
+// Then `cd dist-pkg && pnpm pack` makes the tarball that `npx gui-for-vps` would download.
 import { build } from 'esbuild';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -51,7 +51,9 @@ writeFileSync(
   resolve(out, 'package.json'),
   JSON.stringify(
     {
-      name: 'gfv',
+      // npm refused the name "gfv" as too similar to existing packages, so the package is published as "gui-for-vps".
+      // The command people run after installing is still `gfv` (see `bin` below).
+      name: 'gui-for-vps',
       version: rootPkg.version,
       description:
         'A desktop in your browser for your VPS servers: teaches you, protects you, and clones your setup.',

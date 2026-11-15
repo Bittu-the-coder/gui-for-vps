@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { defineConfig } from '@playwright/test';
 
 /**
- * End-to-end specs: the built app (served the way `npx gfv` serves it) against the Docker test
+ * End-to-end specs: the built app (served the way `npx gui-for-vps` serves it) against the Docker test
  * VPS. Prepare once with:  docker compose -f e2e/docker-compose.yml up -d --build
  * `pnpm e2e` builds the web app first. If Playwright's own browser is not installed, either run
  * `pnpm exec playwright install chromium` or point GFV_CHROMIUM at any Chromium/Chrome binary.

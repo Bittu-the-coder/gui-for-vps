@@ -98,8 +98,17 @@ and there is no way to recover it if you forget it.
 If you want to try GFV before pointing it at a real server, the repository includes throwaway Docker servers. The
 instructions are in [docs/USER_GUIDE.md](docs/USER_GUIDE.md#try-it-without-a-server).
 
-Once I publish the package you will also be able to run `npx gfv`. The first install can take a couple of minutes,
-because GFV uses a native SQLite module that may need to be built.
+You can also run it without cloning anything. The package is called `gui-for-vps` on npm, and the command it
+installs is `gfv`:
+
+```bash
+npx gui-for-vps
+# or install it once and run it any time
+npm install -g gui-for-vps
+gfv
+```
+
+The first install can take a couple of minutes, because GFV uses a native SQLite module that may need to be built.
 
 ## Your data and your servers
 
