@@ -1,0 +1,10 @@
+# This file controls the "Sponsor" button on the repository page.
+# Remove the "#" in front of a line once you have set that platform up, and replace the value with yours.
+# A line that points at an account that does not exist makes GitHub show a warning, so leave the others commented.
+
+# github: [Bittu-the-coder]          # needs GitHub Sponsors to be set up for your account
+# ko_fi: your-ko-fi-name
+# buy_me_a_coffee: your-name
+# liberapay: your-name
+# open_collective: your-collective
+# custom: ["https://your-payment-link.example"]   # up to four links, for example a UPI or PayPal.me page

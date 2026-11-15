@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="docs/assets/banner.png" alt="GFV: a desktop in your browser for the Linux servers you actually run" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/Bittu-the-coder/gui-for-vps/actions/workflows/ci.yml"><img src="https://github.com/Bittu-the-coder/gui-for-vps/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="Pull requests welcome"></a>
+  <img src="https://img.shields.io/badge/node-%3E%3D22-339933.svg" alt="Node 22 or newer">
+</p>
+
 # GFV
 
 A desktop in your browser for the Linux servers you actually run.

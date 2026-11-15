@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Keeps the GitHub Actions used by CI up to date.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  # Keeps the npm packages up to date. Updates arrive grouped, so there is one pull request a week and not twenty.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
