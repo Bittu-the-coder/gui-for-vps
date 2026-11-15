@@ -14,8 +14,18 @@ export function wsRoutes(app: FastifyInstance, { pool, allowedOrigins }: AppCont
       socket.close(1008, 'origin not allowed');
       return;
     }
+    // A member only learns about the servers they may use.
     const send = () =>
-      socket.send(JSON.stringify({ type: 'connections', statuses: pool.allStatuses() }));
+      socket.send(
+        JSON.stringify({
+          type: 'connections',
+          statuses: Object.fromEntries(
+            Object.entries(pool.allStatuses()).filter(
+              ([id]) => req.accessible === 'all' || req.accessible.includes(id),
+            ),
+          ),
+        }),
+      );
     pool.on('status', send);
     socket.on('close', () => pool.off('status', send));
     send();

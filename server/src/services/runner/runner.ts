@@ -239,7 +239,7 @@ export class Runner {
     const client = this.pool.getClient(serverId);
     if (!client) return { ok: false, error: 'not_connected' };
 
-    const run = new Run(runId);
+    const run = new Run(runId, serverId);
     this.runs.set(run.id, run);
     const record = opts.record ?? true;
     const recordStep = record && (opts.recordStep ?? true);

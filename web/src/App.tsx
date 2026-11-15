@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { Button } from './components/ui/button';
+import { LoginScreen } from './components/LoginScreen';
 import { UnlockScreen } from './components/UnlockScreen';
 import { Desktop } from './desktop/Desktop';
 import { useDesktop } from './desktop/windowStore';
 import { useAppearance } from './stores/appearanceStore';
+import { useAuth } from './stores/authStore';
 import { useServers } from './stores/serverStore';
 
 export function App() {
   const theme = useDesktop((s) => s.theme);
   const { vault, refreshVault } = useServers();
+  const auth = useAuth((s) => s.status);
+  const loadAuth = useAuth((s) => s.load);
 
   // Tailwind's `dark:` variant keys off this class on <html>. Lives here (not in Desktop)
   // so the unlock screen is themed too.
@@ -26,11 +30,23 @@ export function App() {
   const [unreachable, setUnreachable] = useState(false);
   const load = useCallback(() => {
     setUnreachable(false);
-    refreshVault().catch(() => setUnreachable(true));
-  }, [refreshVault]);
+    loadAuth()
+      // Hosted mode: the vault is behind the sign-in, so ask for it only once someone is signed in.
+      .then((status) => (!status.hosted || status.user ? refreshVault() : undefined))
+      .catch(() => setUnreachable(true));
+  }, [refreshVault, loadAuth]);
   useEffect(load, [load]);
+  // Signing in (hosted mode) makes the vault state available.
+  const signedInId = auth?.user?.id;
+  useEffect(() => {
+    if (signedInId) refreshVault().catch(() => setUnreachable(true));
+  }, [signedInId, refreshVault]);
 
-  if (!vault)
+  // Hosted mode: sign in first. (Local mode answers `hosted: false` and skips all of this.)
+  if (auth?.hosted && auth.setupNeeded) return <LoginScreen setup />;
+  if (auth?.hosted && !auth.user) return <LoginScreen setup={false} />;
+
+  if (!vault || !auth)
     return unreachable ? (
       <main className="grid h-screen place-items-center p-4 text-center">
         <div className="flex max-w-sm flex-col items-center gap-3">
@@ -47,6 +63,21 @@ export function App() {
         Loading…
       </main>
     );
-  if (!vault.unlocked) return <UnlockScreen initialized={vault.initialized} />;
+  if (!vault.unlocked) {
+    // Only an administrator can create or unlock the vault in hosted mode.
+    if (auth.hosted && auth.user?.role !== 'admin')
+      return (
+        <main className="grid h-screen place-items-center p-4 text-center">
+          <div className="flex max-w-sm flex-col items-center gap-3">
+            <p className="text-lg font-semibold">GFV is locked</p>
+            <p className="text-sm text-muted-foreground">
+              An administrator has to unlock it with the master password before servers can be used.
+            </p>
+            <Button onClick={() => void useAuth.getState().logout()}>Sign out</Button>
+          </div>
+        </main>
+      );
+    return <UnlockScreen initialized={vault.initialized} />;
+  }
   return <Desktop />;
 }

@@ -4,9 +4,12 @@ import fastifyStatic from '@fastify/static';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from './app.js';
 import { sessionCookie, tokenMatches } from './auth.js';
+import { UserService } from './services/auth/users.js';
 import { Vault } from './crypto/vault.js';
 import { openDb } from './db/index.js';
 import { dbVaultStore } from './db/vaultStore.js';
+import { AiGateway } from './services/ai/gateway.js';
+import { DbService } from './services/dbgui/dbgui.js';
 import { JobService } from './services/jobs/jobs.js';
 import { RecipeService } from './services/recipes/recipes.js';
 import { Runner } from './services/runner/runner.js';
@@ -23,6 +26,11 @@ export interface StartOptions {
   webDir?: string;
   /** Extra browser origin allowed to call the API (the Vite dev server). */
   devWebPort?: number;
+  /**
+   * Hosted mode (M24): accounts and sessions replace the local token. GFV listens on `host` (default 127.0.0.1) and
+   * expects a TLS-terminating proxy in front, reachable at `publicUrl`.
+   */
+  hosted?: { publicUrl: string; host?: string; setupToken: string };
 }
 
 export interface RunningServer {
@@ -52,7 +60,11 @@ export async function startServer(opts: StartOptions): Promise<RunningServer> {
   const ports = [opts.port, ...(opts.devWebPort ? [opts.devWebPort] : [])];
   const allowedOrigins = ports.flatMap((p) => [`http://127.0.0.1:${p}`, `http://localhost:${p}`]);
 
+  const publicOrigin = opts.hosted ? new URL(opts.hosted.publicUrl).origin : undefined;
   const app = await buildApp(opts.token, {
+    ...(opts.hosted
+      ? { hosted: { users: new UserService(db), setupToken: opts.hosted.setupToken } }
+      : {}),
     db,
     vault,
     pool,
@@ -60,7 +72,9 @@ export async function startServer(opts: StartOptions): Promise<RunningServer> {
     sftp,
     recipes,
     jobs,
-    allowedOrigins,
+    dbs: new DbService(db, vault, pool),
+    ai: new AiGateway(db, vault),
+    allowedOrigins: publicOrigin ? [publicOrigin, ...allowedOrigins] : allowedOrigins,
   });
 
   if (opts.webDir) {
@@ -68,7 +82,9 @@ export async function startServer(opts: StartOptions): Promise<RunningServer> {
     if (!existsSync(index)) throw new Error(`The web app was not found at ${opts.webDir}`);
 
     // Opening /?token=... once signs the browser in: set the cookie, then drop the token from the URL.
+    // (Local mode only: hosted mode signs in with an account.)
     app.addHook('onRequest', async (req, reply) => {
+      if (opts.hosted) return;
       const [path, query] = req.url.split('?');
       if (req.method !== 'GET' || path !== '/' || !query) return;
       const t = new URLSearchParams(query).get('token');
@@ -85,10 +101,13 @@ export async function startServer(opts: StartOptions): Promise<RunningServer> {
     );
   }
 
-  await app.listen({ host: HOST, port: opts.port });
+  await app.listen({ host: opts.hosted?.host ?? HOST, port: opts.port });
   const close = async () => {
     pool.disconnectAll();
     await app.close();
   };
-  return { app, url: `http://${HOST}:${opts.port}/?token=${opts.token}`, close };
+  const url = opts.hosted
+    ? opts.hosted.publicUrl
+    : `http://${HOST}:${opts.port}/?token=${opts.token}`;
+  return { app, url, close };
 }

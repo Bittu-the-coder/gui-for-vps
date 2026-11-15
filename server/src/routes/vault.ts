@@ -7,7 +7,7 @@ import {
   type VaultStatus,
 } from '@gfv/shared';
 import type { AppContext } from '../context.js';
-import { servers } from '../db/schema.js';
+import { aiSettings, dbConnections, servers } from '../db/schema.js';
 import { AttemptThrottle } from './throttle.js';
 import { parseBody, sendVaultError } from './util.js';
 
@@ -68,6 +68,21 @@ export function vaultRoutes(app: FastifyInstance, { vault, pool, db }: AppContex
             db.update(servers)
               .set({ credential: encryptNew(decryptOld(row.credential)) })
               .where(eq(servers.id, row.id))
+              .run();
+          }
+          // The AI key too.
+          for (const row of db.select().from(aiSettings).all()) {
+            if (row.apiKey)
+              db.update(aiSettings)
+                .set({ apiKey: encryptNew(decryptOld(row.apiKey)) })
+                .where(eq(aiSettings.id, row.id))
+                .run();
+          }
+          // Saved database passwords are encrypted with the same key: they must move with it.
+          for (const row of db.select().from(dbConnections).all()) {
+            db.update(dbConnections)
+              .set({ password: encryptNew(decryptOld(row.password)) })
+              .where(eq(dbConnections.id, row.id))
               .run();
           }
         },

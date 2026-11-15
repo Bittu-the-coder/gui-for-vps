@@ -1,5 +1,8 @@
 import type { Vault } from './crypto/vault.js';
 import type { Db } from './db/index.js';
+import type { HostedContext } from './hosted.js';
+import type { AiGateway } from './services/ai/gateway.js';
+import type { DbService } from './services/dbgui/dbgui.js';
 import type { JobService } from './services/jobs/jobs.js';
 import type { RecipeService } from './services/recipes/recipes.js';
 import type { SftpService } from './services/sftp/sftp.js';
@@ -15,6 +18,10 @@ export interface AppContext {
   sftp: SftpService;
   recipes: RecipeService;
   jobs: JobService;
+  dbs: DbService;
+  ai: AiGateway;
+  /** Present in hosted mode only. */
+  hosted?: HostedContext;
   /** Browser origins allowed to open the WebSocket. */
   allowedOrigins: string[];
 }

@@ -75,6 +75,9 @@ interface PkgSpec {
   dnf: string | null;
   /** Commands to run after a dnf install (initialise a database...). */
   dnfAfter?: string[];
+  /** Commands to run after an apt install. Debian-family packages normally start their service themselves, but not
+   * everywhere (containers and images with a policy-rc.d forbid it), so a tool whose service matters says so here. */
+  aptAfter?: string[];
   /** Packages to remove with dnf (defaults to `dnf`). */
   dnfRemove?: string;
   aptRemove?: string;
@@ -82,7 +85,11 @@ interface PkgSpec {
 }
 
 function pkgInstall(ctx: ActionCtx, spec: PkgSpec): string[] {
-  const aptCmds = [aptUpdate(ctx), apt(ctx, `install ${spec.apt}`)];
+  const aptCmds = [
+    aptUpdate(ctx),
+    apt(ctx, `install ${spec.apt}`),
+    ...(spec.aptAfter?.map((c) => c.replace('$SUDO', ctx.sudo.trim())) ?? []),
+  ];
   const dnfCmds = spec.dnf
     ? [
         dnf(ctx, `install ${spec.dnf}`),
@@ -184,7 +191,12 @@ export const TOOLS: ToolDef[] = [
       'Removes Docker Engine. Your images, containers and volumes under /var/lib/docker are kept on disk.',
     unit: 'docker.service',
     install: (ctx) =>
-      pkgInstall(ctx, { apt: 'docker.io', dnf: null, check: `${ctx.sudo}docker --version` }),
+      pkgInstall(ctx, {
+        apt: 'docker.io',
+        dnf: null,
+        aptAfter: ['$SUDO systemctl enable --now docker'],
+        check: `${ctx.sudo}docker --version`,
+      }),
     uninstall: (ctx) => pkgRemove(ctx, { apt: 'docker.io', dnf: null, check: '' }),
   },
   {

@@ -37,6 +37,9 @@ for (const theme of ['light', 'dark'] as const) {
       'firewall',
       'security',
       'backups',
+      'appstore',
+      'database',
+      'assistant',
     ]) {
       await openApp(page, id);
       await check(id);

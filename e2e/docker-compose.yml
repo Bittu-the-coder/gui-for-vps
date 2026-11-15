@@ -24,4 +24,11 @@ services:
     ports: ['127.0.0.1:2204:22']
     privileged: true
     tmpfs: ['/run', '/run/lock']
+    # Docker inside this container (M20 App Store) cannot use overlayfs on top of the container's own overlayfs:
+    # its storage lives in named volumes, which sit on the host's real filesystem.
+    volumes: ['gfv-docker-data:/var/lib/docker', 'gfv-containerd-data:/var/lib/containerd']
     profiles: ['systemd']
+
+volumes:
+  gfv-docker-data:
+  gfv-containerd-data:

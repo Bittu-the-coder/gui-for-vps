@@ -11,6 +11,7 @@ import { useOverlays } from './overlayStore';
 import { WALLPAPERS } from './wallpapers';
 import { useDesktop } from './windowStore';
 import { appById } from '../apps/registry';
+import { useAuth } from '../stores/authStore';
 
 const DOT: Record<string, string> = {
   connected: 'bg-success',
@@ -53,6 +54,7 @@ function Tile({
 
 /** A panel of the settings people reach for most: server, theme, wallpaper, Learn, Record, lock. */
 export function ControlCenter() {
+  const account = useAuth((s) => s.status);
   const open = useOverlays((s) => s.controlCenter);
   const setOpen = useOverlays((s) => s.setControlCenter);
   const ref = useRef<HTMLDivElement>(null);
@@ -195,6 +197,28 @@ export function ControlCenter() {
         </div>
       </section>
 
+      {account?.hosted && account.user && (
+        <div
+          className="mt-2 flex items-center gap-2 rounded-xl bg-foreground/[0.06] p-2"
+          data-testid="cc-account"
+        >
+          <span className="min-w-0 flex-1 truncate text-footnote">
+            {account.user.username} · {account.user.role === 'admin' ? 'administrator' : 'member'}
+          </span>
+          <button
+            className="rounded-lg px-2 py-1 hover:bg-foreground/10"
+            onClick={close(() => useAuth.getState().setAccountOpen(true))}
+          >
+            Account…
+          </button>
+          <button
+            className="rounded-lg px-2 py-1 hover:bg-foreground/10"
+            onClick={close(() => void useAuth.getState().logout())}
+          >
+            Sign out
+          </button>
+        </div>
+      )}
       <div className="mt-2 flex gap-2">
         <button
           className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-foreground/[0.06] py-2 hover:bg-foreground/10"

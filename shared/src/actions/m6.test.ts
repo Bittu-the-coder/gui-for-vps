@@ -39,6 +39,8 @@ describe('M6 actions', () => {
   it('quiet actions are safe, internal, and have a default log length', () => {
     const quiet = ACTIONS.filter((a) => a.quiet);
     expect(quiet.map((a) => a.id).sort()).toEqual([
+      'apps.credentials',
+      'apps.list',
       'backup.list',
       'devhub.detect',
       'docker.images',
@@ -66,7 +68,7 @@ describe('M6 actions', () => {
   });
   it('none of the quiet commands trips the danger detector', () => {
     for (const a of ACTIONS.filter((x) => x.quiet)) {
-      const p = previewAction(a.id, { unit: 'a.service', name: 'web' });
+      const p = previewAction(a.id, { unit: 'a.service', name: 'web', app: 'redis' });
       expect(p.ok && p.preview.matches).toEqual([]);
     }
   });

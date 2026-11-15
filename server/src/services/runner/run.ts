@@ -21,7 +21,10 @@ export class Run {
   readonly done: Promise<void>;
   private resolveDone!: () => void;
 
-  constructor(readonly id: string) {
+  constructor(
+    readonly id: string,
+    readonly serverId: string = '',
+  ) {
     this.done = new Promise((r) => (this.resolveDone = r));
   }
 

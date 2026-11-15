@@ -2,7 +2,8 @@ import * as Dialog from '@radix-ui/react-dialog';
 import type { ActionInfo } from '@gfv/shared';
 import { AppWindow, Command, Play, Search, Server } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LAUNCHABLE, appById } from '../apps/registry';
+import { appById } from '../apps/registry';
+import { useLaunchable } from '../stores/launchable';
 import { AppIcon } from '../components/icons/AppIcon';
 import { api } from '../lib/api';
 import { requestRun } from '../runner/runStore';
@@ -42,6 +43,7 @@ function Icon({ item }: { item: SpotlightItem }) {
 
 /** Command palette: type to open apps, switch windows and servers, change settings, run safe actions. */
 export function Spotlight() {
+  const launchable = useLaunchable();
   const open = useOverlays((s) => s.spotlight);
   const setOpen = useOverlays((s) => s.setSpotlight);
   const desk = useDesktop();
@@ -94,7 +96,7 @@ export function Spotlight() {
   const items = useMemo(
     () =>
       buildSpotlightItems({
-        launchable: LAUNCHABLE,
+        launchable,
         windows: Object.values(desk.windows),
         servers,
         activeServerId: activeId,

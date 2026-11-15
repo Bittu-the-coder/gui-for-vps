@@ -18,7 +18,7 @@ const up = await new Promise<boolean>((ok) => {
 });
 const privateKey = readFileSync(resolve(__dirname, '../../../e2e/keys/id_test'), 'utf8');
 const H = { 'x-gfv-token': 't' };
-vi.setConfig({ testTimeout: 300_000 });
+vi.setConfig({ testTimeout: 900_000 }); // real package installs: minutes on a slow network
 
 describe.skipIf(!up)('Dev Hub on Fedora (dnf)', () => {
   const ctx = testCtx();

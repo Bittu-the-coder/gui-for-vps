@@ -11,6 +11,10 @@ import {
   ShieldCheck,
   ShieldAlert,
   Archive,
+  Users as UsersIcon,
+  Bot,
+  Database,
+  Store,
   History,
   ListChecks,
   ScrollText,
@@ -35,7 +39,11 @@ import { ActionsApp } from './actions/ActionsApp';
 import { JobsApp } from './jobs/JobsApp';
 import { LessonsApp } from './lessons/LessonsApp';
 import { ServerMapApp } from './map/ServerMapApp';
+import { UsersApp } from './users/UsersApp';
+import { AssistantApp } from './assistant/AssistantApp';
+import { AppStoreApp } from './appstore/AppStoreApp';
 import { BackupsApp } from './backups/BackupsApp';
+import { DatabaseApp } from './database/DatabaseApp';
 import { FirewallApp } from './firewall/FirewallApp';
 import { SecurityApp } from './security/SecurityApp';
 import { NetworkApp } from './network/NetworkApp';
@@ -52,6 +60,8 @@ export interface AppDef extends AppIconSpec {
   singleton?: boolean;
   /** Opened by other apps (e.g. the Editor from the File Manager), not from the desktop or Start menu. */
   hidden?: boolean;
+  /** Shown only to administrators of a hosted install (account management). */
+  hostedAdminOnly?: boolean;
 }
 
 /** Adding a real app later = adding one entry here. The shell never changes. */
@@ -201,6 +211,41 @@ export const APPS: AppDef[] = [
     serverBound: true,
   },
   {
+    id: 'appstore',
+    title: 'App Store',
+    icon: Store,
+    tint: ['#f472b6', '#be185d'],
+    component: AppStoreApp,
+    defaultSize: { w: 820, h: 560 },
+    serverBound: true,
+  },
+  {
+    id: 'database',
+    title: 'Database',
+    icon: Database,
+    tint: ['#60a5fa', '#1d4ed8'],
+    component: DatabaseApp,
+    defaultSize: { w: 860, h: 560 },
+    serverBound: true,
+  },
+  {
+    id: 'assistant',
+    title: 'Assistant',
+    icon: Bot,
+    tint: ['#a78bfa', '#7c3aed'],
+    component: AssistantApp,
+    defaultSize: { w: 720, h: 560 },
+  },
+  {
+    id: 'users',
+    title: 'Users',
+    icon: UsersIcon,
+    tint: ['#94a3b8', '#475569'],
+    component: UsersApp,
+    defaultSize: { w: 820, h: 540 },
+    hostedAdminOnly: true,
+  },
+  {
     id: 'lessons',
     title: 'Lessons',
     icon: GraduationCap,
@@ -232,5 +277,9 @@ export const APPS: AppDef[] = [
 
 /** Apps a user can launch directly. */
 export const LAUNCHABLE = APPS.filter((a) => !a.hidden);
+
+/** What THIS person sees: the Users app exists only for administrators of a hosted install. */
+export const launchableFor = (hosted: boolean, admin: boolean) =>
+  LAUNCHABLE.filter((a) => !a.hostedAdminOnly || (hosted && admin));
 
 export const appById = (id: string) => APPS.find((a) => a.id === id);

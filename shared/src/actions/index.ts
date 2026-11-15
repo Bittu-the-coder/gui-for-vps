@@ -11,6 +11,7 @@ import {
 } from './define.js';
 import { devhubActions } from './devhub.js';
 import { dockerActions } from './docker.js';
+import { appStoreActions } from './appstore.js';
 import { backupActions } from './backups.js';
 import { firewallActions } from './firewall.js';
 import { securityActions } from './security.js';
@@ -43,6 +44,7 @@ export const ACTIONS: ActionDef[] = [
   ...firewallActions,
   ...securityActions,
   ...backupActions,
+  ...appStoreActions,
 ];
 
 export const actionById = (id: string): ActionDef | undefined => ACTIONS.find((a) => a.id === id);

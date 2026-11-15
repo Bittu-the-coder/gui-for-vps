@@ -17,7 +17,10 @@ import {
 import { api, ApiError, type RunPreview } from '../lib/api';
 import { useLearn } from '../stores/learnStore';
 import { useRecording } from '../stores/recordingStore';
+import { useAssistant } from '../stores/assistantStore';
 import { useServers } from '../stores/serverStore';
+import { openApp } from '../desktop/openApp';
+import { appById } from '../apps/registry';
 import {
   trackRun,
   untrackRun,
@@ -70,6 +73,10 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
   const [understood, setUnderstood] = useState(false);
   const [blocks, setBlocks] = useState<Block[]>([]);
+  const assistantOn = useAssistant((s) => s.enabled);
+  useEffect(() => {
+    void useAssistant.getState().refresh();
+  }, []);
   const [elapsed, setElapsed] = useState(0);
   const [cancelling, setCancelling] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -349,6 +356,31 @@ function RunDialogBody({ request, onClose }: { request: RunRequest; onClose: () 
                     ? '✓ Finished successfully (exit code 0)'
                     : `✗ Failed (exit code ${phase.exitCode}). Later commands were skipped.`}
         </p>
+      )}
+      {phase.kind === 'finished' && phase.exitCode !== 0 && !phase.cancelled && assistantOn && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="self-start"
+          data-testid="explain-with-ai"
+          onClick={() => {
+            // Only the last command and the output tail are offered; the Assistant shows the scrubbed text before any send.
+            const failing = blocks[blocks.length - 1];
+            const out =
+              failing?.chunks
+                .map((c) => c.text)
+                .join('')
+                .slice(-1500) ?? '';
+            useAssistant.getState().setPrefill({
+              kind: 'explain',
+              text: `This command failed:\n${failing?.command ?? phase.preview.commands[0]}\n\nOutput:\n${out}`,
+            });
+            openApp(appById('assistant')!);
+            onClose();
+          }}
+        >
+          Explain this error with the assistant
+        </Button>
       )}
 
       <DialogFooter>

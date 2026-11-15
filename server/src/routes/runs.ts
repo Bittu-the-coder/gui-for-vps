@@ -15,10 +15,8 @@ import { history, servers } from '../db/schema.js';
 import { originAllowed } from './origin.js';
 import { parseBody } from './util.js';
 
-export function runRoutes(
-  app: FastifyInstance,
-  { db, vault, runner, allowedOrigins }: AppContext,
-): void {
+export function runRoutes(app: FastifyInstance, ctx: AppContext): void {
+  const { db, vault, runner, allowedOrigins } = ctx;
   // Runs need credentials (the SSH pool), so the vault must be unlocked.
   app.addHook('preHandler', async (req, reply) => {
     const u = req.url;
@@ -73,7 +71,17 @@ export function runRoutes(
     const r = await runner.start(body.serverId, body.actionId, body.params, {
       confirmed: body.confirmed,
     });
-    if (r.ok) return { runId: r.run.id };
+    if (r.ok) {
+      // Hosted mode: who ran which action, how risky, on which server. (No parameters: they may hold secrets.)
+      ctx.hosted?.users.audit({
+        user: req.user,
+        ip: req.ip,
+        event: 'run',
+        serverId: body.serverId,
+        detail: `${body.actionId} [${r.preview.risk}]${body.confirmed ? ' confirmed' : ''}`,
+      });
+      return { runId: r.run.id };
+    }
     const status =
       r.error === 'unknown_action'
         ? 404
@@ -118,13 +126,26 @@ export function runRoutes(
     '/api/history',
     async (req): Promise<HistoryResponse> => {
       const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 100));
-      const rows = db.select().from(history).orderBy(desc(history.startedAt)).limit(limit).all();
+      // A member sees only the history of the servers they may use.
+      const mine = <T extends { serverId: string }>(r: T) =>
+        req.accessible === 'all' || req.accessible.includes(r.serverId);
+      const rows = db
+        .select()
+        .from(history)
+        .orderBy(desc(history.startedAt))
+        .all()
+        .filter(mine)
+        .slice(0, limit);
       const entries: HistoryEntry[] = rows.map((r) => ({
         ...r,
         explain: actionById(r.actionId)?.explain ?? null,
       }));
       const learned = new Set<string>();
-      for (const r of db.select({ commands: history.commands }).from(history).all()) {
+      for (const r of db
+        .select({ commands: history.commands, serverId: history.serverId })
+        .from(history)
+        .all()
+        .filter(mine)) {
         for (const c of r.commands) for (const n of commandNames(c)) learned.add(n);
       }
       return { entries, learned: [...learned].sort() };

@@ -29,6 +29,8 @@ import {
   type RecipeFile,
   type HistoryResponse,
   ConnStatusSchema,
+  publicConnectionSchema,
+  type ConnectionInput,
   ServerSchema,
   VaultStatusSchema,
   type ConnectResult,
@@ -85,11 +87,12 @@ export class ApiError extends Error {
   get detail(): string {
     const b = this.body as {
       error?: string;
+      message?: string;
       issues?: { path: (string | number)[]; message: string }[];
     };
     if (b?.issues?.length)
       return b.issues.map((i) => `${i.path.join('.') || 'value'}: ${i.message}`).join('\n');
-    return b?.error ?? `request failed (${this.status})`;
+    return b?.message ?? b?.error ?? `request failed (${this.status})`;
   }
 }
 
@@ -122,7 +125,172 @@ async function request(method: string, path: string, body?: unknown): Promise<un
 const Servers = z.array(ServerSchema);
 const Statuses = z.record(z.string(), ConnStatusSchema);
 
+const DbConnections = z.array(publicConnectionSchema);
+const DbTables = z.array(
+  z.object({ schema: z.string(), name: z.string(), kind: z.enum(['table', 'view']) }),
+);
+const DbColumns = z.array(z.object({ name: z.string(), type: z.string(), nullable: z.boolean() }));
+const DbResult = z.object({
+  columns: z.array(z.string()),
+  rows: z.array(z.array(z.string().nullable())),
+  truncated: z.boolean(),
+  command: z.string(),
+  rowCount: z.number().nullable(),
+  ms: z.number(),
+});
+
+const AiSettings = z.object({
+  enabled: z.boolean(),
+  provider: z.enum(['anthropic', 'openai-compatible']),
+  model: z.string(),
+  baseUrl: z.string(),
+  hasKey: z.boolean(),
+  destination: z.string(),
+  local: z.boolean(),
+});
+export type AiSettings = z.infer<typeof AiSettings>;
+const AiPrepared = z.object({
+  previewId: z.string(),
+  system: z.string(),
+  user: z.string(),
+  scrubbed: z.boolean(),
+  destination: z.string(),
+  local: z.boolean(),
+  model: z.string(),
+  expiresAt: z.number(),
+});
+export type AiPrepared = z.infer<typeof AiPrepared>;
+const AiAnswerSchema = z.object({
+  answer: z.string(),
+  proposals: z.array(
+    z.object({
+      actionId: z.string(),
+      title: z.string(),
+      params: z.unknown(),
+      why: z.string(),
+      risk: z.enum(['safe', 'caution', 'danger']),
+    }),
+  ),
+  rejected: z.number(),
+});
+export type AiAnswerData = z.infer<typeof AiAnswerSchema>;
+
+const AuthStatusParsed = z.object({
+  hosted: z.boolean(),
+  setupNeeded: z.boolean(),
+  user: z
+    .object({
+      id: z.string(),
+      username: z.string(),
+      role: z.enum(['admin', 'member']),
+      totpEnabled: z.boolean(),
+    })
+    .nullable(),
+});
+const UserRows = z.array(
+  z.object({
+    id: z.string(),
+    username: z.string(),
+    role: z.enum(['admin', 'member']),
+    totpEnabled: z.boolean(),
+    disabled: z.boolean(),
+    createdAt: z.number(),
+    lastLoginAt: z.number().nullable(),
+    serverIds: z.array(z.string()),
+  }),
+);
+const AuditRows = z.array(
+  z.object({
+    id: z.number(),
+    at: z.number(),
+    userId: z.string().nullable(),
+    username: z.string().nullable(),
+    ip: z.string().nullable(),
+    event: z.string(),
+    serverId: z.string().nullable(),
+    ok: z.boolean(),
+    detail: z.string().nullable(),
+  }),
+);
+const SessionRows = z.array(
+  z.object({
+    id: z.string(),
+    createdAt: z.number(),
+    lastSeen: z.number(),
+    ip: z.string().nullable(),
+    userAgent: z.string().nullable(),
+    current: z.boolean(),
+  }),
+);
+
 export const api = {
+  // ---- Accounts (hosted mode, M24)
+  authStatus: async () => AuthStatusParsed.parse(await request('GET', '/api/auth/status')),
+  authSetup: async (b: { setupToken: string; username: string; password: string }) =>
+    void (await request('POST', '/api/auth/setup', b)),
+  authLogin: async (b: { username: string; password: string; code?: string }) =>
+    void (await request('POST', '/api/auth/login', b)),
+  authLogout: async () => void (await request('POST', '/api/auth/logout')),
+  authPassword: async (oldPassword: string, newPassword: string) =>
+    void (await request('POST', '/api/auth/password', { oldPassword, newPassword })),
+  twoFaBegin: async () =>
+    z
+      .object({ secret: z.string(), otpauth: z.string() })
+      .parse(await request('POST', '/api/auth/2fa/begin')),
+  twoFaConfirm: async (code: string) =>
+    z
+      .object({ recoveryCodes: z.array(z.string()) })
+      .parse(await request('POST', '/api/auth/2fa/confirm', { code })),
+  twoFaDisable: async (password: string) =>
+    void (await request('POST', '/api/auth/2fa/disable', { password })),
+  mySessions: async () => SessionRows.parse(await request('GET', '/api/auth/sessions')),
+  revokeSession: async (id: string) => void (await request('DELETE', `/api/auth/sessions/${id}`)),
+  users: async () => UserRows.parse(await request('GET', '/api/users')),
+  createUser: async (b: { username: string; password: string; role: 'admin' | 'member' }) =>
+    void (await request('POST', '/api/users', b)),
+  updateUser: async (id: string, b: { role?: 'admin' | 'member'; disabled?: boolean }) =>
+    void (await request('PATCH', `/api/users/${id}`, b)),
+  deleteUser: async (id: string) => void (await request('DELETE', `/api/users/${id}`)),
+  resetUserPassword: async (id: string, password: string) =>
+    void (await request('POST', `/api/users/${id}/password`, { password })),
+  resetUser2fa: async (id: string) => void (await request('POST', `/api/users/${id}/reset-2fa`)),
+  setUserAccess: async (id: string, serverIds: string[]) =>
+    void (await request('PUT', `/api/users/${id}/access`, { serverIds })),
+  audit: async (limit = 200) => AuditRows.parse(await request('GET', `/api/audit?limit=${limit}`)),
+
+  // ---- Assistant (M23)
+  aiSettings: async () => AiSettings.parse(await request('GET', '/api/ai/settings')),
+  aiSave: async (input: {
+    enabled: boolean;
+    provider: string;
+    model: string;
+    baseUrl: string;
+    apiKey?: string;
+  }) => AiSettings.parse(await request('PUT', '/api/ai/settings', input)),
+  aiForgetKey: async () => AiSettings.parse(await request('DELETE', '/api/ai/key')),
+  aiPrepare: async (input: {
+    kind: 'ask' | 'explain';
+    text: string;
+    context?: { history?: string[] };
+  }) => AiPrepared.parse(await request('POST', '/api/ai/prepare', input)),
+  aiSend: async (previewId: string) =>
+    AiAnswerSchema.parse(await request('POST', '/api/ai/send', { previewId })),
+
+  // ---- Database app (M21)
+  dbList: async (serverId: string) =>
+    DbConnections.parse(await request('GET', `/api/servers/${serverId}/db`)),
+  dbCreate: async (serverId: string, input: ConnectionInput) =>
+    publicConnectionSchema.parse(await request('POST', `/api/servers/${serverId}/db`, input)),
+  dbRemove: async (connId: string) => void (await request('DELETE', `/api/db/${connId}`)),
+  dbTables: async (connId: string) =>
+    DbTables.parse(await request('GET', `/api/db/${connId}/tables`)),
+  dbColumns: async (connId: string, schema: string, table: string) =>
+    DbColumns.parse(await request('POST', `/api/db/${connId}/columns`, { schema, table })),
+  dbPreview: async (connId: string, schema: string, table: string) =>
+    DbResult.parse(await request('POST', `/api/db/${connId}/preview`, { schema, table })),
+  dbQuery: async (connId: string, sql: string, write = false, confirmed = false) =>
+    DbResult.parse(await request('POST', `/api/db/${connId}/query`, { sql, write, confirmed })),
+
   vault: async (): Promise<VaultStatus> =>
     VaultStatusSchema.parse(await request('GET', '/api/vault')),
   createVault: async (password: string) =>

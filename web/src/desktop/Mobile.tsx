@@ -1,6 +1,7 @@
 import { ChevronLeft, GraduationCap, Home, Layers, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { LAUNCHABLE, appById } from '../apps/registry';
+import { appById } from '../apps/registry';
+import { useLaunchable } from '../stores/launchable';
 import { AppIcon } from '../components/icons/AppIcon';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { readableOn } from '../lib/color';
@@ -93,6 +94,7 @@ export function CompactWindow({ win, visible }: { win: WindowState; visible: boo
 
 /** The launcher shown when no window is on screen: a grid of big app icons. */
 export function MobileHome({ topGap }: { topGap: boolean }) {
+  const launchable = useLaunchable();
   const windows = useDesktop((s) => s.windows);
   const running = new Set(Object.values(windows).map((w) => w.appId));
   return (
@@ -103,7 +105,7 @@ export function MobileHome({ topGap }: { topGap: boolean }) {
         topGap ? 'pt-52' : 'pt-6'
       }`}
     >
-      {LAUNCHABLE.map((app) => (
+      {launchable.map((app) => (
         <button
           key={app.id}
           data-tour={`app-${app.id}`}

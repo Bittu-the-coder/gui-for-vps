@@ -273,25 +273,25 @@ Sizes are part-time days. "Needs" lists dependencies between milestones. Each mi
 (`typecheck && lint && test`, real-browser check, `pnpm e2e`), update README, CLAUDE.md, PLAN.md and
 `docs/HOW_IT_WORKS.md`. New dependencies and downloads over ~20 MB are confirmed with the user first.
 
-| #   | Milestone                                                                                                                                                                                      | Size  | Needs        |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ------------ |
-| M11 | ✅ **Job engine**: replay a recipe on another server (progress, retry/skip/abort on failure), recipe parameters, multi-server broadcast. (Recording of file edits moved to a later milestone.) | done  | none         |
-| M12 | ✅ Recipe exports (Dockerfile, compose, Ansible), "Clone this server" (Dev Hub tools), recipe files + bundled starter library (no backend: a "community library" is a Git repo of files)       | done  | M11          |
-| M13 | ✅ (Fedora) **Distros**: package abstraction, dnf verified on a real Fedora 41 container. Not done: Alpine, Arch, real-systemd test containers (move to M14) | done  | none         |
-| M14 | ✅ Firewall app (ufw), **lockout protection** (server-side auto-revert, proven on a real firewall), undo timeline. Not done: firewalld (Fedora), sshd settings under the same guard | done  | M13          |
-| M15 | ✅ Security checkup (audit + one-click fixes, sshd hardening under the lockout guard) and scheduled backups (real systemd timers). Not done: backups to a REMOTE place, a cron fallback without systemd | done  | M14          |
-| M16 | ✅ Learn Mode advanced: lessons, quizzes, skill levels (AI explain is in M23)                                                                                                                  | done  | M10          |
-| M17 | ✅ Ports & Domains (nginx sites with rollback; HTTPS via certbot is built but not run against a real domain)                                                                                   | done  | M13          |
-| M18 | ✅ Projects (deploy from git, env vars, systemd service, update check). Scheduled auto-redeploy not built.                                                                                     | done  | M17          |
-| M19 | ✅ Server Map (domain → site → port → program → project, problems in red)                                                                                                                      | done  | M17, M18     |
-| M20 | App Store (Docker apps)                                                                                                                                                                        | 4–5   | M13          |
-| M21 | Database GUI (SSH tunnel, `pg` first)                                                                                                                                                          | 7–9   | none         |
-| M22 | ✅ Cross-server drag and drop (files; folders not yet)                                                                                                                                         | done  | M11          |
-| M23 | AI assistant + AI explain (own key or local model; nothing sent without a per-send preview; only proposes Actions)                                                                             | 8–10  | most Actions |
-| M24 | Hosted mode (TLS via a front proxy, login + 2FA, audit log, multi-user)                                                                                                                        | 15–20 | everything   |
-| M25 | ✅ Mobile layout (compact shell under 768 px: launcher, full-screen windows, tab bar, Learn sheet, terminal key row; tablets keep the desktop)                                                 | done  | M10          |
-| M26 | PWA ✅ (installable app, offline page; Tauri only if the toolchain download is acceptable, not started)                                                                                          | done  | M25          |
+| #   | Milestone                                                                                                                                                                                               | Size | Needs        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------ |
+| M11 | ✅ **Job engine**: replay a recipe on another server (progress, retry/skip/abort on failure), recipe parameters, multi-server broadcast. (Recording of file edits moved to a later milestone.)          | done | none         |
+| M12 | ✅ Recipe exports (Dockerfile, compose, Ansible), "Clone this server" (Dev Hub tools), recipe files + bundled starter library (no backend: a "community library" is a Git repo of files)                | done | M11          |
+| M13 | ✅ (Fedora) **Distros**: package abstraction, dnf verified on a real Fedora 41 container. Not done: Alpine, Arch, real-systemd test containers (move to M14)                                            | done | none         |
+| M14 | ✅ Firewall app (ufw), **lockout protection** (server-side auto-revert, proven on a real firewall), undo timeline. Not done: firewalld (Fedora), sshd settings under the same guard                     | done | M13          |
+| M15 | ✅ Security checkup (audit + one-click fixes, sshd hardening under the lockout guard) and scheduled backups (real systemd timers). Not done: backups to a REMOTE place, a cron fallback without systemd | done | M14          |
+| M16 | ✅ Learn Mode advanced: lessons, quizzes, skill levels (AI explain is in M23)                                                                                                                           | done | M10          |
+| M17 | ✅ Ports & Domains (nginx sites with rollback; HTTPS via certbot is built but not run against a real domain)                                                                                            | done | M13          |
+| M18 | ✅ Projects (deploy from git, env vars, systemd service, update check). Scheduled auto-redeploy not built.                                                                                              | done | M17          |
+| M19 | ✅ Server Map (domain → site → port → program → project, problems in red)                                                                                                                               | done | M17, M18     |
+| M20 | ✅ App Store (6 pinned Docker apps; real Docker verified, installed through the Dev Hub)                                                                                                                | done | M13          |
+| M21 | ✅ Database GUI (PostgreSQL through an SSH port-forward; read-only enforced by the database)                                                                                                            | done | none         |
+| M22 | ✅ Cross-server drag and drop (files; folders not yet)                                                                                                                                                  | done | M11          |
+| M23 | ✅ AI assistant + AI explain (Anthropic or any OpenAI-compatible endpoint; preview-then-send; proposes Actions only)                                                                                    | done | most Actions |
+| M24 | ✅ Hosted mode (accounts, TOTP 2FA, roles, per-server access deny-by-default, audit log; TLS via a front proxy: docs/HOSTED.md)                                                                         | done | everything   |
+| M25 | ✅ Mobile layout (compact shell under 768 px: launcher, full-screen windows, tab bar, Learn sheet, terminal key row; tablets keep the desktop)                                                          | done | M10          |
+| M26 | PWA ✅ (installable app, offline page; a Tauri wrapper was dropped by decision)                                                                                                                         | done | M25          |
 
 Decisions: AI provider interface with the Anthropic API (user's key, in the vault) and any OpenAI-compatible
 endpoint (Ollama = nothing leaves the machine); one `aiGateway` module is the only outbound LLM path. Hosted mode
-stages: single admin first, multi-user second, SQLite throughout. Tauri is last and optional.
+stages: single admin first, multi-user second, SQLite throughout. A Tauri wrapper was dropped by the user (the PWA covers installing).

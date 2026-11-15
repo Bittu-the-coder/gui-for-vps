@@ -2,6 +2,8 @@ import type { AppContext } from './context.js';
 import { Vault } from './crypto/vault.js';
 import { openDb } from './db/index.js';
 import { dbVaultStore } from './db/vaultStore.js';
+import { AiGateway } from './services/ai/gateway.js';
+import { DbService } from './services/dbgui/dbgui.js';
 import { JobService } from './services/jobs/jobs.js';
 import { RecipeService } from './services/recipes/recipes.js';
 import { SftpService } from './services/sftp/sftp.js';
@@ -28,6 +30,8 @@ export function testCtx(): AppContext {
     sftp,
     recipes,
     jobs,
+    dbs: new DbService(db, vault, pool),
+    ai: new AiGateway(db, vault),
     allowedOrigins: ['http://localhost:5173'],
   };
 }

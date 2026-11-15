@@ -23,7 +23,14 @@ export function serverRoutes(app: FastifyInstance, { db, vault, pool }: AppConte
     }
   });
 
-  app.get('/api/servers', async () => db.select().from(servers).all().map(toPublic));
+  app.get('/api/servers', async (req) =>
+    db
+      .select()
+      .from(servers)
+      .all()
+      .filter((s) => req.accessible === 'all' || req.accessible.includes(s.id))
+      .map(toPublic),
+  );
 
   app.post('/api/servers', async (req, reply) => {
     const body = parseBody(CreateServerBodySchema, req.body, reply);

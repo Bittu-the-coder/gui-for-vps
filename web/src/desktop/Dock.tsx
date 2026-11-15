@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { LAUNCHABLE, appById, type AppDef } from '../apps/registry';
+import { appById, type AppDef } from '../apps/registry';
+import { useLaunchable } from '../stores/launchable';
 import { AppIcon } from '../components/icons/AppIcon';
 import { Menu, type MenuItem } from '../components/menu/Menu';
 import { DOCK, dockLayout } from './dockMath';
@@ -31,6 +32,7 @@ interface Entry {
 }
 
 export function Dock() {
+  const launchable = useLaunchable();
   const windows = useDesktop((s) => s.windows);
   const zoomed = useDesktop((s) => {
     const f = s.focusedId ? s.windows[s.focusedId] : undefined;
@@ -67,7 +69,7 @@ export function Dock() {
 
   const all = Object.values(windows);
   const entries: Entry[] = useMemo(() => {
-    const apps = LAUNCHABLE.map<Entry>((app) => ({ key: app.id, app, label: app.title }));
+    const apps = launchable.map<Entry>((app) => ({ key: app.id, app, label: app.title }));
     const minimized = all
       .filter((w) => w.minimized)
       .sort((a, b) => a.id.localeCompare(b.id))
@@ -76,8 +78,8 @@ export function Dock() {
         return app ? [{ key: w.id, app, label: w.title, win: w }] : [];
       });
     return [...apps, ...minimized];
-  }, [windows]);
-  const appCount = LAUNCHABLE.length;
+  }, [windows, launchable]);
+  const appCount = launchable.length;
 
   // Bounce an icon while its app is launching (a new window of that app appeared).
   const prevCounts = useRef<Record<string, number>>({});

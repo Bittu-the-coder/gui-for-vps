@@ -1284,6 +1284,58 @@ the server reverting sshd by itself when the confirmation never comes, real inst
 updates, a backup timer that really fires on its own, retention, restore, removal; `e2e/21-security-backups.spec.ts`.
 `exclusive('systemd')` (`testUtil.ts`) serialises the integration files that share the systemd container.
 
+## 19f. App Store (M20)
+
+`shared/src/appstore/catalog.ts` is a curated list (`APPS`: whoami, Uptime Kuma, Grafana, Vaultwarden, PostgreSQL, Redis): each
+pinned to a tag (never `latest`), one container `gfv-<id>` labelled `gfv.app=<id>`, one data volume `gfv-<id>-data`, a restart
+policy. `apps.install` generates passwords ON THE SERVER into `~/.gfv/apps/<id>.env` (mode 600, `umask 077`; kept on reinstall) and
+runs the container with `--env-file`, so a secret is never in a command line, history or the browser until "Show credentials"
+(`apps.credentials`, a quiet read). A port is published on `127.0.0.1` unless "reachable from the internet" is ticked (a real test
+proves the difference from outside). Redis' password is expanded inside the container by `sh -c`. Start/stop/restart reuse the
+`docker.*` actions; "Add a domain" opens the Network app. `apps.remove` keeps the volume unless `deleteData` (danger).
+Test infra: the systemd container (`vps-systemd`) now runs REAL Docker (storage in named volumes: overlay-on-overlay is refused);
+Dev Hub's Docker install now also runs `systemctl enable --now docker` (some images forbid packages to start services).
+
+## 19g. Database GUI (M21)
+
+`DbService` (`server/src/services/dbgui/`) reaches PostgreSQL THROUGH the SSH connection (`forwardOut`, a direct-tcpip channel handed to
+`pg` as its socket): no port on this computer or the server. It is the third sanctioned path outside the Command Runner (after the
+PTY and SFTP): a SQL session has no shell command to show. Safety is the database's own: every query runs in `BEGIN READ ONLY`
+(always rolled back) unless the person switched on "allow changes" AND confirmed (`confirmation_required` 403 otherwise); Postgres
+answers 25006 and the UI says so. One statement per run (a cursor fetches at most 500 rows, statement timeout 15 s). Table names for
+previews are checked against the catalog, then quoted (`quoteIdent`). Saved connections live in `db_connections`
+(password encrypted with the vault key and re-encrypted by change-password). Pure helpers in `shared/src/db/sql.ts`
+(`classifySql` is only a UI hint; `toCsv` defuses spreadsheet formulas).
+
+## 19h. The AI assistant (M23)
+
+`AiGateway` (`server/src/services/ai/gateway.ts`) is the ONLY code that talks to a language model. Off by default. A send is two
+steps: `prepare` builds the request, scrubs secrets (`shared/src/ai/scrub.ts`: private keys, passwords, tokens, URLs with credentials)
+and returns the exact text, the destination ("api.anthropic.com" / "127.0.0.1:11434 (stays on this computer)") and a one-time
+`previewId`; `send` transmits exactly that stored text, once (a test proves the outbound body equals the preview byte for byte;
+unknown, used or expired previews send nothing). Providers: Anthropic (`x-api-key`) and any OpenAI-compatible `/chat/completions`
+(Ollama keeps everything local). The key is encrypted with the vault key. The assistant can only PROPOSE: `parseAnswer` validates
+every proposed action with the real `previewAction` (made-up ids, quiet actions and invalid params are dropped and counted) and shows
+the REAL risk; the person opens the normal run dialog. "Explain this error" in the run dialog prefills the Assistant (still previewed).
+Tested against fake providers (in-process fetch and a real local HTTP server); **real providers were not exercised** (no key).
+
+## 19i. Hosted mode (M24)
+
+`gfv --hosted --public-url https://...` (see `docs/HOSTED.md` for deployment). `AppContext.hosted` switches `buildApp` from the local
+token (`registerAuth`) to `registerHosted` (`server/src/hosted.ts`): (1) `onRequest` resolves the session cookie (`UserService.resolve`:
+sha256-hashed token, 12 h sliding idle, 7 d absolute), checks Origin on changes; (2) `preHandler` enforces `MEMBER_RULES`, a table of the
+ONLY routes a member may call, each with an extractor that names the server ids to check against the member's access list (from params,
+body, a db connection or a run). **Anything not listed is administrator-only** (deny by default): `hosted.test.ts` enumerates
+`app.routeTable` (every registered route) and fails if a rule is stale, an unlisted route lets a member through, or a server-bound route
+lets a member reach a server they were not given; WebSockets are checked at the upgrade (real `ws` test); lists, statuses and history are
+filtered by `req.accessible`. (3) `onResponse` writes the audit log. `UserService` (`services/auth/users.ts`): scrypt passwords
+(`crypto/password.ts`), TOTP (`crypto/totp.ts`, RFC 6238 vectors tested, replay-protected by the last accepted step) with secrets
+encrypted by `auth.key` in the data dir, recovery codes (sha256, one use), throttling (uniform errors, dummy hash for unknown users),
+last-administrator protection. Sign-in over plain http is refused unless the host is localhost (`https_required`); `trustProxy` is on so
+`X-Forwarded-Proto` decides the `Secure` cookie. Web: `LoginScreen` (also the first-run setup), `AccountDialog` (password, 2FA, devices),
+`UsersApp` (admin: accounts, per-server access, audit; hidden from members and local mode via `launchableFor`). Local mode is unchanged.
+`e2e/25-hosted.spec.ts` runs a second GFV in hosted mode (port 4398, `e2e/serve-hosted.ts`).
+
 ## 20. Testing strategy
 
 Three layers, each answering a different question.

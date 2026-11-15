@@ -9,7 +9,8 @@ import {
   Sun,
 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { LAUNCHABLE, appById } from '../apps/registry';
+import { appById } from '../apps/registry';
+import { useLaunchable } from '../stores/launchable';
 import { GfvMark } from '../components/icons/GfvMark';
 import { Menu, type MenuItem } from '../components/menu/Menu';
 import { useAppearance } from '../stores/appearanceStore';
@@ -101,6 +102,7 @@ function BarMenu({
 }
 
 export function MenuBar() {
+  const launchable = useLaunchable();
   const windows = useDesktop((s) => s.windows);
   const focusedId = useDesktop((s) => s.focusedId);
   const theme = useDesktop((s) => s.theme);
@@ -139,7 +141,7 @@ export function MenuBar() {
       reduceTransparency: appearance.reduceTransparency,
       learnOpen,
       fullscreen,
-      launchable: LAUNCHABLE,
+      launchable,
       act: {
         openApp,
         copyText: (text) => {

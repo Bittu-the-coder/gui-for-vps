@@ -21,7 +21,13 @@ export function connectionRoutes(
 
   const exists = (id: string) => !!db.select().from(servers).where(eq(servers.id, id)).get();
 
-  app.get('/api/connections', async () => pool.allStatuses());
+  app.get('/api/connections', async (req) =>
+    Object.fromEntries(
+      Object.entries(pool.allStatuses()).filter(
+        ([id]) => req.accessible === 'all' || req.accessible.includes(id),
+      ),
+    ),
+  );
 
   /** Always 200: the body's `status` says what happened (connected, host_key_unknown, ...). */
   app.post<{ Params: { id: string } }>('/api/servers/:id/connect', async (req, reply) => {

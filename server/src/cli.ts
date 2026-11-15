@@ -16,10 +16,14 @@ Usage: gfv [options]
 
   --port <n>    Port to listen on (default ${DEFAULT_PORT}; the next free one is used if it is busy)
   --no-open     Do not open the browser, just print the address
+  --hosted      Hosted mode: sign in with accounts (and 2FA) instead of the local token, for running GFV on a
+                server you reach from anywhere. Needs --public-url and a TLS proxy in front (see docs/HOSTED.md)
+  --public-url <https://...>   The address people type, served by your TLS proxy (hosted mode)
+  --host <addr>  Address to listen on in hosted mode (default 127.0.0.1: the proxy runs on the same machine)
   --version     Print the version
   --help        Show this help
 
-GFV only listens on 127.0.0.1 (this computer). Your data (servers, encrypted
+Without --hosted, GFV only listens on 127.0.0.1 (this computer). Your data (servers, encrypted
 credentials, history) lives in ~/.gfv, or in $GFV_HOME if set.`;
 
 function version(): string {
@@ -75,7 +79,10 @@ async function main() {
   if (args.includes('--version') || args.includes('-v')) return console.log(version());
 
   const unknown = args.filter(
-    (a, i) => a.startsWith('-') && !['--port', '--no-open'].includes(a) && args[i - 1] !== '--port',
+    (a, i) =>
+      a.startsWith('-') &&
+      !['--port', '--no-open', '--hosted', '--public-url', '--host'].includes(a) &&
+      !['--port', '--public-url', '--host'].includes(args[i - 1] ?? ''),
   );
   if (unknown.length) {
     console.error(`Unknown option: ${unknown[0]}\n\n${HELP}`);
@@ -101,13 +108,52 @@ async function main() {
     for (let i = 0; i < 20 && !(await free(port)); i++) port++;
   }
 
+  const flag = (name: string) => {
+    const i = args.indexOf(name);
+    return i >= 0 ? args[i + 1] : undefined;
+  };
+  const hostedOn = args.includes('--hosted');
+  const publicUrl = flag('--public-url');
+  const host = flag('--host');
+  if (hostedOn) {
+    if (!publicUrl || !/^https:\/\/[^\s/]+(\/.*)?$/.test(publicUrl)) {
+      console.error(
+        'Hosted mode needs --public-url https://your.domain (the address your TLS proxy serves).',
+      );
+      process.exitCode = 2;
+      return;
+    }
+  } else if (publicUrl || host) {
+    console.error('--public-url and --host only make sense with --hosted.');
+    process.exitCode = 2;
+    return;
+  }
+  const setupToken = process.env.GFV_SETUP_TOKEN ?? randomBytes(18).toString('base64url');
+
   const server = await startServer({
     port,
     token: process.env.GFV_TOKEN ?? randomBytes(32).toString('hex'),
     webDir: webDir(),
+    ...(hostedOn
+      ? { hosted: { publicUrl: publicUrl!, ...(host ? { host } : {}), setupToken } }
+      : {}),
   });
-  console.log(`GFV ${version()} is running. Open:\n\n  ${server.url}\n\nPress Ctrl+C to stop.`);
-  if (!args.includes('--no-open')) openBrowser(server.url);
+  if (hostedOn) {
+    console.log(
+      `GFV ${version()} (hosted mode) listens on ${host ?? '127.0.0.1'}:${port}, behind your proxy at ${server.url}`,
+    );
+    if (host && !['127.0.0.1', 'localhost', '::1'].includes(host))
+      console.warn(
+        `\nWARNING: listening on ${host} exposes GFV on that address. It only accepts sign-ins over HTTPS, but put a firewall or the proxy in front.`,
+      );
+    console.log(
+      `\nFirst run? Create the administrator at ${server.url} with this setup token (shown only here):\n\n  ${setupToken}\n`,
+    );
+    console.log('Press Ctrl+C to stop.');
+  } else {
+    console.log(`GFV ${version()} is running. Open:\n\n  ${server.url}\n\nPress Ctrl+C to stop.`);
+    if (!args.includes('--no-open')) openBrowser(server.url);
+  }
 
   const stop = () => void server.close().finally(() => process.exit(0));
   process.on('SIGINT', stop);

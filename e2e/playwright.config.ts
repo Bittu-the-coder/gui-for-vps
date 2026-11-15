@@ -23,6 +23,7 @@ function findChromium(): string | undefined {
 }
 
 export const PORT = 4399;
+export const HOSTED_PORT = 4398;
 export const TOKEN = 'e2e-token';
 
 export default defineConfig({
@@ -41,14 +42,25 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   outputDir: join(import.meta.dirname, '.results'),
-  webServer: {
-    // One process (no pnpm/tsx wrapper), so Playwright can stop it cleanly.
-    // GFV_E2E_SERVER_CMD lets the same specs run against a packed `gfv` install instead (see README).
-    command: process.env.GFV_E2E_SERVER_CMD ?? 'node --import tsx e2e/serve.ts',
-    gracefulShutdown: { signal: 'SIGTERM', timeout: 5000 },
-    url: `http://127.0.0.1:${PORT}/`,
-    timeout: 60_000,
-    reuseExistingServer: false,
-    cwd: join(import.meta.dirname, '..'),
-  },
+  webServer: [
+    {
+      // One process (no pnpm/tsx wrapper), so Playwright can stop it cleanly.
+      // GFV_E2E_SERVER_CMD lets the same specs run against a packed `gfv` install instead (see README).
+      command: process.env.GFV_E2E_SERVER_CMD ?? 'node --import tsx e2e/serve.ts',
+      gracefulShutdown: { signal: 'SIGTERM', timeout: 5000 },
+      url: `http://127.0.0.1:${PORT}/`,
+      timeout: 60_000,
+      reuseExistingServer: false,
+      cwd: join(import.meta.dirname, '..'),
+    },
+    {
+      // Hosted mode (accounts, 2FA, roles): its own server and data directory, used by 25-hosted.spec.ts.
+      command: 'node --import tsx e2e/serve-hosted.ts',
+      gracefulShutdown: { signal: 'SIGTERM', timeout: 5000 },
+      url: `http://127.0.0.1:${HOSTED_PORT}/`,
+      timeout: 60_000,
+      reuseExistingServer: false,
+      cwd: join(import.meta.dirname, '..'),
+    },
+  ],
 });

@@ -1,4 +1,4 @@
-import { blob, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { blob, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 /** Single row (id = 1): salt, scrypt params and the encrypted canary. No secrets. */
 export const vaultMeta = sqliteTable('vault_meta', {
@@ -117,4 +117,103 @@ export const jobs = sqliteTable('jobs', {
   snapshot: text('snapshot', { mode: 'json' }).$type<unknown>().notNull(),
   startedAt: integer('started_at').notNull(),
   finishedAt: integer('finished_at'),
+});
+
+/** Saved database connections (M21). The password is encrypted with the vault key, like SSH credentials. */
+export const dbConnections = sqliteTable('db_connections', {
+  id: text('id').primaryKey(),
+  serverId: text('server_id')
+    .notNull()
+    .references(() => servers.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  /** Where the database listens, as the SERVER sees it (GFV reaches it through an SSH port-forward). */
+  host: text('host').notNull(),
+  port: integer('port').notNull(),
+  database: text('database').notNull(),
+  user: text('user').notNull(),
+  password: blob('password', { mode: 'buffer' }).notNull(),
+  createdAt: integer('created_at').notNull(),
+});
+
+/** The AI assistant's settings (M23): a single row. The API key is encrypted with the vault key. Off by default. */
+export const aiSettings = sqliteTable('ai_settings', {
+  id: integer('id').primaryKey(),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+  provider: text('provider', { enum: ['anthropic', 'openai-compatible'] })
+    .notNull()
+    .default('anthropic'),
+  model: text('model').notNull().default('claude-sonnet-5-5'),
+  baseUrl: text('base_url').notNull().default(''),
+  apiKey: blob('api_key', { mode: 'buffer' }),
+});
+
+// ---- Hosted mode (M24) ---------------------------------------------------------------------------------------------
+
+export const users = sqliteTable(
+  'users',
+  {
+    id: text('id').primaryKey(),
+    username: text('username').notNull(),
+    /** scrypt hash (see crypto/password.ts). Never the password. */
+    passwordHash: text('password_hash').notNull(),
+    role: text('role', { enum: ['admin', 'member'] })
+      .notNull()
+      .default('member'),
+    disabled: integer('disabled', { mode: 'boolean' }).notNull().default(false),
+    /** TOTP secret, encrypted with the auth key (auth.key in the data dir); null = 2FA not enabled. */
+    totpSecret: blob('totp_secret', { mode: 'buffer' }),
+    /** A secret being enrolled, not yet confirmed with a code. */
+    totpPending: blob('totp_pending', { mode: 'buffer' }),
+    totpEnabled: integer('totp_enabled', { mode: 'boolean' }).notNull().default(false),
+    /** The last accepted TOTP step: the same code cannot be used twice. */
+    totpLastStep: integer('totp_last_step'),
+    /** sha256 of each unused recovery code (JSON array). */
+    recoveryHashes: text('recovery_hashes', { mode: 'json' })
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    createdAt: integer('created_at').notNull(),
+    lastLoginAt: integer('last_login_at'),
+  },
+  (t) => [uniqueIndex('users_username').on(t.username)],
+);
+
+export const sessions = sqliteTable('sessions', {
+  /** sha256 of the session token (the token itself is only in the browser's cookie). */
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: integer('created_at').notNull(),
+  lastSeen: integer('last_seen').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+  ip: text('ip'),
+  userAgent: text('user_agent'),
+});
+
+/** Which servers a MEMBER may use. Admins can use all of them. */
+export const serverAccess = sqliteTable(
+  'server_access',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.serverId] })],
+);
+
+export const auditLog = sqliteTable('audit_log', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  at: integer('at').notNull(),
+  userId: text('user_id'),
+  username: text('username'),
+  ip: text('ip'),
+  event: text('event').notNull(),
+  serverId: text('server_id'),
+  ok: integer('ok', { mode: 'boolean' }).notNull(),
+  /** Never a secret, a password, SQL text or terminal input: action ids, route names, short facts. */
+  detail: text('detail'),
 });

@@ -23,6 +23,7 @@ import { Spotlight } from './Spotlight';
 import { Wallpaper } from './Wallpaper';
 import { WALLPAPERS } from './wallpapers';
 import { Window } from './Window';
+import { AccountDialog } from '../components/AccountDialog';
 import { CompactWindow, MobileHome, TabBar, topWindowId } from './Mobile';
 import { isCompact, useCompact } from './compact';
 import { setWorkspaceSize, useDesktop } from './windowStore';
@@ -225,6 +226,7 @@ export function Desktop() {
       <Spotlight />
       <ControlCenter />
       <ToastHost />
+      <AccountDialog />
       <ConfirmHost />
       {passwordDialog && (
         <ChangePasswordDialog onClose={() => useOverlays.getState().setPasswordDialog(false)} />
