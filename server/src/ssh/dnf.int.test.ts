@@ -1,11 +1,9 @@
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
-import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../app.js';
-import { testCtx } from '../testUtil.js';
+import { testCtx, testKey } from '../testUtil.js';
 
 // The dnf side of the package-manager abstraction, on a REAL Fedora container (port 2203). Start it with:
 //   docker compose -f e2e/docker-compose.yml --profile fedora up -d --build vps-fedora
@@ -16,7 +14,7 @@ const up = await new Promise<boolean>((ok) => {
   s.on('connect', () => (s.end(), ok(true)));
   s.on('error', () => ok(false));
 });
-const privateKey = readFileSync(resolve(__dirname, '../../../e2e/keys/id_test'), 'utf8');
+const privateKey = testKey();
 const H = { 'x-gfv-token': 't' };
 vi.setConfig({ testTimeout: 900_000 }); // real package installs: minutes on a slow network
 

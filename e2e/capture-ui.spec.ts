@@ -1,7 +1,7 @@
 // Not a test of behaviour: screenshots of every screen in both themes, for before/after comparisons
 // of the redesign. Run on demand (it needs the server that spec 01 adds, so run both):
 //   CAPTURE_UI=before pnpm exec playwright test --config e2e/playwright.config.ts 01-onboarding capture-ui
-// Output: docs/redesign/<label>/<theme>-<screen>.png
+// Output: docs/redesign/<label>/<theme>-<screen>.png (that folder is ignored by git)
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';

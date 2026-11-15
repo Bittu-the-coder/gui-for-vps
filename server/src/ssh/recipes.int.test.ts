@@ -1,12 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
-import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../app.js';
 import { snapshots } from '../db/schema.js';
-import { testCtx } from '../testUtil.js';
+import { testCtx, testKey } from '../testUtil.js';
 
 // Integration for M8 on the Docker test VPSes: sudo-save + snapshots + restore on vps-a, and
 // record -> export -> RUN THE SCRIPT ON THE CLEAN vps-b (the milestone check).
@@ -18,7 +16,7 @@ const open = (port: number) =>
     s.on('error', () => ok(false));
   });
 const reachable = (await open(2201)) && (await open(2202));
-const privateKey = readFileSync(resolve(__dirname, '../../../e2e/keys/id_test'), 'utf8');
+const privateKey = testKey();
 const H = { 'x-gfv-token': 't' };
 vi.setConfig({ testTimeout: 60_000 });
 

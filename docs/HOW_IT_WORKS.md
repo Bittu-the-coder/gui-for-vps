@@ -1,11 +1,11 @@
 # How GFV works: a deep tour of the code
 
-This document explains **how GFV is built and wired together**, and **how the code is written**, so you can
-read any file in the repository and know why it is there. It is written for someone who knows React and
-Express/Node (MERN) but has not built an SSH tool before.
+I wrote this document to explain how GFV is built and wired together, and how the code is written, so you can
+open any file in the repository and understand why it is there. I wrote it with a reader in mind who knows React and
+Node (the MERN stack) but has never built an SSH tool, because that was me when I started.
 
-Every file path below is real (relative to the repository root). When a number or a name matters, it was
-checked against the code. If you change the code, change this document with it.
+Every file path below is real and relative to the repository root. When a number or a name matters, I checked it
+against the code. If you change the code, please change this document with it.
 
 > **How to read it.** Part 1 to 3 give you the map. Parts 4 to 9 are the server, in the order a request meets
 > it. Parts 10 to 16 are the features. Part 17 is the browser side. Parts 18 to 22 are tooling, tests and a
@@ -142,7 +142,8 @@ gfv/
 ├─ scripts/           dev.mjs (run dev), build-package.mjs (make the npm package)
 ├─ docs/              README images and this document
 ├─ README.md          how to install and use
-├─ PLAN.md            features, milestones, v2 ideas (source of truth for scope)
+├─ CLAUDE.md          short rules for AI assistants and contributors
+├─ CONTRIBUTING.md    how to help
 └─ CLAUDE.md          conventions, status per milestone, gotchas
 ```
 
@@ -412,7 +413,7 @@ credential JSON ──AES-256-GCM(key, random 12-byte IV)──► blob = IV | a
   at creation we encrypt a known string (`gfv-vault-canary-v1`) with the key and store it. To unlock: derive the
   key from the typed password, try to decrypt the canary; success means the password is right.
 - **Lock / unlock.** `lock()` overwrites the key buffer with zeros. A browser reload does _not_ lock (the key lives
-  in the server process); restarting the server or pressing 🔒 does. Locking also disconnects every SSH connection.
+  in the server process); restarting the server or pressing the lock button does. Locking also disconnects every SSH connection.
 - **Changing the password** (`changePassword`): verify the old one, derive a new key with a **new salt**, then in
   one DB transaction re-encrypt every `servers.credential` and save the new salt/canary. A crash cannot leave
   data encrypted under a key the metadata does not match. (Tests prove a thrown transaction leaves the old
@@ -473,7 +474,7 @@ handshake; returning `false` aborts the connection. So:
 hostVerifier(key):
    fp = fingerprint(key)                    "SHA256:" + unpadded base64 of sha256(key blob)   (same as ssh-keygen -l)
    stored = hostKeys.get(serverId)
-   no stored key      → remember {unknown, fp}  and return false   (abort, report to the user)
+   no stored key      → remember {unknown, fp}  and return false   (abort, and report it to the person using GFV)
    stored != fp       → remember {changed, fp, expected} and return false   (abort, NEVER auto-accept)
    stored == fp       → return true
 ```
@@ -933,7 +934,7 @@ Docker behaviour is not. Check on a real VPS before relying on it.
   ...
   ```
 
-  Risky steps get `# ⚠ Caution/DANGER: reason` comments. Unknown or invalid steps become `# Skipped: …` instead of
+  Risky steps get `# Caution/DANGER: reason` comments. Unknown or invalid steps become `# Skipped: …` instead of
   crashing. Backup commands are never exported. The recipe **name is flattened to one line**, so a name cannot
   inject script lines.
 
@@ -1412,7 +1413,7 @@ run → backup recorded in `snapshots` → Snapshots app shows it; Restore re-ru
 ### 21.5 "I record a recipe"
 
 ```
-⏺ Record → POST /api/recording/start {serverId}            (row in `recording`)
+Record button → POST /api/recording/start {serverId}            (row in `recording`)
 … you run actions …  each success → Runner.onSuccess → RecipeService.recordRun → recipe_steps row
 ■ Stop → POST /api/recording/stop → Recipes app opens the new recipe
 Script tab → GET /api/recipes/:id/export → exportRecipe(...) → bash text you can copy or download
@@ -1443,7 +1444,7 @@ Script tab → GET /api/recipes/:id/export → exportRecipe(...) → bash text y
    take what you need from `AppContext`, guard it for the locked vault, and register it in `app.ts`.
 8. **If it needs a new table**, edit `server/src/db/schema.ts` and run `pnpm --filter @gfv/server db:generate`.
 9. **Integration/e2e test** against the Docker servers if it touches SSH.
-10. **Update `README.md`** (user-facing), **`CLAUDE.md`** (status/gotchas) and, if scope changed, **`PLAN.md`**.
+10. **Update `docs/USER_GUIDE.md`** (user-facing), **`docs/MILESTONES.md`** (what you built, and what you could not verify) and, if scope changed, **`docs/ROADMAP.md`**.
 
 Checks before you call it done: `pnpm typecheck && pnpm lint && pnpm test`, then drive it in a real browser.
 

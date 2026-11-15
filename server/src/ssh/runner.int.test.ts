@@ -1,13 +1,11 @@
-import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
 import type { AddressInfo } from 'node:net';
-import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import WebSocket from 'ws';
 import type { RunMsg } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { testCtx } from '../testUtil.js';
+import { testCtx, testKey } from '../testUtil.js';
 
 // Integration tests: the Command Runner against the Docker test VPS (vps-a, 127.0.0.1:2201).
 const PORT = 2201;
@@ -17,7 +15,7 @@ const reachable = await new Promise<boolean>((ok) => {
   s.on('connect', () => (s.end(), ok(true)));
   s.on('error', () => ok(false));
 });
-const privateKey = readFileSync(resolve(__dirname, '../../../e2e/keys/id_test'), 'utf8');
+const privateKey = testKey();
 const H = { 'x-gfv-token': 't' };
 vi.setConfig({ testTimeout: 30_000 });
 

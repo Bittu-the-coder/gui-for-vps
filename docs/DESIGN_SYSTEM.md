@@ -1,11 +1,11 @@
 # GFV design system
 
-How the macOS-style look is built, and the rules that keep it consistent. Read this before adding or restyling
-anything in `web/`. The short version: **colours, shadows and motion live in one file, components use them by
+This page explains how I built the macOS-style look and the rules that keep it consistent. Please read it before you
+add or restyle anything in `web/`. The short version: **colours, shadows and motion live in one file, components use them by
 name, and tests fail when contrast breaks.**
 
-Screenshots of every screen in both themes: `docs/redesign/` (`before/` is the old UI, `after/` the finished
-redesign, `compare.html` shows them side by side).
+To see every screen in both themes, run `CAPTURE_UI=mine pnpm exec playwright test --config e2e/playwright.config.ts 01-onboarding capture-ui`.
+It writes the screenshots to `docs/redesign/mine/`, which is ignored by git.
 
 ## 1. Tokens (`web/src/styles/tokens.css`)
 

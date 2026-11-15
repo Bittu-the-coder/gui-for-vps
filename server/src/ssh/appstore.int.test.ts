@@ -1,12 +1,10 @@
 import { execFileSync, execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
-import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { APPS, parseCredentials, parseInstalled } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { exclusive, testCtx } from '../testUtil.js';
+import { exclusive, testCtx, testKey } from '../testUtil.js';
 
 // The App Store on a REAL server: real systemd, real Docker (installed through the Dev Hub), real images.
 //   docker compose -f e2e/docker-compose.yml --profile systemd up -d --build vps-systemd
@@ -16,7 +14,7 @@ const up = await new Promise<boolean>((ok) => {
   s.on('connect', () => (s.end(), ok(true)));
   s.on('error', () => ok(false));
 });
-const privateKey = readFileSync(resolve(__dirname, '../../../e2e/keys/id_test'), 'utf8');
+const privateKey = testKey();
 const H = { 'x-gfv-token': 't' };
 vi.setConfig({ testTimeout: 900_000, hookTimeout: 60_000 });
 

@@ -2,6 +2,16 @@
   "name": "gfv",
   "private": true,
   "version": "0.1.0",
+  "description": "A desktop in your browser for your VPS servers: it teaches you, protects you, and remembers what you did.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bittu-the-coder/gui-for-vps.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Bittu-the-coder/gui-for-vps/issues"
+  },
+  "homepage": "https://github.com/Bittu-the-coder/gui-for-vps#readme",
   "type": "module",
   "engines": {
     "node": ">=22"

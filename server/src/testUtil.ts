@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import type { AppContext } from './context.js';
 import { Vault } from './crypto/vault.js';
 import { openDb } from './db/index.js';
@@ -59,5 +61,18 @@ export async function exclusive(name: string, staleMs = 15 * 60_000): Promise<()
       }
       await new Promise((r) => setTimeout(r, 1000));
     }
+  }
+}
+
+/**
+ * The SSH key of the Docker test servers (e2e/keys/id_test, gitignored). Integration tests call this at the top of the
+ * file, BEFORE they check whether the containers are running, so it must not throw when the key does not exist (for
+ * example on a fresh clone or in CI): they then skip themselves.
+ */
+export function testKey(): string {
+  try {
+    return readFileSync(fileURLToPath(new URL('../../e2e/keys/id_test', import.meta.url)), 'utf8');
+  } catch {
+    return '';
   }
 }

@@ -58,7 +58,8 @@ export async function buildApp(token: string, ctx: AppContext) {
   app.get('/api/health', async (): Promise<Health> => ({
     ok: true,
     name: 'gfv',
-    version: '0.0.0',
+    // The command line sets GFV_VERSION from package.json; from source or in tests it stays 0.0.0.
+    version: process.env.GFV_VERSION ?? '0.0.0',
   }));
   vaultRoutes(app, ctx);
   serverRoutes(app, ctx);

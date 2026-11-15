@@ -1,11 +1,9 @@
-import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
-import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, describe, expect, it, vi, beforeAll } from 'vitest';
 import type { JobSnapshot } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { exclusive, testCtx } from '../testUtil.js';
+import { exclusive, testCtx, testKey } from '../testUtil.js';
 
 // M11 on the Docker test VPSes: broadcast, parameterized replay on BOTH servers, pause-on-failure with a
 // REAL failing command, and the server-side confirmation gate.
@@ -17,7 +15,7 @@ const open = (port: number) =>
     s.on('error', () => ok(false));
   });
 const reachable = (await open(2201)) && (await open(2202));
-const privateKey = readFileSync(resolve(__dirname, '../../../e2e/keys/id_test'), 'utf8');
+const privateKey = testKey();
 const H = { 'x-gfv-token': 't' };
 vi.setConfig({ testTimeout: 60_000 });
 

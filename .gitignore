@@ -14,3 +14,11 @@ dist-pkg
 e2e/.results
 test-results
 playwright-report
+
+# Screenshots made for local design comparison (docs/screenshots is the README gallery and IS committed).
+docs/redesign/
+.DS_Store
+*.tsbuildinfo
+
+# Local search tooling config
+.ignore

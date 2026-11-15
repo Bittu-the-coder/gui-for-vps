@@ -1,10 +1,8 @@
-import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
-import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../app.js';
-import { testCtx } from '../testUtil.js';
+import { testCtx, testKey } from '../testUtil.js';
 
 // "Clone this server": a recipe built from what is REALLY installed on a Docker test VPS.
 const open = (port: number) =>
@@ -15,7 +13,7 @@ const open = (port: number) =>
     s.on('error', () => ok(false));
   });
 const reachable = await open(2201);
-const privateKey = readFileSync(resolve(__dirname, '../../../e2e/keys/id_test'), 'utf8');
+const privateKey = testKey();
 const H = { 'x-gfv-token': 't' };
 vi.setConfig({ testTimeout: 60_000 });
 

@@ -1,11 +1,9 @@
-import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
-import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, describe, expect, it, vi, beforeAll } from 'vitest';
 import { parsePorts, parseSites } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { exclusive, testCtx } from '../testUtil.js';
+import { exclusive, testCtx, testKey } from '../testUtil.js';
 
 // Ports and nginx sites on a REAL Ubuntu container (vps-b): real nginx, real `nginx -t`, real `ss`.
 // (There is no systemd: the shim answers `systemctl reload`, so the reload step itself is canned.)
@@ -15,7 +13,7 @@ const reachable = await new Promise<boolean>((ok) => {
   s.on('connect', () => (s.end(), ok(true)));
   s.on('error', () => ok(false));
 });
-const privateKey = readFileSync(resolve(__dirname, '../../../e2e/keys/id_test'), 'utf8');
+const privateKey = testKey();
 const H = { 'x-gfv-token': 't' };
 vi.setConfig({ testTimeout: 400_000, hookTimeout: 120_000 });
 

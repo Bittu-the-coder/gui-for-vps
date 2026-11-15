@@ -1,12 +1,10 @@
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
-import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { parseBackups, parseStatus } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { exclusive, testCtx } from '../testUtil.js';
+import { exclusive, testCtx, testKey } from '../testUtil.js';
 
 // Firewall + lockout protection on a REAL server: Ubuntu with real systemd and real ufw (vps-systemd, port 2204):
 //   docker compose -f e2e/docker-compose.yml --profile systemd up -d --build vps-systemd
@@ -17,7 +15,7 @@ const up = await new Promise<boolean>((ok) => {
   s.on('connect', () => (s.end(), ok(true)));
   s.on('error', () => ok(false));
 });
-const privateKey = readFileSync(resolve(__dirname, '../../../e2e/keys/id_test'), 'utf8');
+const privateKey = testKey();
 const H = { 'x-gfv-token': 't' };
 vi.setConfig({ testTimeout: 300_000, hookTimeout: 60_000 });
 

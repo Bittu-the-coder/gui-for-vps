@@ -1,0 +1,8 @@
+node_modules
+dist
+dist-pkg
+pnpm-lock.yaml
+server/drizzle/meta
+web/public
+e2e/.results
+*.tgz

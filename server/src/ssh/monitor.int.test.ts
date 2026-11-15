@@ -1,6 +1,4 @@
-import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
-import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import {
@@ -12,7 +10,7 @@ import {
   parseServices,
 } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { testCtx } from '../testUtil.js';
+import { testCtx, testKey } from '../testUtil.js';
 
 // Integration: quiet queries + M6 actions against the Docker test VPS (vps-a). systemctl, journalctl
 // and docker there are SHIMS (canned output), but /proc, ps and df are real.
@@ -23,7 +21,7 @@ const reachable = await new Promise<boolean>((ok) => {
   s.on('connect', () => (s.end(), ok(true)));
   s.on('error', () => ok(false));
 });
-const privateKey = readFileSync(resolve(__dirname, '../../../e2e/keys/id_test'), 'utf8');
+const privateKey = testKey();
 const H = { 'x-gfv-token': 't' };
 vi.setConfig({ testTimeout: 30_000 });
 

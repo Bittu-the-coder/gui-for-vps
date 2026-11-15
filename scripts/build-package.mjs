@@ -43,8 +43,8 @@ await build({
 console.log('3/4 copying the web app and migrations');
 cpSync(resolve(root, 'web/dist'), resolve(out, 'web'), { recursive: true });
 cpSync(resolve(root, 'server/drizzle'), resolve(out, 'drizzle'), { recursive: true });
-if (existsSync(resolve(root, 'README.md')))
-  cpSync(resolve(root, 'README.md'), resolve(out, 'README.md'));
+for (const f of ['README.md', 'LICENSE'])
+  if (existsSync(resolve(root, f))) cpSync(resolve(root, f), resolve(out, f));
 
 console.log('4/4 writing package.json');
 writeFileSync(
@@ -55,13 +55,25 @@ writeFileSync(
       version: rootPkg.version,
       description:
         'A desktop in your browser for your VPS servers: teaches you, protects you, and clones your setup.',
-      keywords: ['vps', 'ssh', 'server', 'gui', 'terminal'],
+      keywords: [
+        'vps',
+        'ssh',
+        'server',
+        'gui',
+        'terminal',
+        'devops',
+        'sysadmin',
+        'self-hosted',
+        'learn-linux',
+      ],
+      homepage: 'https://github.com/Bittu-the-coder/gui-for-vps#readme',
+      repository: { type: 'git', url: 'git+https://github.com/Bittu-the-coder/gui-for-vps.git' },
+      bugs: { url: 'https://github.com/Bittu-the-coder/gui-for-vps/issues' },
       type: 'module',
       bin: { gfv: 'dist/cli.js' },
-      files: ['dist', 'web', 'drizzle', 'README.md'],
+      files: ['dist', 'web', 'drizzle', 'README.md', 'LICENSE'],
       engines: { node: '>=22' },
-      // Not decided yet: pick a license before publishing.
-      license: 'UNLICENSED',
+      license: 'MIT',
       dependencies: deps,
     },
     null,

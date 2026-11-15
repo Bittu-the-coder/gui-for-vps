@@ -130,6 +130,7 @@ async function main() {
   }
   const setupToken = process.env.GFV_SETUP_TOKEN ?? randomBytes(18).toString('base64url');
 
+  process.env.GFV_VERSION = version(); // reported by /api/health
   const server = await startServer({
     port,
     token: process.env.GFV_TOKEN ?? randomBytes(32).toString('hex'),

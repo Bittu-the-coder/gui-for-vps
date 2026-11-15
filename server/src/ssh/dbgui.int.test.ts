@@ -1,12 +1,10 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
-import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { APPS, parseCredentials, type QueryResult } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { exclusive, testCtx } from '../testUtil.js';
+import { exclusive, testCtx, testKey } from '../testUtil.js';
 
 // The Database GUI on a REAL PostgreSQL, reached through a REAL SSH port-forward: the database runs in a Docker
 // container (installed through the App Store) on the real-systemd server.
@@ -16,7 +14,7 @@ const up = await new Promise<boolean>((ok) => {
   s.on('connect', () => (s.end(), ok(true)));
   s.on('error', () => ok(false));
 });
-const privateKey = readFileSync(resolve(__dirname, '../../../e2e/keys/id_test'), 'utf8');
+const privateKey = testKey();
 const H = { 'x-gfv-token': 't' };
 vi.setConfig({ testTimeout: 600_000, hookTimeout: 60_000 });
 const box = (cmd: string) =>

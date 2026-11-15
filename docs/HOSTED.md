@@ -1,8 +1,14 @@
 # Running GFV on a server (hosted mode)
 
-By default GFV runs on **your own computer** and only listens on `127.0.0.1`. Hosted mode is for running it on a
-server you can reach from anywhere (a laptop, a phone, a teammate). It adds accounts, two-factor authentication,
-roles, per-server access and an audit log. **It must sit behind HTTPS.**
+By default GFV runs on your own computer and only listens on `127.0.0.1`. I added hosted mode for the case where you
+want to run it on a server and reach it from anywhere, from a laptop, a phone, or together with a teammate. It adds
+accounts, two-factor authentication, roles, per-server access and an audit log. It has to sit behind HTTPS.
+
+I want to be straight about its status before you rely on it. I tested the sign-in, the roles and the access rules
+thoroughly, including a test that walks every route the server registers. I have not run it on the open internet behind
+a real proxy, and nobody else has reviewed its security. Please read this page, review the code in
+`server/src/hosted.ts` and `server/src/services/auth/users.ts`, and keep it behind a VPN or an IP allow-list if you
+can.
 
 ## What you get
 
