@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
 import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it, vi, beforeAll } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import WebSocket from 'ws';
 import { parseDetect, type RunMsg } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { testCtx } from '../testUtil.js';
+import { exclusive, testCtx } from '../testUtil.js';
 
 // Integration: Dev Hub detection, cancellation and (opt-in) a real install on the Docker test VPS (vps-b).
 // vps-b, not vps-a: installs hold the apt lock, which would break the apt test in runner.int.test.ts
@@ -27,6 +27,11 @@ const slow = process.env.GFV_SLOW_TESTS === '1';
 
 describe.skipIf(!reachable)('dev hub (vps-b)', () => {
   const ctx = testCtx();
+  let release: () => void = () => {};
+  // Files that install packages on this server take turns (concurrent apt/dnf runs fight over the package lock).
+  beforeAll(async () => {
+    release = await exclusive('vps-b');
+  }, 1_800_000);
   let app: FastifyInstance;
   let id: string;
   let base: string;
@@ -62,6 +67,7 @@ describe.skipIf(!reachable)('dev hub (vps-b)', () => {
   afterAll(async () => {
     ctx.pool.disconnectAll();
     await app?.close();
+    release();
   });
 
   it('sets up', async () => {

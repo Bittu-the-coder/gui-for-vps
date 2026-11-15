@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
 import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it, vi, beforeAll } from 'vitest';
 import {
   buildServerMap,
   layoutMap,
@@ -12,7 +12,7 @@ import {
   parseSites,
 } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { testCtx } from '../testUtil.js';
+import { exclusive, testCtx } from '../testUtil.js';
 
 // The Server Map built from REAL command output on vps-b: a real nginx site proxying to a real listening program that
 // was started from inside a project folder, and a second site pointing at a port nobody listens on.
@@ -28,6 +28,11 @@ vi.setConfig({ testTimeout: 400_000, hookTimeout: 120_000 });
 
 describe.skipIf(!reachable)('server map from real output (vps-b)', () => {
   const ctx = testCtx();
+  let release: () => void = () => {};
+  // Files that install packages on this server take turns (concurrent apt/dnf runs fight over the package lock).
+  beforeAll(async () => {
+    release = await exclusive('vps-b');
+  }, 1_800_000);
   let app: FastifyInstance;
   let id: string;
   const call = (method: 'GET' | 'POST', url: string, payload?: object) =>
@@ -63,6 +68,7 @@ describe.skipIf(!reachable)('server map from real output (vps-b)', () => {
     }
     ctx.pool.disconnectAll();
     await app?.close();
+    release();
   });
 
   it('sets up: nginx, ss, a project folder, a real listener started from it, two sites', async () => {

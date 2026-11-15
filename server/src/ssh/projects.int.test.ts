@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
 import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it, vi, beforeAll } from 'vitest';
 import { parseProjects, renderEnvFile } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { testCtx } from '../testUtil.js';
+import { exclusive, testCtx } from '../testUtil.js';
 
 // Projects on a REAL Ubuntu container (vps-b): real git against a real bare repository, real files and permissions.
 // (No systemd: the shim answers systemctl, so enabling the service is canned; the unit FILE is real.)
@@ -21,6 +21,11 @@ vi.setConfig({ testTimeout: 400_000, hookTimeout: 120_000 });
 
 describe.skipIf(!reachable)('projects: deploy from git (vps-b)', () => {
   const ctx = testCtx();
+  let release: () => void = () => {};
+  // Files that install packages on this server take turns (concurrent apt/dnf runs fight over the package lock).
+  beforeAll(async () => {
+    release = await exclusive('vps-b');
+  }, 1_800_000);
   let app: FastifyInstance;
   let id: string;
   const stamp = Date.now();
@@ -77,6 +82,7 @@ describe.skipIf(!reachable)('projects: deploy from git (vps-b)', () => {
       ).catch(() => {});
     ctx.pool.disconnectAll();
     await app?.close();
+    release();
   });
 
   it('sets up: connect, install git for real, and make a bare repository with a build script', async () => {

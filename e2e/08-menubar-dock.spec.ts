@@ -123,3 +123,26 @@ test('the desktop context menu opens only on the bare desktop', async ({ page })
   await wins(page).first().locator('.win-titlebar').click({ button: 'right' });
   await expect(page.getByRole('menu', { name: 'Desktop' })).toHaveCount(0);
 });
+
+test('the Dock shrinks to fit when there are many apps and the screen is small', async ({
+  page,
+}) => {
+  test.skip(!(await vpsUp()), 'the Docker test VPS is not running');
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await openGfv(page);
+  const learn = page.getByRole('complementary', { name: 'Learn Mode' });
+  if (!(await learn.isVisible()))
+    await page.getByRole('button', { name: 'Toggle Learn Mode' }).click();
+  await expect(learn).toBeVisible();
+  const workspaceRight = (await learn.boundingBox())!.x; // the Learn panel starts where the workspace ends
+  const bar = page.getByTestId('dock-bar');
+  await expect
+    .poll(async () => {
+      const b = (await bar.boundingBox())!;
+      return b.x >= 0 && b.x + b.width <= workspaceRight + 0.5;
+    })
+    .toBe(true);
+  // Icons still work after being scaled: open one by clicking it.
+  await openApp(page, 'files');
+  await expect(page.locator('[data-testid="window"][data-app="files"]')).toBeVisible();
+});

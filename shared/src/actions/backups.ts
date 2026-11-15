@@ -35,7 +35,7 @@ export const scheduleBackup = defineAction({
   id: 'backup.schedule',
   title: 'Schedule a backup',
   explain:
-    'Writes a small script and a systemd timer. At the chosen time the server packs the folders into a .tar.gz in ~/.gfv/backups/<name>/ and deletes the oldest archives beyond the number you keep. A timer is systemd’s version of cron; "Persistent" means a missed run happens when the server is next on.',
+    'Writes a small script and a systemd timer. At the chosen time the server packs the folders into a .tar.gz in ~/.gfv/backups/<name>/ and deletes the oldest archives beyond the number you keep. A timer is systemd’s version of cron; "Persistent" means a missed run happens when the server is next on, so if the chosen hour has already passed today the first backup may run right away.',
   params: backupSchema,
   snapshotPaths: (p) => Object.values(unitPaths(p.name)),
   commands: (p, ctx) => {

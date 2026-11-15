@@ -46,6 +46,24 @@ export function Dock() {
   const [roving, setRoving] = useState(0);
   const [bouncing, setBouncing] = useState<Record<string, true>>({});
   const frame = useRef(0);
+  // With many apps the Dock can be wider than the workspace (small screens, Learn panel open): shrink it to fit.
+  const barRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState(1);
+
+  useEffect(() => {
+    const bar = barRef.current;
+    const host = bar?.parentElement;
+    if (!bar || !host) return;
+    const measure = () => {
+      const natural = bar.offsetWidth; // layout width: not affected by the transform below
+      const avail = host.clientWidth - 24;
+      setFit(natural > 0 && avail > 0 ? Math.min(1, avail / natural) : 1);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(host);
+    return () => ro.disconnect();
+  }, [Object.keys(windows).length]); // minimized windows add icons
 
   const all = Object.values(windows);
   const entries: Entry[] = useMemo(() => {
@@ -206,9 +224,14 @@ export function Dock() {
         />
       )}
       <div
+        ref={barRef}
+        data-testid="dock-bar"
         className="pointer-events-auto relative px-2 pb-1 pt-2"
         style={{
-          transform: tucked ? 'translateY(calc(100% + 16px))' : 'none',
+          transformOrigin: 'bottom center',
+          transform:
+            `${tucked ? 'translateY(calc(100% + 16px)) ' : ''}${fit < 1 ? `scale(${fit})` : ''}` ||
+            'none',
           transition: reduced ? undefined : 'transform var(--dur) var(--ease-out)',
         }}
         onPointerMove={onMove}

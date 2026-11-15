@@ -69,6 +69,7 @@ export class SftpService {
         client.sftp((err, s) => (err ? reject(wrap(err)) : resolve(s))),
       );
       this.channels.set(client, p);
+      p.then((s) => s.on('error', () => {})).catch(() => {}); // a dying channel reports through 'close'
       // A failed or closed channel must not be cached forever.
       p.then((s) => s.on('close', () => this.channels.delete(client))).catch(() =>
         this.channels.delete(client),
@@ -170,7 +171,12 @@ export class SftpService {
     if (!st) throw new SftpError('not_found');
     if (st.type === 'dir') throw new SftpError('is_directory');
     const s = await this.sftp(serverId);
-    return { stream: s.createReadStream(path), size: st.size };
+    const stream = s.createReadStream(path);
+    // When a transfer fails GFV destroys this stream; ssh2 then completes its still-pending read requests with
+    // "No response from server", which would be an uncaught 'error' event on a stream nobody listens to any more.
+    // (A pipeline attaches its own handler, so real errors still reach whoever is reading.)
+    stream.on('error', () => {});
+    return { stream, size: st.size };
   }
 
   /**

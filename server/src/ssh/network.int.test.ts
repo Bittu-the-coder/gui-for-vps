@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
 import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it, vi, beforeAll } from 'vitest';
 import { parsePorts, parseSites } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { testCtx } from '../testUtil.js';
+import { exclusive, testCtx } from '../testUtil.js';
 
 // Ports and nginx sites on a REAL Ubuntu container (vps-b): real nginx, real `nginx -t`, real `ss`.
 // (There is no systemd: the shim answers `systemctl reload`, so the reload step itself is canned.)
@@ -21,6 +21,11 @@ vi.setConfig({ testTimeout: 400_000, hookTimeout: 120_000 });
 
 describe.skipIf(!reachable)('ports and nginx sites (vps-b)', () => {
   const ctx = testCtx();
+  let release: () => void = () => {};
+  // Files that install packages on this server take turns (concurrent apt/dnf runs fight over the package lock).
+  beforeAll(async () => {
+    release = await exclusive('vps-b');
+  }, 1_800_000);
   let app: FastifyInstance;
   let id: string;
   const call = (method: 'GET' | 'POST', url: string, payload?: object) =>
@@ -56,6 +61,7 @@ describe.skipIf(!reachable)('ports and nginx sites (vps-b)', () => {
     }
     ctx.pool.disconnectAll();
     await app?.close();
+    release();
   });
 
   it('sets up: connect, install iproute2 (for ss) and nginx for real', async () => {

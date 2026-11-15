@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import { connect as tcp } from 'node:net';
 import { resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it, vi, beforeAll } from 'vitest';
 import type { JobSnapshot } from '@gfv/shared';
 import { buildApp } from '../app.js';
-import { testCtx } from '../testUtil.js';
+import { exclusive, testCtx } from '../testUtil.js';
 
 // M11 on the Docker test VPSes: broadcast, parameterized replay on BOTH servers, pause-on-failure with a
 // REAL failing command, and the server-side confirmation gate.
@@ -23,6 +23,11 @@ vi.setConfig({ testTimeout: 60_000 });
 
 describe.skipIf(!reachable)('jobs: replay and broadcast (vps-a, vps-b)', () => {
   const ctx = testCtx();
+  let release: () => void = () => {};
+  // Files that install packages on this server take turns (concurrent apt/dnf runs fight over the package lock).
+  beforeAll(async () => {
+    release = await exclusive('vps-b');
+  }, 1_800_000);
   let app: FastifyInstance;
   let a: string;
   let b: string;
@@ -65,6 +70,7 @@ describe.skipIf(!reachable)('jobs: replay and broadcast (vps-a, vps-b)', () => {
     for (const id of [a, b]) if (id) await remote(id, `rm -rf ${root}`).catch(() => {});
     ctx.pool.disconnectAll();
     await app?.close();
+    release();
   });
 
   it('sets up two servers', async () => {
