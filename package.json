@@ -25,6 +25,8 @@
     "test": "vitest run",
     "e2e": "pnpm --filter @gfv/web build && playwright test --config e2e/playwright.config.ts",
     "build:package": "node scripts/build-package.mjs",
+    "site:build": "node scripts/build-site.mjs",
+    "site:preview": "SITE_URL=http://127.0.0.1:4400 node scripts/build-site.mjs && node scripts/preview-site.mjs",
     "start": "pnpm --filter @gfv/web build && node --import tsx server/src/cli.ts"
   },
   "devDependencies": {
@@ -33,6 +35,7 @@
     "@types/node": "^26.6.6",
     "esbuild": "^0.28.2",
     "eslint": "^10.14.0",
+    "marked": "^18.2.0",
     "prettier": "^3.10.1",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",

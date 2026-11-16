@@ -8,7 +8,27 @@ export default tseslint.config(
   {
     files: ['scripts/**/*.mjs'],
     languageOptions: {
-      globals: { process: 'readonly', console: 'readonly', document: 'readonly' },
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        document: 'readonly',
+        URL: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['site/assets/site.js'],
+    languageOptions: {
+      sourceType: 'script',
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        localStorage: 'readonly',
+        fetch: 'readonly',
+        IntersectionObserver: 'readonly',
+        setTimeout: 'readonly',
+      },
     },
   },
   {

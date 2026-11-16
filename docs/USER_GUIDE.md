@@ -27,23 +27,10 @@ open an issue, because the guide is only useful if it matches what the program r
 
 ## Starting GFV
 
-You need Node.js 22 or newer and pnpm on the computer you work from. GFV runs there and reaches your servers over
-SSH, so nothing is installed on the servers.
+You need Node.js 22 or newer on the computer you work from. GFV runs there and reaches your servers over SSH, so
+nothing is installed on the servers.
 
-```bash
-pnpm install
-pnpm start
-```
-
-`pnpm start` builds the web app, starts GFV and opens your browser. It accepts the same options as the `gfv`
-command: `--port 5000` to pick a port, `--no-open` to skip opening the browser.
-
-GFV prints an address with a long token in it. Open that address once. The token signs your browser in and then
-disappears from the address bar. If you close the tab by accident, open the same address again, or start GFV again
-for a new one.
-
-You do not need the repository to use GFV. It is published on npm as `gui-for-vps`, and it installs a `gfv` command
-(and a `gui-for-vps` alias, so `npx` works):
+GFV is published on npm as `gui-for-vps`. It installs a `gfv` command, and a `gui-for-vps` alias so `npx` works:
 
 ```bash
 npx gui-for-vps              # run it once without installing
@@ -52,9 +39,26 @@ gfv
 gfv --version
 ```
 
+GFV prints an address with a long token in it and opens your browser. Open that address once. The token signs your
+browser in and then disappears from the address bar. If you close the tab by accident, open the same address again,
+or start GFV again for a new one. `--port 5000` picks a port, and `--no-open` skips opening the browser.
+
 The first install can take a couple of minutes, because the SQLite module is native. If the install fails on a fresh
 server, install a compiler first: `sudo apt install build-essential python3`. Update later with
 `npm install -g gui-for-vps@latest`.
+
+### Running from the repository
+
+If you want to read or change the code, run GFV from a clone. You also need pnpm:
+
+```bash
+git clone https://github.com/Bittu-the-coder/gui-for-vps.git
+cd gui-for-vps
+pnpm install
+pnpm start
+```
+
+`pnpm start` builds the web app, starts GFV and opens your browser. It accepts the same options as the `gfv` command.
 
 Contributors who want to test the package itself can build it from the repository:
 
