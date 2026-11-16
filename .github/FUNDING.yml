@@ -1,8 +1,8 @@
 # This file controls the "Sponsor" button on the repository page.
-# Remove the "#" in front of a line once you have set that platform up, and replace the value with yours.
-# A line that points at an account that does not exist makes GitHub show a warning, so leave the others commented.
+# Each line is a platform. Keep only the ones that are set up: a line that points at an account that does not exist
+# makes GitHub show a warning. To add another, remove the "#" in front of it and replace the value with yours.
 
-# github: [Bittu-the-coder]          # needs GitHub Sponsors to be set up for your account
+github: [Bittu-the-coder]
 # ko_fi: your-ko-fi-name
 # buy_me_a_coffee: your-name
 # liberapay: your-name
