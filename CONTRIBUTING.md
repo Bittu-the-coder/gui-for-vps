@@ -54,6 +54,9 @@ touches anything that talks to a server, start the test servers and run them for
 
 Some tests install real packages inside the containers and can take several minutes on a slow connection.
 
+For changes that affect what a person sees or does, or to try GFV on a provider or distribution I have not, the manual
+test plan in [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md) walks through every app.
+
 ## How the code is organised
 
 The one rule that shapes everything is this: every action that changes or queries a server goes through the Command

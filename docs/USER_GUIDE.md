@@ -74,6 +74,9 @@ HTTP.
 A few apps are not in the Dock on purpose. The **Editor** opens when you open a text file from **Files**. **Users**
 (accounts and the audit log) only exists in hosted mode and only for administrators.
 
+If you want to test every app by hand on real servers, [MANUAL_TESTING.md](MANUAL_TESTING.md) is a checklist for each
+one.
+
 ## Try it without a server
 
 The repository includes throwaway servers that run in Docker, which is the safest way to get to know GFV. You need
