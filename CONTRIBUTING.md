@@ -103,6 +103,19 @@ does not fit the direction of the project. I will always explain why.
 Prettier formats the code and ESLint checks it, so run `pnpm format` and `pnpm lint`. TypeScript is strict
 everywhere. Prefer small, focused modules, and comment the why rather than the what.
 
+## Licensing of contributions
+
+GFV is released under the AGPL-3.0 and is also offered under a separate commercial license (see
+[COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)). To make that possible, when you submit a contribution you confirm that:
+
+- you wrote it, or you have the right to submit it;
+- it is licensed to everyone under the AGPL-3.0, like the rest of the project; and
+- you also grant the maintainer a perpetual, worldwide, non-exclusive, royalty-free right to use, modify, sublicense and
+  distribute your contribution under other licenses, including a commercial one. You keep your own copyright.
+
+The pull request template has a checkbox for this. A pull request without it ticked cannot be merged. If this does not
+suit you, please open an issue to talk about it before writing code.
+
 ## Conduct
 
 Be kind and assume good faith. The [code of conduct](CODE_OF_CONDUCT.md) says what that means in practice.

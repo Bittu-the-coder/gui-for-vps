@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/Bittu-the-coder/gui-for-vps/actions/workflows/ci.yml"><img src="https://github.com/Bittu-the-coder/gui-for-vps/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="AGPL-3.0 license"></a>
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="Pull requests welcome"></a>
   <a href="https://www.npmjs.com/package/gui-for-vps"><img src="https://img.shields.io/npm/v/gui-for-vps.svg" alt="npm version"></a>
   <img src="https://img.shields.io/badge/node-%3E%3D22-339933.svg" alt="Node 22 or newer">
@@ -169,4 +169,15 @@ If GFV is useful to you, a star on the repository helps other people find it.
 
 ## License
 
-GFV is released under the MIT license. See [LICENSE](LICENSE).
+GFV is released under the GNU Affero General Public License v3.0 (AGPL-3.0-only). See [LICENSE](LICENSE).
+
+In plain words: you can use, study, change and share GFV freely. If you modify it and let other people use your
+modified version over a network, for example as a hosted service, the AGPL requires you to offer them your source
+code under the same license. Using GFV to manage your own servers needs nothing extra.
+
+If you want to use GFV in a way the AGPL does not fit, such as building it into a closed-source product or offering it
+as a hosted service without publishing your changes, a commercial license is available. See
+[COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
+
+Versions 0.1.0 and 0.1.1 were released earlier under the MIT license, and that license stays valid for those versions.
+Version 0.2.0 and later are AGPL-3.0.

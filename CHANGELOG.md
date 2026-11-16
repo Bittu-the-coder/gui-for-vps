@@ -3,6 +3,14 @@
 All notable changes to GFV are listed here. I follow semantic versioning loosely while the project is young:
 until 1.0, a minor version can change things.
 
+## 0.2.0
+
+- License change: GFV is now released under the GNU Affero General Public License v3.0 (AGPL-3.0-only), with a
+  commercial license available for uses the AGPL does not fit (see `COMMERCIAL-LICENSE.md`). Versions 0.1.0 and 0.1.1
+  were released under the MIT license and remain available under it.
+- Contributions are accepted under the AGPL, and contributors grant the maintainer the right to also offer their work
+  under a commercial license (see `CONTRIBUTING.md`).
+
 ## 0.1.1
 
 - The npm package is `gui-for-vps`, because npm refused the name `gfv` as too similar to existing packages. It now

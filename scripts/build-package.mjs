@@ -43,7 +43,7 @@ await build({
 console.log('3/4 copying the web app and migrations');
 cpSync(resolve(root, 'web/dist'), resolve(out, 'web'), { recursive: true });
 cpSync(resolve(root, 'server/drizzle'), resolve(out, 'drizzle'), { recursive: true });
-for (const f of ['README.md', 'LICENSE'])
+for (const f of ['README.md', 'LICENSE', 'COMMERCIAL-LICENSE.md'])
   if (existsSync(resolve(root, f))) cpSync(resolve(root, f), resolve(out, f));
 
 console.log('4/4 writing package.json');
@@ -74,9 +74,9 @@ writeFileSync(
       type: 'module',
       // Both names: `npx gui-for-vps` runs the bin named after the package, and `gfv` is the short command.
       bin: { gfv: 'dist/cli.js', 'gui-for-vps': 'dist/cli.js' },
-      files: ['dist', 'web', 'drizzle', 'README.md', 'LICENSE'],
+      files: ['dist', 'web', 'drizzle', 'README.md', 'LICENSE', 'COMMERCIAL-LICENSE.md'],
       engines: { node: '>=22' },
-      license: 'MIT',
+      license: 'AGPL-3.0-only',
       dependencies: deps,
     },
     null,
