@@ -72,7 +72,8 @@ writeFileSync(
       repository: { type: 'git', url: 'git+https://github.com/Bittu-the-coder/gui-for-vps.git' },
       bugs: { url: 'https://github.com/Bittu-the-coder/gui-for-vps/issues' },
       type: 'module',
-      bin: { gfv: 'dist/cli.js' },
+      // Both names: `npx gui-for-vps` runs the bin named after the package, and `gfv` is the short command.
+      bin: { gfv: 'dist/cli.js', 'gui-for-vps': 'dist/cli.js' },
       files: ['dist', 'web', 'drizzle', 'README.md', 'LICENSE'],
       engines: { node: '>=22' },
       license: 'MIT',

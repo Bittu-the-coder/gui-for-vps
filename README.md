@@ -6,6 +6,7 @@
   <a href="https://github.com/Bittu-the-coder/gui-for-vps/actions/workflows/ci.yml"><img src="https://github.com/Bittu-the-coder/gui-for-vps/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="Pull requests welcome"></a>
+  <a href="https://www.npmjs.com/package/gui-for-vps"><img src="https://img.shields.io/npm/v/gui-for-vps.svg" alt="npm version"></a>
   <img src="https://img.shields.io/badge/node-%3E%3D22-339933.svg" alt="Node 22 or newer">
 </p>
 
@@ -98,8 +99,8 @@ and there is no way to recover it if you forget it.
 If you want to try GFV before pointing it at a real server, the repository includes throwaway Docker servers. The
 instructions are in [docs/USER_GUIDE.md](docs/USER_GUIDE.md#try-it-without-a-server).
 
-You can also run it without cloning anything. The package is called `gui-for-vps` on npm, and the command it
-installs is `gfv`:
+You can also run it without cloning anything. GFV is on npm as
+[`gui-for-vps`](https://www.npmjs.com/package/gui-for-vps), and the command it installs is `gfv`:
 
 ```bash
 npx gui-for-vps
@@ -108,7 +109,11 @@ npm install -g gui-for-vps
 gfv
 ```
 
-The first install can take a couple of minutes, because GFV uses a native SQLite module that may need to be built.
+The first install can take a couple of minutes, because GFV uses a native SQLite module that may need to be built
+(on a fresh Ubuntu or Debian server, `sudo apt install build-essential python3` first if it complains).
+
+If you want to reach GFV from anywhere instead of only from your own computer, run it on a VPS in hosted mode behind
+nginx and HTTPS. [docs/HOSTED.md](docs/HOSTED.md) has the full step-by-step, including a free domain.
 
 ## Your data and your servers
 
@@ -131,8 +136,9 @@ Ubuntu and Fedora containers. The suite has a few hundred unit and integration t
 drives the real interface.
 
 I have not yet tested it against a large number of real, different servers. I have not run the assistant against the
-real Anthropic API or a real Ollama install, only against fake servers that speak the same protocol. Hosted mode has
-not been put in front of a real TLS proxy on the internet, and nobody besides me has reviewed its security. If you
+real Anthropic API or a real Ollama install, only against fake servers that speak the same protocol. I have set hosted mode up
+once on a real Azure VPS behind nginx and a Let's Encrypt certificate, and signing in and using it worked, but that is
+one deployment, and nobody besides me has reviewed its security. If you
 want to use hosted mode for anything important, please read [docs/HOSTED.md](docs/HOSTED.md) first and review it
 yourself.
 

@@ -1,7 +1,7 @@
 {
   "name": "gfv",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A desktop in your browser for your VPS servers: it teaches you, protects you, and remembers what you did.",
   "license": "MIT",
   "repository": {

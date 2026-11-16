@@ -3,6 +3,17 @@
 All notable changes to GFV are listed here. I follow semantic versioning loosely while the project is young:
 until 1.0, a minor version can change things.
 
+## 0.1.1
+
+- The npm package is `gui-for-vps`, because npm refused the name `gfv` as too similar to existing packages. It now
+  installs both a `gui-for-vps` and a `gfv` command, so `npx gui-for-vps` works.
+- `gfv --version` reports the right version from the published package.
+- Connection errors say what to check (timeouts, refused connections, unknown hosts, no route) instead of showing the
+  raw SSH message.
+- Integration tests skip cleanly when the Docker test servers or their key are missing, so CI on a fresh clone is green.
+- Docs: a step-by-step guide for running hosted mode on a VPS behind nginx with a free domain, tested on a real Azure
+  VPS.
+
 ## 0.1.0
 
 This is the first public release. I built it over several months, and I tested the risky parts against real systems
@@ -26,4 +37,5 @@ What I have not proven:
 - I have not used GFV on many different real servers. Ubuntu and Debian are the main targets, and Fedora is partly
   supported.
 - I have not run the assistant against the real Anthropic API or a real Ollama server.
-- Hosted mode has not been put behind a real TLS proxy on the internet, and nobody has reviewed its security except me.
+- Hosted mode has been set up once on a real Azure VPS behind nginx and Let's Encrypt (the steps in `docs/HOSTED.md`),
+  but nobody has reviewed its security except me.

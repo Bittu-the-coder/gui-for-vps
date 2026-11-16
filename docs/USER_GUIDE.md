@@ -42,14 +42,37 @@ GFV prints an address with a long token in it. Open that address once. The token
 disappears from the address bar. If you close the tab by accident, open the same address again, or start GFV again
 for a new one.
 
-You can also build an installable package and install it as a command:
+You do not need the repository to use GFV. It is published on npm as `gui-for-vps`, and it installs a `gfv` command
+(and a `gui-for-vps` alias, so `npx` works):
+
+```bash
+npx gui-for-vps              # run it once without installing
+npm install -g gui-for-vps   # or install it
+gfv
+gfv --version
+```
+
+The first install can take a couple of minutes, because the SQLite module is native. If the install fails on a fresh
+server, install a compiler first: `sudo apt install build-essential python3`. Update later with
+`npm install -g gui-for-vps@latest`.
+
+Contributors who want to test the package itself can build it from the repository:
 
 ```bash
 pnpm build:package
-(cd dist-pkg && pnpm pack)
-npm install -g ./dist-pkg/gui-for-vps-0.1.0.tgz
-gfv
+(cd dist-pkg && npm pack)
+npm install -g ./dist-pkg/gui-for-vps-*.tgz
 ```
+
+### Using GFV from anywhere
+
+By default GFV only listens on your own computer. To reach it from a laptop or phone, run it on a VPS in hosted mode
+behind nginx and HTTPS. That adds accounts and two-factor sign-in. The whole procedure, with a free DuckDNS domain, is
+in [HOSTED.md](HOSTED.md). Never just open port 4310 to the internet: hosted mode refuses to sign anyone in over plain
+HTTP.
+
+A few apps are not in the Dock on purpose. The **Editor** opens when you open a text file from **Files**. **Users**
+(accounts and the audit log) only exists in hosted mode and only for administrators.
 
 ## Try it without a server
 

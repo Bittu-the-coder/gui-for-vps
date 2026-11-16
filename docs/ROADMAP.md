@@ -15,7 +15,8 @@ differently. If you can run GFV against a real VPS and tell me what broke, that 
 Please note the provider, the distribution and its version.
 
 I also have not run the assistant against the real Anthropic API or a real Ollama install, and hosted mode has not
-had a security review or a real deployment behind a TLS proxy. Reports on either are very welcome.
+had a security review. I have only deployed it once behind nginx on a real VPS, so reports from other setups (other
+providers, other proxies) are very welcome too.
 
 ## Supporting more systems
 

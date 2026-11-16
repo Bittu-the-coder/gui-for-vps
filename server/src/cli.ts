@@ -31,7 +31,8 @@ function version(): string {
   for (const p of [resolve(HERE, '../package.json'), resolve(HERE, '../../package.json')]) {
     if (!existsSync(p)) continue;
     const pkg = JSON.parse(readFileSync(p, 'utf8')) as { name?: string; version: string };
-    if (pkg.name === 'gfv') return pkg.version;
+    // The repo's root package is called gfv; the published one is gui-for-vps.
+    if (pkg.name === 'gfv' || pkg.name === 'gui-for-vps') return pkg.version;
   }
   return '0.0.0';
 }
